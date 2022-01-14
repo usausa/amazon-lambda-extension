@@ -1,10 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <AWSProjectType>Lambda</AWSProjectType>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>obj\Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AmazonLambdaExtension.SourceGenerator\AmazonLambdaExtension.SourceGenerator.csproj" />
     <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
   </ItemGroup>
+
+  <Import Project="..\AmazonLambdaExtension.SourceGenerator\build\AmazonLambdaExtension.SourceGenerator.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\AmazonLambdaExtension.SourceGenerator\AmazonLambdaExtension.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>
