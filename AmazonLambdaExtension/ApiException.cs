@@ -3,11 +3,11 @@ namespace AmazonLambdaExtension;
 #pragma warning disable CA1032
 public sealed class ApiException : Exception
 {
-    public int Code { get; set; }
+    public int StatusCode { get; set; }
 
-    public ApiException(int code)
+    public ApiException(int statusCode)
     {
-        Code = code;
+        StatusCode = statusCode;
     }
 }
 #pragma warning restore CA1032

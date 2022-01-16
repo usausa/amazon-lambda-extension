@@ -4,13 +4,13 @@ using AmazonLambdaExtension.SourceGenerator.Models;
 
 public partial class LambdaTemplate
 {
-    private readonly LambdaModel function;
+    private readonly FunctionInfo function;
 
-    private readonly MethodModel method;
+    private readonly HandlerInfo handler;
 
-    public LambdaTemplate(LambdaModel function, MethodModel method)
+    public LambdaTemplate(FunctionInfo function, HandlerInfo handler)
     {
         this.function = function;
-        this.method = method;
+        this.handler = handler;
     }
 }

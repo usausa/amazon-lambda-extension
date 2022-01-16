@@ -1,7 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator;
 
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Text;
 
 using AmazonLambdaExtension.SourceGenerator.Models;
@@ -11,11 +10,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
+using TypeInfo = AmazonLambdaExtension.SourceGenerator.Models.TypeInfo;
+
 [Generator]
 public sealed class TestGenerator : IIncrementalGenerator
 {
-    private const string TargetClassAttribute = "AmazonLambdaExtension.FunctionAttribute";
-    private const string TargetMethodAttribute = "AmazonLambdaExtension.ApiGatewayAttribute";
+    private const string LambdaAttribute = "AmazonLambdaExtension.LambdaAttribute";
+    private const string HttpApiAttribute = "AmazonLambdaExtension.HttpApiAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -36,7 +37,7 @@ public sealed class TestGenerator : IIncrementalGenerator
     private static ClassDeclarationSyntax? GetTargetSyntax(GeneratorSyntaxContext context)
     {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
-        return HasAttribute(context.SemanticModel, classDeclarationSyntax.AttributeLists, TargetClassAttribute) ? classDeclarationSyntax : null;
+        return HasAttribute(context.SemanticModel, classDeclarationSyntax.AttributeLists, LambdaAttribute) ? classDeclarationSyntax : null;
     }
 
     private static void Execute(SourceProductionContext context, Compilation compilation, ImmutableArray<ClassDeclarationSyntax> classes)
@@ -54,23 +55,7 @@ public sealed class TestGenerator : IIncrementalGenerator
             // Build metadata
             var classSemantic = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
             var classSymbol = classSemantic.GetDeclaredSymbol(classDeclarationSyntax)!;
-            var functionModel = BuildFunctionModel((INamedTypeSymbol)classSymbol);
-
-            var serviceResolverData = classSymbol.GetAttributes()
-                .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == "AmazonLambdaExtension.ServiceResolverAttribute");
-            if (serviceResolverData is not null)
-            {
-                var argument = serviceResolverData.ConstructorArguments[0];
-                var value = (INamedTypeSymbol)argument.Value!;
-
-                foreach (var member in value.GetMembers())
-                {
-                    // TODO ISymbol
-                    Debug.WriteLine(member);
-                }
-
-                Debug.WriteLine(value);
-            }
+            var functionInfo = BuildFunctionInfo((ITypeSymbol)classSymbol);
 
             foreach (var member in classDeclarationSyntax.Members)
             {
@@ -85,17 +70,17 @@ public sealed class TestGenerator : IIncrementalGenerator
                 // Build metadata
                 var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
 
-                if (!HasAttribute(methodSemantic, methodDeclarationSyntax.AttributeLists, TargetMethodAttribute))
+                if (!HasAttribute(methodSemantic, methodDeclarationSyntax.AttributeLists, HttpApiAttribute))
                 {
                     continue;
                 }
 
                 var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
-                var methodModel = BuildFunctionModel((IMethodSymbol)methodSymbol);
+                var handlerInfo = BuildHandlerInfo((IMethodSymbol)methodSymbol);
 
-                var template = new LambdaTemplate(functionModel, methodModel);
+                var template = new LambdaTemplate(functionInfo, handlerInfo);
                 var sourceText = template.TransformText();
-                context.AddSource($"{functionModel.Name}_{methodModel.Name}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
+                context.AddSource($"{handlerInfo.WrapperClassName}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
             }
         }
     }
@@ -104,19 +89,66 @@ public sealed class TestGenerator : IIncrementalGenerator
     // Builder
     //--------------------------------------------------------------------------------
 
-    private static LambdaModel BuildFunctionModel(INamedTypeSymbol symbol)
+    private static FunctionInfo BuildFunctionInfo(ITypeSymbol symbol)
     {
-        return new LambdaModel
+        // TODO GetParameter ITypeSymbol's
+        //    public TypeInfo[] ConstructorParameters { get; set; }
+        // TODO GetAttribute and parameter ITypeSymbol
+        //    public TypeInfo ServiceLocator { get; set; }
+
+        //var serviceResolverData = classSymbol.GetAttributes()
+        //    .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == "AmazonLambdaExtension.ServiceResolverAttribute");
+        //if (serviceResolverData is not null)
+        //{
+        //    var argument = serviceResolverData.ConstructorArguments[0];
+        //    var value = (ITypeSymbol)argument.Value!;
+
+        //    foreach (var member in value.GetMembers())
+        //    {
+        //        // TODO ISymbol
+        //        Debug.WriteLine(member);
+        //    }
+
+        //    Debug.WriteLine(value);
+        //}
+
+        // TODO enum method, return type, parameter type, generic
+        //    public string FindService(TypeInfo type)
+        //    public string FindSerializer()
+
+        return new FunctionInfo
         {
-            Name = symbol.Name
+            Function = BuildTypeInfo(symbol)
         };
     }
 
-    private static MethodModel BuildFunctionModel(IMethodSymbol symbol)
+    private static HandlerInfo BuildHandlerInfo(IMethodSymbol symbol)
     {
-        return new MethodModel
+        var parameters = new List<ParameterInfo>();
+        //    public ParameterInfo[] Parameters { get; set; }
+        //    public TypeInfo ResultType { get; set; }
+        return new HandlerInfo
         {
-            Name = symbol.Name
+            ContainingNamespace = symbol.ContainingNamespace.ToDisplayString(),
+            WrapperClassName = $"{symbol.ContainingType.Name}_{symbol.Name}_Generated",
+            IsAsync = symbol.IsAsync,
+            MethodName = symbol.Name,
+            Parameters = parameters
+        };
+    }
+
+    //public class ParameterInfo
+    //    public string Name { get; set; }
+    //    public TypeInfo Type { get; set; }
+    //    public ParameterType ParameterType { get; set; }
+
+    private static TypeInfo BuildTypeInfo(ITypeSymbol symbol)
+    {
+        // TODO    public bool IsMultiType { get; set; }
+        return new TypeInfo
+        {
+            FullName = symbol.ToDisplayString(),
+            IsNullable = symbol.IsReferenceType || symbol.IsNullable()
         };
     }
 
