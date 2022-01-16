@@ -18,9 +18,9 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
     /// Class to produce the template output
     /// </summary>
     
-    #line 1 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\FunctionTemplate.tt"
+    #line 1 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "17.0.0.0")]
-    public partial class FunctionTemplate : FunctionTemplateBase
+    public partial class LambdaTemplate : LambdaTemplateBase
     {
 #line hidden
         /// <summary>
@@ -30,14 +30,14 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
         {
             this.Write("// Test ");
             
-            #line 6 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\FunctionTemplate.tt"
+            #line 6 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Name));
             
             #line default
             #line hidden
             this.Write(" ");
             
-            #line 6 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\FunctionTemplate.tt"
+            #line 6 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(method.Name));
             
             #line default
@@ -54,7 +54,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
     /// Base class for this transformation
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "17.0.0.0")]
-    public class FunctionTemplateBase
+    public class LambdaTemplateBase
     {
         #region Fields
         private global::System.Text.StringBuilder generationEnvironmentField;

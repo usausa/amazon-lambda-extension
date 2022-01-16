@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension;
+namespace AmazonLambdaExtension.Annotations;
 
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class ServiceResolverAttribute : Attribute

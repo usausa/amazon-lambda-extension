@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension;
+namespace AmazonLambdaExtension.Annotations;
 
 [AttributeUsage(AttributeTargets.Parameter)]
 public sealed class FromHeaderAttribute : Attribute

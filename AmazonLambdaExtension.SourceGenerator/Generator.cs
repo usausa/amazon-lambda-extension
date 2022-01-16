@@ -93,7 +93,7 @@ public sealed class TestGenerator : IIncrementalGenerator
                 var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
                 var methodModel = BuildFunctionModel((IMethodSymbol)methodSymbol);
 
-                var template = new FunctionTemplate(functionModel, methodModel);
+                var template = new LambdaTemplate(functionModel, methodModel);
                 var sourceText = template.TransformText();
                 context.AddSource($"{functionModel.Name}_{methodModel.Name}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
             }
@@ -104,9 +104,9 @@ public sealed class TestGenerator : IIncrementalGenerator
     // Builder
     //--------------------------------------------------------------------------------
 
-    private static FunctionModel BuildFunctionModel(INamedTypeSymbol symbol)
+    private static LambdaModel BuildFunctionModel(INamedTypeSymbol symbol)
     {
-        return new FunctionModel
+        return new LambdaModel
         {
             Name = symbol.Name
         };

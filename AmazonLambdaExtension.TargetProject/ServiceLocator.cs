@@ -1,8 +1,21 @@
 namespace AmazonLambdaExtension.TargetProject;
 
-public class ServiceLocator
+using AmazonLambdaExtension.TargetProject.Components.Logging;
+
+using Microsoft.Extensions.Logging;
+
+public sealed class ServiceLocator : IDisposable
 {
-    public ICalculator ResolveCalculator() => new Calculator();
+    private readonly ILoggerFactory loggerFactory = new LambdaLoggerFactory(LogLevel.Information, null);
+
+    public void Dispose()
+    {
+        loggerFactory.Dispose();
+    }
+
+    public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
+
+    public static ICalculator ResolveCalculator() => new Calculator();
 }
 
 public interface ICalculator

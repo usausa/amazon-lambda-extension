@@ -4,9 +4,11 @@ using System.Net;
 
 using Amazon.Lambda.APIGatewayEvents;
 
+using AmazonLambdaExtension.Annotations;
+
 using Microsoft.Extensions.Logging;
 
-[Function]
+[Lambda]
 [ServiceResolver(typeof(ServiceLocator))]
 public class Function1
 {
@@ -17,7 +19,7 @@ public class Function1
         this.logger = logger;
     }
 
-    [ApiGateway]
+    [HttpApi]
     public APIGatewayProxyResponse Get1(APIGatewayProxyRequest request)
     {
         logger.LogInformation("Get Request. path=[{Path}]", request.Path);
@@ -32,7 +34,7 @@ public class Function1
         return response;
     }
 
-    [ApiGateway]
+    [HttpApi]
     public APIGatewayProxyResponse Get2(APIGatewayProxyRequest request)
     {
         logger.LogInformation("Get Request. path=[{Path}]", request.Path);
@@ -48,7 +50,7 @@ public class Function1
     }
 }
 
-[Function]
+[Lambda]
 [ServiceResolver(typeof(ServiceLocator))]
 public class Function2
 {
@@ -59,7 +61,7 @@ public class Function2
         this.logger = logger;
     }
 
-    [ApiGateway]
+    [HttpApi]
     public APIGatewayProxyResponse Get1(APIGatewayProxyRequest request)
     {
         logger.LogInformation("Get Request. path=[{Path}]", request.Path);

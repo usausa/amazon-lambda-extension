@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class FunctionModel
+public class LambdaModel
 {
     // TODO name for wrapper class
     public string? Name { get; set; }

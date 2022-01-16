@@ -32,17 +32,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Templates\FunctionTemplate.tt">
+    <None Update="Templates\LambdaTemplate.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>FunctionTemplate.cs</LastGenOutput>
+      <LastGenOutput>LambdaTemplate.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Templates\FunctionTemplate.cs">
+    <Compile Update="Templates\LambdaTemplate.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>FunctionTemplate.tt</DependentUpon>
+      <DependentUpon>LambdaTemplate.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
