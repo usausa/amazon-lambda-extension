@@ -16,8 +16,6 @@ public class LambdaModel
     [AllowNull]
     public TypeModel Function { get; set; }
 
-    public string? Name { get; set; }
-
     public string FindService(TypeModel type)
     {
         return $"GetService<{type.FullName}>()";
