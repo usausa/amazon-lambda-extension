@@ -1,14 +1,31 @@
 #nullable disable
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
+using Microsoft.CodeAnalysis;
+
 public class FunctionInfo
 {
-    public TypeInfo Function { get; set; }
+    private readonly ITypeSymbol serviceLocatorSymbol;
 
-    public List<TypeInfo> ConstructorParameters { get; set; }
+    public TypeInfo Function { get; }
 
-    public TypeInfo ServiceLocator { get; set; }
+    public List<TypeInfo> ConstructorParameters { get; }
 
+    public TypeInfo ServiceLocator { get; }
+
+    public FunctionInfo(
+        TypeInfo function,
+        List<TypeInfo> constructorParameters,
+        TypeInfo serviceLocator,
+        ITypeSymbol serviceLocatorSymbol)
+    {
+        Function = function;
+        ConstructorParameters = constructorParameters;
+        ServiceLocator = serviceLocator;
+        this.serviceLocatorSymbol = serviceLocatorSymbol;
+    }
+
+    // TODO ServiceLocatorInfo ?
     public string FindService(TypeInfo type)
     {
         return $"GetService<{type.FullName}>()";

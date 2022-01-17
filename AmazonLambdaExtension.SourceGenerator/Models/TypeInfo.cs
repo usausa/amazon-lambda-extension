@@ -7,7 +7,9 @@ public class TypeInfo
 
     public bool IsNullable { get; set; } = true;
 
-    public bool IsMultiType { get; set; }
+    public bool IsArrayType { get; set; }
+
+    public bool IsListType { get; set; }
 }
 
 public static class TypeModelExtensions

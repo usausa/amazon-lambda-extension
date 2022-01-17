@@ -15,8 +15,10 @@ using TypeInfo = AmazonLambdaExtension.SourceGenerator.Models.TypeInfo;
 [Generator]
 public sealed class TestGenerator : IIncrementalGenerator
 {
-    private const string LambdaAttribute = "AmazonLambdaExtension.LambdaAttribute";
-    private const string HttpApiAttribute = "AmazonLambdaExtension.HttpApiAttribute";
+    private const string LambdaAttribute = "AmazonLambdaExtension.Annotations.LambdaAttribute";
+    private const string HttpApiAttribute = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
+
+    private const string ServiceResolverAttribute = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -57,6 +59,10 @@ public sealed class TestGenerator : IIncrementalGenerator
             var classSymbol = classSemantic.GetDeclaredSymbol(classDeclarationSyntax)!;
             var functionInfo = BuildFunctionInfo((ITypeSymbol)classSymbol);
 
+            // TODO enum method, return type, parameter type, generic
+            //    public string FindService(TypeInfo type)
+            //    public string FindSerializer()
+
             foreach (var member in classDeclarationSyntax.Members)
             {
                 if (member is not MethodDeclarationSyntax methodDeclarationSyntax)
@@ -91,64 +97,74 @@ public sealed class TestGenerator : IIncrementalGenerator
 
     private static FunctionInfo BuildFunctionInfo(ITypeSymbol symbol)
     {
-        // TODO GetParameter ITypeSymbol's
-        //    public TypeInfo[] ConstructorParameters { get; set; }
-        // TODO GetAttribute and parameter ITypeSymbol
-        //    public TypeInfo ServiceLocator { get; set; }
+        var ctor = symbol.GetConstructors()
+            .OrderByDescending(x => x.Parameters.Length)
+            .First();
+        var serviceLocator = symbol.GetAttributes()
+            .Where(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttribute)
+            .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
+            .FirstOrDefault();
 
-        //var serviceResolverData = classSymbol.GetAttributes()
-        //    .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == "AmazonLambdaExtension.ServiceResolverAttribute");
-        //if (serviceResolverData is not null)
-        //{
-        //    var argument = serviceResolverData.ConstructorArguments[0];
-        //    var value = (ITypeSymbol)argument.Value!;
-
-        //    foreach (var member in value.GetMembers())
-        //    {
-        //        // TODO ISymbol
-        //        Debug.WriteLine(member);
-        //    }
-
-        //    Debug.WriteLine(value);
-        //}
-
-        // TODO enum method, return type, parameter type, generic
-        //    public string FindService(TypeInfo type)
-        //    public string FindSerializer()
-
-        return new FunctionInfo
-        {
-            Function = BuildTypeInfo(symbol)
-        };
+        // TODO ServiceLocatorInfo 別?
+        return new FunctionInfo(
+            BuildTypeInfo(symbol),
+            ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
+            serviceLocator is not null ? BuildTypeInfo(serviceLocator) : null,
+            serviceLocator);
     }
 
     private static HandlerInfo BuildHandlerInfo(IMethodSymbol symbol)
     {
-        var parameters = new List<ParameterInfo>();
-        //    public ParameterInfo[] Parameters { get; set; }
-        //    public TypeInfo ResultType { get; set; }
         return new HandlerInfo
         {
             ContainingNamespace = symbol.ContainingNamespace.ToDisplayString(),
             WrapperClassName = $"{symbol.ContainingType.Name}_{symbol.Name}_Generated",
             IsAsync = symbol.IsAsync,
+            ResultType = ResolveReturnType(symbol),
             MethodName = symbol.Name,
-            Parameters = parameters
+            Parameters = symbol.Parameters.Select(static x => BuildParameterInfo(x)).ToList()
         };
     }
 
-    //public class ParameterInfo
-    //    public string Name { get; set; }
-    //    public TypeInfo Type { get; set; }
-    //    public ParameterType ParameterType { get; set; }
+    private static TypeInfo? ResolveReturnType(IMethodSymbol symbol)
+    {
+        if (symbol.ReturnsVoid)
+        {
+            return null;
+        }
 
+        var fullName = symbol.ToDisplayString();
+        if (fullName.StartsWith("System.Threading.Tasks.Task") ||
+            fullName.StartsWith("System.Threading.Tasks.ValueTask"))
+        {
+            return symbol.ReturnType.IsGenericType() ? BuildTypeInfo(symbol.TypeArguments.First()) : null;
+        }
+
+        return BuildTypeInfo(symbol.ReturnType);
+    }
+
+    private static ParameterInfo BuildParameterInfo(IParameterSymbol symbol)
+    {
+        // TODO Attribute 1
+
+        return new ParameterInfo
+        {
+            Name = symbol.Name,
+            ParameterType = ParameterType.FromBody, // TODO
+            Type = BuildTypeInfo(symbol.Type)
+        };
+    }
+
+    // TODO IsGeneric -> Lookup用、型制約お見る？
     private static TypeInfo BuildTypeInfo(ITypeSymbol symbol)
     {
         // TODO    public bool IsMultiType { get; set; }
         return new TypeInfo
         {
             FullName = symbol.ToDisplayString(),
-            IsNullable = symbol.IsReferenceType || symbol.IsNullable()
+            IsNullable = symbol.IsReferenceType || symbol.IsNullable(),
+            //IsMultiType = symbol.isa
+            //IsMultiType = symbol.isa
         };
     }
 

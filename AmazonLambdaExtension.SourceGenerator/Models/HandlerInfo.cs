@@ -20,9 +20,6 @@ public class HandlerInfo
 
 public static class HandlerInfoExtensions
 {
-    public static bool HasValidationParameter(this HandlerInfo handler) =>
-        handler.Parameters.Any(x => x.ParameterType != ParameterType.FromService);
-
     public static bool HasBodyParameter(this HandlerInfo handler) =>
         handler.Parameters.Any(x => x.ParameterType == ParameterType.FromBody);
 }

@@ -1,35 +1,183 @@
 namespace AmazonLambdaExtension.Helpers;
 
-using System.Globalization;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 public static class BindHelper
 {
-//   catch (Exception e) when(e is InvalidCastException || e is FormatException || e is OverflowException || e is ArgumentException)
-//   validationErrors.Add($"Value {request.QueryStringParameters["x"]} at 'x' failed to satisfy constraint: {e.Message}");
+    private delegate bool TryConverter<T>(string value, out T result);
 
-    // TODO custom
-    public static T BindValue<T>(IDictionary<string, string> parameter, string key, List<string> errors)
+    private static class TypeConverterConverter<T>
     {
-        if (!parameter.TryGetValue(key, out var value))
-        {
-            errors.Add("Type convert failed");
-            return default!;
-        }
+        private static readonly Type Type = typeof(T);
 
-        // TODO Try
-        return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        private static readonly TypeConverter Converter = TypeDescriptor.GetConverter(typeof(T));
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Ignore")]
+        public static bool TryConvert(string value, out T result)
+        {
+            try
+            {
+                result = (T)Converter.ConvertTo(value, Type)!;
+                return true;
+            }
+            catch (Exception)
+            {
+                result = default!;
+                return false;
+            }
+        }
     }
 
-    // TODO custom
-    public static T BindValues<T>(IDictionary<string, IList<string>> parameter, string key, List<string> errors)
+    private static class BindConverter<T>
     {
-        if (!parameter.TryGetValue(key, out var values))
+        public static readonly TryConverter<T> TryConverter = ResolveConverter();
+
+        private static TryConverter<T> ResolveConverter()
         {
-            errors.Add("Type convert failed");
-            return default!;
+            var type = typeof(T);
+            if (type == typeof(bool))
+            {
+                return (TryConverter<T>)(object)(TryConverter<bool>)Boolean.TryParse;
+            }
+            if (type == typeof(char))
+            {
+                return (TryConverter<T>)(object)(TryConverter<char>)Char.TryParse;
+            }
+            if (type == typeof(sbyte))
+            {
+                return (TryConverter<T>)(object)(TryConverter<sbyte>)SByte.TryParse;
+            }
+            if (type == typeof(byte))
+            {
+                return (TryConverter<T>)(object)(TryConverter<byte>)Byte.TryParse;
+            }
+            if (type == typeof(short))
+            {
+                return (TryConverter<T>)(object)(TryConverter<short>)Int16.TryParse;
+            }
+            if (type == typeof(ushort))
+            {
+                return (TryConverter<T>)(object)(TryConverter<ushort>)UInt16.TryParse;
+            }
+            if (type == typeof(int))
+            {
+                return (TryConverter<T>)(object)(TryConverter<int>)Int32.TryParse;
+            }
+            if (type == typeof(uint))
+            {
+                return (TryConverter<T>)(object)(TryConverter<uint>)UInt32.TryParse;
+            }
+            if (type == typeof(long))
+            {
+                return (TryConverter<T>)(object)(TryConverter<long>)Int64.TryParse;
+            }
+            if (type == typeof(ulong))
+            {
+                return (TryConverter<T>)(object)(TryConverter<ulong>)UInt64.TryParse;
+            }
+            if (type == typeof(float))
+            {
+                return (TryConverter<T>)(object)(TryConverter<float>)Single.TryParse;
+            }
+            if (type == typeof(double))
+            {
+                return (TryConverter<T>)(object)(TryConverter<double>)Double.TryParse;
+            }
+            if (type == typeof(decimal))
+            {
+                return (TryConverter<T>)(object)(TryConverter<decimal>)Decimal.TryParse;
+            }
+            if (type == typeof(DateTime))
+            {
+                return (TryConverter<T>)(object)(TryConverter<DateTime>)DateTime.TryParse;
+            }
+
+            var converter = TypeDescriptor.GetConverter(type);
+            if (converter.CanConvertFrom(typeof(string)))
+            {
+                return TypeConverterConverter<T>.TryConvert;
+            }
+
+            return AlwaysFailed;
         }
 
-        // TODO Try
-        return (T)Convert.ChangeType(values, typeof(T), CultureInfo.InvariantCulture);
+        private static bool AlwaysFailed(string value, out T result)
+        {
+            result = default!;
+            return false;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBind<T>(IDictionary<string, string>? parameter, string key, out T result)
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var value) || String.IsNullOrEmpty(value))
+        {
+            result = default!;
+            return true;
+        }
+
+        return BindConverter<T>.TryConverter(value, out result);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBindArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T[] results)
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
+        {
+            results = Array.Empty<T>();
+            return true;
+        }
+
+        var hasError = false;
+        results = new T[values.Count];
+        for (var i = 0; i < results.Length; i++)
+        {
+            var value = values[i];
+            if (!String.IsNullOrEmpty(value))
+            {
+                if (BindConverter<T>.TryConverter(value, out var result))
+                {
+                    results[i] = result;
+                }
+                else
+                {
+                    hasError = true;
+                }
+            }
+        }
+
+        return !hasError;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBindList<T>(IDictionary<string, IList<string>>? parameter, string key, out List<T> results)
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
+        {
+            results = new List<T>();
+            return true;
+        }
+
+        var hasError = false;
+        results = new List<T>();
+        for (var i = 0; i < results.Count; i++)
+        {
+            var value = values[i];
+            if (!String.IsNullOrEmpty(value))
+            {
+                if (BindConverter<T>.TryConverter(value, out var result))
+                {
+                    results[i] = result;
+                }
+                else
+                {
+                    hasError = true;
+                }
+            }
+        }
+
+        return !hasError;
     }
 }

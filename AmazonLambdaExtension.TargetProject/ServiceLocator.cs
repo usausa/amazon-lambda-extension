@@ -1,5 +1,6 @@
 namespace AmazonLambdaExtension.TargetProject;
 
+using AmazonLambdaExtension.Serialization;
 using AmazonLambdaExtension.TargetProject.Components.Logging;
 
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,12 @@ public sealed class ServiceLocator : IDisposable
     public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
 
     public static ICalculator ResolveCalculator() => new Calculator();
+
+    // TODO
+    public IBodySerializer ResolveSerializer() => JsonBodySerializer.Default;
+
+    // TODO
+    public T GetService<T>() => default!;
 }
 
 public interface ICalculator

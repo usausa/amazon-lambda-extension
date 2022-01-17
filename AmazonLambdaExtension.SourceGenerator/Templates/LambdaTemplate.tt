@@ -14,7 +14,7 @@ namespace <#= handler.ContainingNamespace #>
 <# } #>
 
 <# if (handler.HasBodyParameter()) { #>
-        private readonly AmazonLambdaExtension.Serializer.IBodySerializer serializer;
+        private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
 <# } #>
         private readonly <#= function.Function.FullName #> function;
@@ -27,72 +27,64 @@ namespace <#= handler.ContainingNamespace #>
 <# if (handler.HasBodyParameter()) { #>
             serializer = serviceLocator.<#= function.FindSerializer() #> ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
 <# } #>
-            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => "serializer." + function.FindService(x))) #>);
+            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => "serviceLocator." + function.FindService(x))) #>);
         }
 
 <# if (handler.IsAsync) { #>
-        public async System.Threding.ValueTask<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
+        public async System.Threding.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } else { #>
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } #>
         {
-            if (request.Headers.ContainsKey("X-Lambda-Keep-Alive"))
+            if (request.Headers?.ContainsKey("X-Lambda-Hot-Load") ?? false)
             {
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
             }
 
             try
             {
-<# if (handler.HasValidationParameter()) { #>
-                var validationErrors = new System.Collections.Generic.List<string>();
-<# } #>
-
 <# for (var i = 0; i < handler.Parameters.Count; i++) { #>
 <# var parameter = handler.Parameters[i]; #>
 <# if (parameter.ParameterType == ParameterType.FromBody) { #>
                 <#= parameter.Type.FullName #> p<#= i #>;
                 try
                 {
-                    p<#= i #> = serializer.Deserialize(request.Body);
+                    p<#= i #> = serializer.Deserialize<<#= parameter.Type.FullName #>>(request.Body);
                 }
-                catch (System.Exception e)
+                catch (System.Exception ex)
                 {
-                    validationErrors.Add(e.Message);
-                    p<#= i #> = default(<#= parameter.Type.FullName #>);
+                    context.Logger.LogLine(ex.ToString());
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
-<# } if (parameter.ParameterType == ParameterType.FromQuery) { #>
-<# if (parameter.Type.IsMultiType) { #>
+
+                // TODO validation
+<# } else if (parameter.ParameterType == ParameterType.FromQuery) { #>
+                // TODO
+<# if (parameter.Type.IsArrayType) { #>
                 p<#= i #> = BindHelper.BindValues<<#= parameter.Type.FullName #>>(request.MultiValueQueryStringParameters, "<#= parameter.Name #>", validationErrors);
 <# } else { #>
                 p<#= i #> = BindHelper.BindValue<<#= parameter.Type.FullName #>>(request.QueryStringParameters, "<#= parameter.Name #>", validationErrors);
 <# } #>
-<# } if (parameter.ParameterType == ParameterType.FromRoute) { #>
+<# } else if (parameter.ParameterType == ParameterType.FromRoute) { #>
+                // TODO
                 p<#= i #> = BindHelper.BindValue<<#= parameter.Type.FullName #>>(request.PathParameters, "<#= parameter.Name #>", validationErrors);
-<# } if (parameter.ParameterType == ParameterType.FromHeader) { #>
-<# if (parameter.Type.IsMultiType) { #>
+<# } else if (parameter.ParameterType == ParameterType.FromHeader) { #>
+                // TODO
+<# if (parameter.Type.IsArrayType) { #>
                 p<#= i #> = BindHelper.BindValues<<#= parameter.Type.FullName #>>(request.MultiValueHeaders, "<#= parameter.Name #>", validationErrors);
 <# } else { #>
                 p<#= i #> = BindHelper.BindValue<<#= parameter.Type.FullName #>>(request.Headers, "<#= parameter.Name #>", validationErrors);
 <# } #>
-<# } if (parameter.ParameterType == ParameterType.FromService) { #>
-                p<#= i #> = serviceLocator.<#= function.FindService(parameter.Type) #>()
+<# } else if (parameter.ParameterType == ParameterType.FromService) { #>
+                var p<#= i #> = serviceLocator.<#= function.FindService(parameter.Type) #>()
 <# } else { #>
 <# if (parameter.Type.IsAPIGatewayProxyRequest()) { #>
-                p<#= i #> = request;
+                var p<#= i #> = request;
 <# } else if (parameter.Type.IsLambdaContext()) { #>
-                p<#= i #> = context;
+                var p<#= i #> = context;
 <# } #>
 <# } #>
 
-<# } #>
-<# if (handler.HasValidationParameter()) { #>
-                if (validationErrors.Count > 0)
-                {
-                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
-                    {
-                        StatusCode = 400
-                    };
-                }
 <# } #>
 
                 <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}")) #>);
@@ -118,7 +110,7 @@ namespace <#= handler.ContainingNamespace #>
             }
             catch (System.Exception ex)
             {
-                context.Logger.LogError(ex.ToString());
+                context.Logger.LogLine(ex.ToString());
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 500 };
             }
         }
