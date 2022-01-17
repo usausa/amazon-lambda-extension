@@ -11,7 +11,7 @@
         public Function1_Get2_Generated()
         {
             serviceLocator = new AmazonLambdaExtension.TargetProject.ServiceLocator();
-            serializer = serviceLocator.ResolveSerializer() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
             function = new AmazonLambdaExtension.TargetProject.Function1(serviceLocator.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
         }
 

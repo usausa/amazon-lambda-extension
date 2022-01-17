@@ -59,10 +59,6 @@ public sealed class TestGenerator : IIncrementalGenerator
             var classSymbol = classSemantic.GetDeclaredSymbol(classDeclarationSyntax)!;
             var functionInfo = BuildFunctionInfo((ITypeSymbol)classSymbol);
 
-            // TODO enum method, return type, parameter type, generic
-            //    public string FindService(TypeInfo type)
-            //    public string FindSerializer()
-
             foreach (var member in classDeclarationSyntax.Members)
             {
                 if (member is not MethodDeclarationSyntax methodDeclarationSyntax)
@@ -105,12 +101,10 @@ public sealed class TestGenerator : IIncrementalGenerator
             .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
             .FirstOrDefault();
 
-        // TODO ServiceLocatorInfo 別?
         return new FunctionInfo(
             BuildTypeInfo(symbol),
             ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
-            serviceLocator is not null ? BuildTypeInfo(serviceLocator) : null,
-            serviceLocator);
+            serviceLocator is not null ? BuildTypeInfo(serviceLocator) : null);
     }
 
     private static HandlerInfo BuildHandlerInfo(IMethodSymbol symbol)

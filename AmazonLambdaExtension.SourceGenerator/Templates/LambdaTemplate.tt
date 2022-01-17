@@ -25,9 +25,13 @@ namespace <#= handler.ContainingNamespace #>
             serviceLocator = new <#= function.ServiceLocator.FullName #>();
 <# } #>
 <# if (handler.HasBodyParameter()) { #>
-            serializer = serviceLocator.<#= function.FindSerializer() #> ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+<# if (function.ServiceLocator is not null) { #>
+            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+<# } else { #>
+            serializer = AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
 <# } #>
-            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => "serviceLocator." + function.FindService(x))) #>);
+<# } #>
+            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceLocator.GetService<{x.FullName}>()")) #>);
         }
 
 <# if (handler.IsAsync) { #>
@@ -76,7 +80,7 @@ namespace <#= handler.ContainingNamespace #>
                 p<#= i #> = BindHelper.BindValue<<#= parameter.Type.FullName #>>(request.Headers, "<#= parameter.Name #>", validationErrors);
 <# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromService) { #>
-                var p<#= i #> = serviceLocator.<#= function.FindService(parameter.Type) #>()
+                var p<#= i #> = serviceLocator.GetService<<#= parameter.Type.FullName #>()>();
 <# } else { #>
 <# if (parameter.Type.IsAPIGatewayProxyRequest()) { #>
                 var p<#= i #> = request;

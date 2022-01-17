@@ -1,25 +1,20 @@
 namespace AmazonLambdaExtension.TargetProject;
 
-using AmazonLambdaExtension.Serialization;
-using AmazonLambdaExtension.TargetProject.Components.Logging;
-
-using Microsoft.Extensions.Logging;
-
-public sealed class ServiceLocator : IDisposable
+public sealed class ServiceLocator
 {
-    private readonly ILoggerFactory loggerFactory = new LambdaLoggerFactory(LogLevel.Information, null);
+    //private readonly ILoggerFactory loggerFactory = new LambdaLoggerFactory(LogLevel.Information, null);
 
-    public void Dispose()
-    {
-        loggerFactory.Dispose();
-    }
+    //public void Dispose()
+    //{
+    //    loggerFactory.Dispose();
+    //}
 
-    public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
+    //public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
 
-    public static ICalculator ResolveCalculator() => new Calculator();
+    //public static ICalculator ResolveCalculator() => new Calculator();
 
-    // TODO
-    public IBodySerializer ResolveSerializer() => JsonBodySerializer.Default;
+    //// TODO
+    //public IBodySerializer ResolveSerializer() => JsonBodySerializer.Default;
 
     // TODO
     public T GetService<T>() => default!;
