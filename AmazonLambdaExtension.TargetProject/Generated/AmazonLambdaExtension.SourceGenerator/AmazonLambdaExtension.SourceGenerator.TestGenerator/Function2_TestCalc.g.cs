@@ -34,7 +34,6 @@
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-
                 var output = function.TestCalc(p0, p1);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse

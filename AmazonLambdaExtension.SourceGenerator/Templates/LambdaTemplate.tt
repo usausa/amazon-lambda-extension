@@ -105,7 +105,6 @@ namespace <#= handler.Namespace #>
 <# } #>
 
 <# } #>
-
                 <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}")) #>);
 <# if (handler.ResultType?.AllowNull ?? false) { #>
                 if (output == null)

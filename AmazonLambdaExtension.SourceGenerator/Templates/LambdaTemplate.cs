@@ -499,36 +499,36 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("\r\n                ");
+            this.Write("                ");
             
-            #line 109 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType != null ? "var output = " : ""));
             
             #line default
             #line hidden
             
-            #line 109 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("function.");
             
-            #line 109 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.MethodName));
             
             #line default
             #line hidden
             this.Write("(");
             
-            #line 109 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}"))));
             
             #line default
             #line hidden
             this.Write(");\r\n");
             
-            #line 110 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 109 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  if (handler.ResultType?.AllowNull ?? false) { 
             
             #line default
@@ -537,7 +537,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "n new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 " +
                     "};\r\n                }\r\n");
             
-            #line 115 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 114 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } 
             
             #line default
@@ -545,7 +545,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("\r\n                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRespon" +
                     "se\r\n                {\r\n");
             
-            #line 119 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 118 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  if (handler.ResultType != null) { 
             
             #line default
@@ -554,7 +554,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "ders = new Dictionary<string, string> { { \"Content-Type\", \"application/json\" } }" +
                     ",\r\n");
             
-            #line 122 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
+            #line 121 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } 
             
             #line default

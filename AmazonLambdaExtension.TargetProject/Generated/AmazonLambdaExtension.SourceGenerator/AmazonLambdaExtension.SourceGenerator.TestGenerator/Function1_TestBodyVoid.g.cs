@@ -40,7 +40,6 @@
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-
                 function.TestBodyVoid(p0);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
