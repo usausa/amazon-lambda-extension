@@ -1,33 +1,33 @@
 ﻿namespace AmazonLambdaExtension.TargetProject
 {
-    public sealed class Function2_Get1_Generated
+    public sealed class Function1_TestBodyVoid_Generated
     {
         private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceLocator;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
-        private readonly AmazonLambdaExtension.TargetProject.Function2 function;
+        private readonly AmazonLambdaExtension.TargetProject.Function1 function;
 
-        public Function2_Get1_Generated()
+        public Function1_TestBodyVoid_Generated()
         {
             serviceLocator = new AmazonLambdaExtension.TargetProject.ServiceLocator();
             serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
-            function = new AmazonLambdaExtension.TargetProject.Function2(serviceLocator.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function2>>());
+            function = new AmazonLambdaExtension.TargetProject.Function1(serviceLocator.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
         }
 
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
         {
-            if (request.Headers?.ContainsKey("X-Lambda-Hot-Load") ?? false)
+            if (request.Headers?.ContainsKey("X-Lambda-Ping") ?? false)
             {
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
             }
 
             try
             {
-                Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest p0;
+                AmazonLambdaExtension.TargetProject.Input p0;
                 try
                 {
-                    p0 = serializer.Deserialize<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest>(request.Body);
+                    p0 = serializer.Deserialize<AmazonLambdaExtension.TargetProject.Input>(request.Body);
                 }
                 catch (System.Exception ex)
                 {
@@ -35,19 +35,16 @@
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                // TODO validation
-
-
-                var output = function.Get1(p0);
-                if (output == null)
+                if (!AmazonLambdaExtension.Helpers.ValidationHelper.Validate(p0))
                 {
-                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 };
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
+
+
+                function.TestBodyVoid(p0);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
                 {
-                    Body = serializer.Serialize(output),
-                    Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } },
                     StatusCode = 200
                 };
             }

@@ -150,34 +150,4 @@ public static class BindHelper
 
         return !hasError;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryBindList<T>(IDictionary<string, IList<string>>? parameter, string key, out List<T> results)
-    {
-        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
-        {
-            results = new List<T>();
-            return true;
-        }
-
-        var hasError = false;
-        results = new List<T>();
-        for (var i = 0; i < results.Count; i++)
-        {
-            var value = values[i];
-            if (!String.IsNullOrEmpty(value))
-            {
-                if (BindConverter<T>.TryConverter(value, out var result))
-                {
-                    results[i] = result;
-                }
-                else
-                {
-                    hasError = true;
-                }
-            }
-        }
-
-        return !hasError;
-    }
 }

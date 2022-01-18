@@ -20,6 +20,12 @@ public sealed class TestGenerator : IIncrementalGenerator
 
     private const string ServiceResolverAttribute = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
 
+    private const string FromQueryAttribute = "AmazonLambdaExtension.Annotations.FromQueryAttribute";
+    private const string FromBodyAttribute = "AmazonLambdaExtension.Annotations.FromBodyAttribute";
+    private const string FromRouteAttribute = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
+    private const string FromHeaderAttribute = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
+    private const string FromServiceAttribute = "AmazonLambdaExtension.Annotations.FromServiceAttribute";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var classDeclarations = context.SyntaxProvider
@@ -82,7 +88,7 @@ public sealed class TestGenerator : IIncrementalGenerator
 
                 var template = new LambdaTemplate(functionInfo, handlerInfo);
                 var sourceText = template.TransformText();
-                context.AddSource($"{handlerInfo.WrapperClassName}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
+                context.AddSource($"{handlerInfo.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
             }
         }
     }
@@ -109,15 +115,13 @@ public sealed class TestGenerator : IIncrementalGenerator
 
     private static HandlerInfo BuildHandlerInfo(IMethodSymbol symbol)
     {
-        return new HandlerInfo
-        {
-            ContainingNamespace = symbol.ContainingNamespace.ToDisplayString(),
-            WrapperClassName = $"{symbol.ContainingType.Name}_{symbol.Name}_Generated",
-            IsAsync = symbol.IsAsync,
-            ResultType = ResolveReturnType(symbol),
-            MethodName = symbol.Name,
-            Parameters = symbol.Parameters.Select(static x => BuildParameterInfo(x)).ToList()
-        };
+        return new HandlerInfo(
+            symbol.ContainingNamespace.ToDisplayString(),
+            $"{symbol.ContainingType.Name}_{symbol.Name}_Generated",
+            symbol.Name,
+            symbol.IsAsync,
+            symbol.Parameters.Select(static x => BuildParameterInfo(x)).ToList(),
+            ResolveReturnType(symbol));
     }
 
     private static TypeInfo? ResolveReturnType(IMethodSymbol symbol)
@@ -128,8 +132,8 @@ public sealed class TestGenerator : IIncrementalGenerator
         }
 
         var fullName = symbol.ToDisplayString();
-        if (fullName.StartsWith("System.Threading.Tasks.Task") ||
-            fullName.StartsWith("System.Threading.Tasks.ValueTask"))
+        if (fullName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
+            fullName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal))
         {
             return symbol.ReturnType.IsGenericType() ? BuildTypeInfo(symbol.TypeArguments.First()) : null;
         }
@@ -139,27 +143,55 @@ public sealed class TestGenerator : IIncrementalGenerator
 
     private static ParameterInfo BuildParameterInfo(IParameterSymbol symbol)
     {
-        // TODO Attribute 1
-
-        return new ParameterInfo
+        foreach (var attribute in symbol.GetAttributes())
         {
-            Name = symbol.Name,
-            ParameterType = ParameterType.FromBody, // TODO
-            Type = BuildTypeInfo(symbol.Type)
-        };
+            var name = attribute.AttributeClass!.ToDisplayString();
+            if (name == FromQueryAttribute)
+            {
+                return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, FindKeyNameFromAttribute(attribute));
+            }
+            if (name == FromBodyAttribute)
+            {
+                return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody);
+            }
+            if (name == FromRouteAttribute)
+            {
+                return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromRoute, FindKeyNameFromAttribute(attribute));
+            }
+            if (name == FromHeaderAttribute)
+            {
+                return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromHeader, FindKeyNameFromAttribute(attribute));
+            }
+            if (name == FromServiceAttribute)
+            {
+                return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromService);
+            }
+        }
+
+        return new ParameterInfo(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery);
     }
 
-    // TODO IsGeneric -> Lookup用、型制約お見る？
+    private static string? FindKeyNameFromAttribute(AttributeData attributeData)
+    {
+        foreach (var pair in attributeData.NamedArguments)
+        {
+            if ((pair.Key == "Name") && (pair.Value.Value is string value))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
     private static TypeInfo BuildTypeInfo(ITypeSymbol symbol)
     {
-        // TODO    public bool IsMultiType { get; set; }
-        return new TypeInfo
+        if (symbol.IsArrayType())
         {
-            FullName = symbol.ToDisplayString(),
-            IsNullable = symbol.IsReferenceType || symbol.IsNullable(),
-            //IsMultiType = symbol.isa
-            //IsMultiType = symbol.isa
-        };
+            return new TypeInfo(symbol.ToDisplayString(), true, true, BuildTypeInfo(symbol.GetArrayElementType()));
+        }
+
+        return new TypeInfo(symbol.ToDisplayString(), symbol.IsReferenceType || symbol.IsNullableType(), false, null);
     }
 
     //--------------------------------------------------------------------------------

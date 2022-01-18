@@ -1,15 +1,22 @@
-#nullable disable
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
 public class TypeInfo
 {
     public string FullName { get; set; }
 
-    public bool IsNullable { get; set; } = true;
+    public bool AllowNull { get; set; }
 
     public bool IsArrayType { get; set; }
 
-    public bool IsListType { get; set; }
+    public TypeInfo? ElementType { get; set; }
+
+    public TypeInfo(string fullName, bool allowNull, bool isArrayType, TypeInfo? elementType)
+    {
+        FullName = fullName;
+        AllowNull = allowNull;
+        IsArrayType = isArrayType;
+        ElementType = elementType;
+    }
 }
 
 public static class TypeModelExtensions

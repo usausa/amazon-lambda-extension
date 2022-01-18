@@ -1,12 +1,56 @@
 namespace AmazonLambdaExtension.TargetProject;
 
-using System.Net;
-
-using Amazon.Lambda.APIGatewayEvents;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 using AmazonLambdaExtension.Annotations;
 
 using Microsoft.Extensions.Logging;
+
+#pragma warning disable CA1822
+
+public sealed class ServiceLocator
+{
+    //private readonly ILoggerFactory loggerFactory = new LambdaLoggerFactory(LogLevel.Information, null);
+
+    //public void Dispose()
+    //{
+    //    loggerFactory.Dispose();
+    //}
+
+    //public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
+
+    //public static ICalculator ResolveCalculator() => new Calculator();
+
+    //// TODO
+    //public IBodySerializer ResolveSerializer() => JsonBodySerializer.Default;
+
+    // TODO
+    public T GetService<T>() => default!;
+}
+
+public interface ICalculator
+{
+    public int Add(int x, int y);
+}
+
+public class Calculator : ICalculator
+{
+    public int Add(int x, int y) => x + y;
+}
+
+public class Input
+{
+    [Required]
+    [AllowNull]
+    public string Value { get; set; }
+}
+
+public class Output
+{
+    [AllowNull]
+    public string Value { get; set; }
+}
 
 [Lambda]
 [ServiceResolver(typeof(ServiceLocator))]
@@ -20,33 +64,15 @@ public class Function1
     }
 
     [HttpApi]
-    public APIGatewayProxyResponse Get1(APIGatewayProxyRequest request)
+    public Output TestBody([FromBody] Input input)
     {
-        logger.LogInformation("Get Request. path=[{Path}]", request.Path);
-
-        var response = new APIGatewayProxyResponse
-        {
-            StatusCode = (int)HttpStatusCode.OK,
-            Body = "Hello AWS",
-            Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
-        };
-
-        return response;
+        return new Output { Value = input.Value };
     }
 
     [HttpApi]
-    public APIGatewayProxyResponse Get2(APIGatewayProxyRequest request)
+    public void TestBodyVoid([FromBody] Input input)
     {
-        logger.LogInformation("Get Request. path=[{Path}]", request.Path);
-
-        var response = new APIGatewayProxyResponse
-        {
-            StatusCode = (int)HttpStatusCode.OK,
-            Body = "Hello AWS",
-            Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
-        };
-
-        return response;
+        logger.LogDebug("Value=[{Value}]", input.Value);
     }
 }
 
@@ -54,25 +80,22 @@ public class Function1
 [ServiceResolver(typeof(ServiceLocator))]
 public class Function2
 {
-    private readonly ILogger<Function2> logger;
+    private readonly ICalculator calculator;
 
-    public Function2(ILogger<Function2> logger)
+    public Function2(ICalculator calculator)
     {
-        this.logger = logger;
+        this.calculator = calculator;
     }
 
     [HttpApi]
-    public APIGatewayProxyResponse Get1(APIGatewayProxyRequest request)
+    public int TestCalc([FromQuery] int x, [FromQuery] int y)
     {
-        logger.LogInformation("Get Request. path=[{Path}]", request.Path);
+        return calculator.Add(x, y);
+    }
 
-        var response = new APIGatewayProxyResponse
-        {
-            StatusCode = (int)HttpStatusCode.OK,
-            Body = "Hello AWS",
-            Headers = new Dictionary<string, string> { { "Content-Type", "text/plain" } }
-        };
-
-        return response;
+    [HttpApi]
+    public int TestCalcNoAttribute(int x, int y)
+    {
+        return calculator.Add(x, y);
     }
 }
