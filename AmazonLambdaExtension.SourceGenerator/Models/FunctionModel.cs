@@ -1,7 +1,5 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-using Microsoft.CodeAnalysis;
-
 public class FunctionModel
 {
     public TypeModel Function { get; }

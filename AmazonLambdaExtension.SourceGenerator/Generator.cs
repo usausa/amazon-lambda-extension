@@ -75,16 +75,13 @@ public sealed class TestGenerator : IIncrementalGenerator
                 var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
                 var handler = ModelBuilder.BuildHandlerInfo((IMethodSymbol)methodSymbol);
 
+                // Generate wrapper
                 var template = new LambdaTemplate(function, handler);
                 var sourceText = template.TransformText();
                 context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
             }
         }
     }
-
-    //--------------------------------------------------------------------------------
-    // Helper
-    //--------------------------------------------------------------------------------
 
     private static bool HasAttribute(SemanticModel model, SyntaxList<AttributeListSyntax> list, string name)
     {
