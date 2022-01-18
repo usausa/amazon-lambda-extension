@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class HandlerInfo
+public class HandlerModel
 {
     public string Namespace { get; }
 
@@ -10,11 +10,11 @@ public class HandlerInfo
 
     public bool IsAsync { get; }
 
-    public List<ParameterInfo> Parameters { get; }
+    public List<ParameterModel> Parameters { get; }
 
-    public TypeInfo? ResultType { get; }
+    public TypeModel? ResultType { get; }
 
-    public HandlerInfo(string @namespace, string wrapperClass, string methodName, bool isAsync, List<ParameterInfo> parameters, TypeInfo? resultType)
+    public HandlerModel(string @namespace, string wrapperClass, string methodName, bool isAsync, List<ParameterModel> parameters, TypeModel? resultType)
     {
         Namespace = @namespace;
         WrapperClass = wrapperClass;
@@ -27,6 +27,6 @@ public class HandlerInfo
 
 public static class HandlerInfoExtensions
 {
-    public static bool IsSerializerRequired(this HandlerInfo handler) =>
+    public static bool IsSerializerRequired(this HandlerModel handler) =>
         (handler.ResultType is not null) || handler.Parameters.Any(x => x.ParameterType == ParameterType.FromBody);
 }

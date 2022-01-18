@@ -1,18 +1,18 @@
 ﻿namespace AmazonLambdaExtension.TargetProject
 {
-    public sealed class Function2_TestCalc_Generated
+    public sealed class Function1_TestBody
     {
         private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceLocator;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
-        private readonly AmazonLambdaExtension.TargetProject.Function2 function;
+        private readonly AmazonLambdaExtension.TargetProject.Function1 function;
 
-        public Function2_TestCalc_Generated()
+        public Function1_TestBody()
         {
             serviceLocator = new AmazonLambdaExtension.TargetProject.ServiceLocator();
             serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
-            function = new AmazonLambdaExtension.TargetProject.Function2(serviceLocator.GetService<AmazonLambdaExtension.TargetProject.ICalculator>());
+            function = new AmazonLambdaExtension.TargetProject.Function1(serviceLocator.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
         }
 
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
@@ -24,18 +24,28 @@
 
             try
             {
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "x", out var p0))
+                AmazonLambdaExtension.TargetProject.Input p0;
+                try
+                {
+                    p0 = serializer.Deserialize<AmazonLambdaExtension.TargetProject.Input>(request.Body);
+                }
+                catch (System.Exception ex)
+                {
+                    context.Logger.LogLine(ex.ToString());
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+
+                if (!AmazonLambdaExtension.Helpers.ValidationHelper.Validate(p0))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "y", out var p1))
+
+                var output = function.TestBody(p0);
+                if (output == null)
                 {
-                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 };
                 }
-
-
-                var output = function.TestCalc(p0, p1);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
                 {
