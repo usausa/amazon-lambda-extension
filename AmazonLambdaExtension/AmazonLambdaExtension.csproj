@@ -5,6 +5,14 @@
     <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageId>AmazonLambdaExtension</PackageId>
+    <Title>AmazonLambdaExtension</Title>
+    <Description>Amazon lambda extension.</Description>
+    <Summary>Amazon lambda extension.</Summary>
+    <PackageTags>aws amazon lambda</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Text.Json" Version="6.0.1" />
