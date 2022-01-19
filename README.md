@@ -13,11 +13,11 @@ Add reference to AmazonLambdaExtension and AmazonLambdaExtension.SourceGenerator
 
 ```xml
 <ItemGroup>
-<PackageReference Include="AmazonLambdaExtension" Version="1.0.0" />
-<PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="1.0.0">
-  <PrivateAssets>all</PrivateAssets>
-  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-</PackageReference>
+  <PackageReference Include="AmazonLambdaExtension" Version="1.0.0" />
+  <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="1.0.0">
+    <PrivateAssets>all</PrivateAssets>
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+  </PackageReference>
 </ItemGroup>
 ```
 
