@@ -25,6 +25,7 @@
     <PackageReference Include="Usa.Smart.Core" Version="2.0.13" />
   </ItemGroup>
 
+  <!--
   <ItemGroup>
     <PackageReference Include="AmazonLambdaExtension" Version="1.0.0-beta1" />
     <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="1.0.0-beta1">
@@ -32,8 +33,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  -->
 
-  <!--
   <ItemGroup>
     <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
   </ItemGroup>
@@ -43,6 +44,5 @@
   <ItemGroup>
     <ProjectReference Include="..\AmazonLambdaExtension.SourceGenerator\AmazonLambdaExtension.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
-  -->
 
 </Project>
