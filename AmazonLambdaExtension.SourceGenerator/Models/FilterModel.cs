@@ -4,14 +4,11 @@ public sealed class FilterExecutingModel
 {
     public bool IsAsync { get; }
 
-    public bool HasContext { get; }
-
     public bool HasResult { get; }
 
-    public FilterExecutingModel(bool isAsync, bool hasContext, bool hasResult)
+    public FilterExecutingModel(bool isAsync, bool hasResult)
     {
         IsAsync = isAsync;
-        HasContext = hasContext;
         HasResult = hasResult;
     }
 }
@@ -19,12 +16,9 @@ public sealed class FilterExecutedModel
 {
     public bool IsAsync { get; }
 
-    public bool HasContext { get; }
-
-    public FilterExecutedModel(bool isAsync, bool hasContext)
+    public FilterExecutedModel(bool isAsync)
     {
         IsAsync = isAsync;
-        HasContext = hasContext;
     }
 }
 

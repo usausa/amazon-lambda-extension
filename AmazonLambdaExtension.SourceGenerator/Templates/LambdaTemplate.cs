@@ -250,15 +250,8 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("filter.OnFunctionExecuting(");
-            
-            #line 52 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.HasContext ? "context" : ""));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n            if (executingResult != null)\r\n            {\r\n                retu" +
-                    "rn executingResult;\r\n            }\r\n");
+            this.Write("filter.OnFunctionExecuting(request, context);\r\n            if (executingResult !=" +
+                    " null)\r\n            {\r\n                return executingResult;\r\n            }\r\n");
             
             #line 57 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } else { 
@@ -272,14 +265,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("filter.OnFunctionExecuting(");
-            
-            #line 58 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.HasContext ? "context" : ""));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n");
+            this.Write("filter.OnFunctionExecuting(request, context);\r\n");
             
             #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } 
@@ -546,7 +532,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("()>();\r\n");
+            this.Write(">();\r\n");
             
             #line 113 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } else { 
@@ -686,14 +672,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("filter.OnFunctionExecuted(");
-            
-            #line 151 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executed.HasContext ? "context" : ""));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n            }\r\n");
+            this.Write("filter.OnFunctionExecuted(request, context);\r\n            }\r\n");
             
             #line 153 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } 

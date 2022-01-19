@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- for debug -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    <!--<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>-->
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,10 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AmazonLambdaExtension.SourceGenerator\AmazonLambdaExtension.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Generated\AmazonLambdaExtension.SourceGenerator\" />
   </ItemGroup>
 
 </Project>

@@ -20,13 +20,13 @@ public sealed class ApplicationServiceResolver
 #pragma warning disable IDE0060
 public sealed class ApplicationFilter
 {
-    public async Task<APIGatewayProxyResponse?> OnFunctionExecuting(ILambdaContext context)
+    public async Task<APIGatewayProxyResponse?> OnFunctionExecuting(APIGatewayProxyRequest request, ILambdaContext context)
     {
         await Task.Delay(0);
         return null;
     }
 
-    public async Task OnFunctionExecuted()
+    public async Task OnFunctionExecuted(APIGatewayProxyRequest request, ILambdaContext context)
     {
         await Task.Delay(0);
     }

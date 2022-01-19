@@ -49,13 +49,13 @@ namespace <#= handler.Namespace #>
         {
 <# if (function.Filter?.Executing is not null) { #>
 <# if (function.Filter.Executing.HasResult) { #>
-            var executingResult = <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(<#= function.Filter.Executing.HasContext ? "context" : "" #>);
+            var executingResult = <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(request, context);
             if (executingResult != null)
             {
                 return executingResult;
             }
 <# } else { #>
-            <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(<#= function.Filter.Executing.HasContext ? "context" : "" #>);
+            <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(request, context);
 <# } #>
 
 <# } #>
@@ -109,7 +109,7 @@ namespace <#= handler.Namespace #>
                 }
 <# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromServices) { #>
-                var p<#= i #> = serviceResolver.GetService<<#= parameter.Type.FullName #>()>();
+                var p<#= i #> = serviceResolver.GetService<<#= parameter.Type.FullName #>>();
 <# } else { #>
 <# if (parameter.Type.IsAPIGatewayProxyRequest()) { #>
                 var p<#= i #> = request;
@@ -148,7 +148,7 @@ namespace <#= handler.Namespace #>
 <# if (function.Filter?.Executed is not null) { #>
             finally
             {
-                <#= function.Filter.Executed.IsAsync ? "await " : "" #>filter.OnFunctionExecuted(<#= function.Filter.Executed.HasContext ? "context" : "" #>);
+                <#= function.Filter.Executed.IsAsync ? "await " : "" #>filter.OnFunctionExecuted(request, context);
             }
 <# } #>
         }

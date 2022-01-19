@@ -52,16 +52,11 @@ public static class ModelBuilder
             if (method.Name == FunctionExecuting)
             {
                 var returnType = ResolveReturnType(method);
-                executing = new FilterExecutingModel(
-                    method.IsAsync,
-                    method.Parameters.Length > 0,
-                    returnType is not null);
+                executing = new FilterExecutingModel(method.IsAsync, returnType is not null);
             }
             else if (method.Name == FunctionExecuted)
             {
-                executed = new FilterExecutedModel(
-                    method.IsAsync,
-                    method.Parameters.Length > 0);
+                executed = new FilterExecutedModel(method.IsAsync);
             }
         }
 
