@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 <#@ template language="C#" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
@@ -49,7 +51,7 @@ namespace <#= handler.Namespace #>
         {
 <# if (function.Filter?.Executing is not null) { #>
 <# if (function.Filter.Executing.HasResult) { #>
-            var executingResult = <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(request, context);
+            var executingResult = <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(request, context)<#= function.Filter.Executing.IsAsync ? ".ConfigureAwait(false)" : "" #>;
             if (executingResult != null)
             {
                 return executingResult;
@@ -119,7 +121,7 @@ namespace <#= handler.Namespace #>
 <# } #>
 
 <# } #>
-                <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}")) #>);
+                <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}")) #>)<#= handler.IsAsync ? ".ConfigureAwait(false)" : "" #>;
 <# if (handler.ResultType?.AllowNull ?? false) { #>
                 if (output == null)
                 {
@@ -148,7 +150,7 @@ namespace <#= handler.Namespace #>
 <# if (function.Filter?.Executed is not null) { #>
             finally
             {
-                <#= function.Filter.Executed.IsAsync ? "await " : "" #>filter.OnFunctionExecuted(request, context);
+                <#= function.Filter.Executed.IsAsync ? "await " : "" #>filter.OnFunctionExecuted(request, context)<#= function.Filter.Executed.IsAsync ? ".ConfigureAwait(false)" : "" #>;
             }
 <# } #>
         }

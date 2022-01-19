@@ -134,7 +134,7 @@ public sealed class CrudFunction_Get
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
             }
 
-            var output = await function.Get(p0);
+            var output = await function.Get(p0).ConfigureAwait(false);
             if (output == null)
             {
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 };
@@ -209,7 +209,7 @@ public sealed class CrudFunction_Create
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
             }
 
-            var output = await function.Create(p0);
+            var output = await function.Create(p0).ConfigureAwait(false);
             if (output == null)
             {
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 };
@@ -270,7 +270,7 @@ public sealed class CrudFunction_Delete
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
             }
 
-            await function.Delete(p0);
+            await function.Delete(p0).ConfigureAwait(false);
 
             return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
             {
