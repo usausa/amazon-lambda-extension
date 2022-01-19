@@ -13,6 +13,10 @@ namespace <#= handler.Namespace #>
         private readonly <#= function.ServiceResolver.FullName #> serviceResolver;
 <# } #>
 
+<# if (function.Filter is not null) { #>
+        private readonly <#= function.Filter.Type.FullName #> filter;
+<# } #>
+
 <# if (handler.IsSerializerRequired()) { #>
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
@@ -24,6 +28,9 @@ namespace <#= handler.Namespace #>
 <# if (function.ServiceResolver is not null) { #>
             serviceResolver = new <#= function.ServiceResolver.FullName #>();
 <# } #>
+<# if (function.Filter is not null) { #>
+            filter = new <#= function.Filter.Type.FullName #>();
+<# } #>
 <# if (handler.IsSerializerRequired()) { #>
 <# if (function.ServiceResolver is not null) { #>
             serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
@@ -34,17 +41,24 @@ namespace <#= handler.Namespace #>
             function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
         }
 
-<# if (handler.IsAsync) { #>
+<# if (handler.IsAsync || function.IsAsyncRequired()) { #>
         public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } else { #>
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } #>
         {
-            if (request.Headers?.ContainsKey("X-Lambda-Ping") ?? false)
+<# if (function.Filter?.Executing is not null) { #>
+<# if (function.Filter.Executing.HasResult) { #>
+            var executingResult = <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(<#= function.Filter.Executing.HasContext ? "context" : "" #>);
+            if (executingResult != null)
             {
-                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
+                return executingResult;
             }
+<# } else { #>
+            <#= function.Filter.Executing.IsAsync ? "await " : "" #>filter.OnFunctionExecuting(<#= function.Filter.Executing.HasContext ? "context" : "" #>);
+<# } #>
 
+<# } #>
             try
             {
 <# for (var i = 0; i < handler.Parameters.Count; i++) { #>
@@ -131,6 +145,12 @@ namespace <#= handler.Namespace #>
                 context.Logger.LogLine(ex.ToString());
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 500 };
             }
+<# if (function.Filter?.Executed is not null) { #>
+            finally
+            {
+                <#= function.Filter.Executed.IsAsync ? "await " : "" #>filter.OnFunctionExecuted(<#= function.Filter.Executed.HasContext ? "context" : "" #>);
+            }
+<# } #>
         }
     }
 }

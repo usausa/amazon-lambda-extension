@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 public static class ModelBuilder
 {
     private const string ServiceResolverAttribute = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
+    private const string FilterAttribute = "AmazonLambdaExtension.Annotations.FilterAttribute";
 
     private const string FromQueryAttribute = "AmazonLambdaExtension.Annotations.FromQueryAttribute";
     private const string FromBodyAttribute = "AmazonLambdaExtension.Annotations.FromBodyAttribute";
@@ -17,6 +18,9 @@ public static class ModelBuilder
     private const string APIGatewayProxyRequest = "Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest";
     private const string LambdaContext = "Amazon.Lambda.Core.ILambdaContext";
 
+    private const string FunctionExecuting = "OnFunctionExecuting";
+    private const string FunctionExecuted = "OnFunctionExecuted";
+
     public static FunctionModel BuildFunctionInfo(ITypeSymbol symbol)
     {
         var ctor = symbol.GetConstructors()
@@ -26,11 +30,42 @@ public static class ModelBuilder
             .Where(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttribute)
             .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
             .FirstOrDefault();
+        var filter = symbol.GetAttributes()
+            .Where(x => x.AttributeClass!.ToDisplayString() == FilterAttribute)
+            .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
+            .FirstOrDefault();
 
         return new FunctionModel(
             BuildTypeInfo(symbol),
             ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
-            serviceResolver is not null ? BuildTypeInfo(serviceResolver) : null);
+            serviceResolver is not null ? BuildTypeInfo(serviceResolver) : null,
+            filter is not null ? BuildFilterInfo(filter) : null);
+    }
+
+    private static FilterModel BuildFilterInfo(ITypeSymbol symbol)
+    {
+        FilterExecutingModel? executing = null;
+        FilterExecutedModel? executed = null;
+
+        foreach (var method in symbol.GetMembers().OfType<IMethodSymbol>())
+        {
+            if (method.Name == FunctionExecuting)
+            {
+                var returnType = ResolveReturnType(method);
+                executing = new FilterExecutingModel(
+                    method.IsAsync,
+                    method.Parameters.Length > 0,
+                    returnType is not null);
+            }
+            else if (method.Name == FunctionExecuted)
+            {
+                executed = new FilterExecutedModel(
+                    method.IsAsync,
+                    method.Parameters.Length > 0);
+            }
+        }
+
+        return new FilterModel(BuildTypeInfo(symbol), executing, executed);
     }
 
     public static HandlerModel BuildHandlerInfo(IMethodSymbol symbol)

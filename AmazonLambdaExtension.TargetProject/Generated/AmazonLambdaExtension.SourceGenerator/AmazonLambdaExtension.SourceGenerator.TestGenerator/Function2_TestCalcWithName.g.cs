@@ -2,7 +2,9 @@
 {
     public sealed class Function2_TestCalcWithName
     {
-        private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceResolver;
+        private readonly AmazonLambdaExtension.TargetProject.ApplicationServiceResolver serviceResolver;
+
+        private readonly AmazonLambdaExtension.TargetProject.ApplicationFilter filter;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
@@ -10,16 +12,18 @@
 
         public Function2_TestCalcWithName()
         {
-            serviceResolver = new AmazonLambdaExtension.TargetProject.ServiceLocator();
+            serviceResolver = new AmazonLambdaExtension.TargetProject.ApplicationServiceResolver();
+            filter = new AmazonLambdaExtension.TargetProject.ApplicationFilter();
             serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
             function = new AmazonLambdaExtension.TargetProject.Function2(serviceResolver.GetService<AmazonLambdaExtension.TargetProject.ICalculator>());
         }
 
-        public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
+        public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
         {
-            if (request.Headers?.ContainsKey("X-Lambda-Ping") ?? false)
+            var executingResult = await filter.OnFunctionExecuting(context);
+            if (executingResult != null)
             {
-                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
+                return executingResult;
             }
 
             try
@@ -51,6 +55,10 @@
             {
                 context.Logger.LogLine(ex.ToString());
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 500 };
+            }
+            finally
+            {
+                await filter.OnFunctionExecuted();
             }
         }
     }

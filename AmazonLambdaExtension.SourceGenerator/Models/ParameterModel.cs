@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class ParameterModel
+public sealed class ParameterModel
 {
     public string Name { get; set; }
 

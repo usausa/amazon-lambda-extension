@@ -32,7 +32,6 @@
 
   <ItemGroup>
     <Folder Include="Generated\AmazonLambdaExtension.SourceGenerator\" />
-    <Folder Include="Generated\AmazonLambdaExtension.SourceGenerator\AmazonLambdaExtension.SourceGenerator.TestGenerator\" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class HandlerModel
+public sealed class HandlerModel
 {
     public string Namespace { get; }
 

@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class TypeModel
+public sealed class TypeModel
 {
     public string FullName { get; set; }
 

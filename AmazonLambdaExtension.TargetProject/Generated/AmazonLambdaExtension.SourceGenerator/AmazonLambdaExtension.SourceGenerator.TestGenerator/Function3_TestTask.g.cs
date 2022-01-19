@@ -3,6 +3,7 @@
     public sealed class Function3_TestTask
     {
 
+
         private readonly AmazonLambdaExtension.TargetProject.Function3 function;
 
         public Function3_TestTask()
@@ -12,11 +13,6 @@
 
         public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
         {
-            if (request.Headers?.ContainsKey("X-Lambda-Ping") ?? false)
-            {
-                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
-            }
-
             try
             {
                 await function.TestTask();

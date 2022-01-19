@@ -12,10 +12,26 @@ using Microsoft.Extensions.Logging;
 
 #pragma warning disable CA1822
 
-public sealed class ServiceLocator
+public sealed class ApplicationServiceResolver
 {
     public T GetService<T>() => default!;
 }
+
+#pragma warning disable IDE0060
+public sealed class ApplicationFilter
+{
+    public async Task<APIGatewayProxyResponse?> OnFunctionExecuting(ILambdaContext context)
+    {
+        await Task.Delay(0);
+        return null;
+    }
+
+    public async Task OnFunctionExecuted()
+    {
+        await Task.Delay(0);
+    }
+}
+#pragma warning restore IDE0060
 
 public interface ICalculator
 {
@@ -41,7 +57,8 @@ public class Output
 }
 
 [Lambda]
-[ServiceResolver(typeof(ServiceLocator))]
+[ServiceResolver(typeof(ApplicationServiceResolver))]
+[Filter(typeof(ApplicationFilter))]
 public class Function1
 {
     private readonly ILogger<Function1> logger;
@@ -77,7 +94,8 @@ public class Function1
 }
 
 [Lambda]
-[ServiceResolver(typeof(ServiceLocator))]
+[ServiceResolver(typeof(ApplicationServiceResolver))]
+[Filter(typeof(ApplicationFilter))]
 public class Function2
 {
     private readonly ICalculator calculator;

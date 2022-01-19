@@ -3,6 +3,7 @@
     public sealed class Function3_TestValueTask2
     {
 
+
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
         private readonly AmazonLambdaExtension.TargetProject.Function3 function;
@@ -15,11 +16,6 @@
 
         public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
         {
-            if (request.Headers?.ContainsKey("X-Lambda-Ping") ?? false)
-            {
-                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 200 };
-            }
-
             try
             {
                 var output = await function.TestValueTask2();

@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.SourceGenerator.Models;
 
-public class FunctionModel
+public sealed class FunctionModel
 {
     public TypeModel Function { get; }
 
@@ -8,10 +8,20 @@ public class FunctionModel
 
     public TypeModel? ServiceResolver { get; }
 
-    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, TypeModel? serviceResolver)
+    public FilterModel? Filter { get; }
+
+    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, TypeModel? serviceResolver, FilterModel? filter)
     {
         Function = function;
         ConstructorParameters = constructorParameters;
         ServiceResolver = serviceResolver;
+        Filter = filter;
     }
+}
+
+public static class FunctionModelExtensions
+{
+    public static bool IsAsyncRequired(this FunctionModel model) =>
+        (model.Filter?.Executing?.IsAsync ?? false) ||
+        (model.Filter?.Executed?.IsAsync ?? false);
 }
