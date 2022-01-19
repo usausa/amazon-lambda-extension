@@ -6,12 +6,12 @@ public class FunctionModel
 
     public List<TypeModel> ConstructorParameters { get; }
 
-    public TypeModel? ServiceLocator { get; }
+    public TypeModel? ServiceResolver { get; }
 
-    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, TypeModel? serviceLocator)
+    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, TypeModel? serviceResolver)
     {
         Function = function;
         ConstructorParameters = constructorParameters;
-        ServiceLocator = serviceLocator;
+        ServiceResolver = serviceResolver;
     }
 }

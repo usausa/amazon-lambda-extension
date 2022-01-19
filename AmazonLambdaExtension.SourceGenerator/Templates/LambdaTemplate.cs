@@ -47,18 +47,18 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("\r\n    {\r\n");
             
             #line 12 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
- if (function.ServiceLocator is not null) { 
+ if (function.ServiceResolver is not null) { 
             
             #line default
             #line hidden
             this.Write("        private readonly ");
             
             #line 13 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(function.ServiceLocator.FullName));
+            this.Write(this.ToStringHelper.ToStringWithCulture(function.ServiceResolver.FullName));
             
             #line default
             #line hidden
-            this.Write(" serviceLocator;\r\n");
+            this.Write(" serviceResolver;\r\n");
             
             #line 14 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } 
@@ -97,14 +97,14 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("()\r\n        {\r\n");
             
             #line 24 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
- if (function.ServiceLocator is not null) { 
+ if (function.ServiceResolver is not null) { 
             
             #line default
             #line hidden
-            this.Write("            serviceLocator = new ");
+            this.Write("            serviceResolver = new ");
             
             #line 25 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(function.ServiceLocator.FullName));
+            this.Write(this.ToStringHelper.ToStringWithCulture(function.ServiceResolver.FullName));
             
             #line default
             #line hidden
@@ -123,13 +123,13 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             #line hidden
             
             #line 28 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
- if (function.ServiceLocator is not null) { 
+ if (function.ServiceResolver is not null) { 
             
             #line default
             #line hidden
-            this.Write("            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serializ" +
-                    "ation.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializ" +
-                    "er.Default;\r\n");
+            this.Write("            serializer = serviceResolver.GetService<AmazonLambdaExtension.Seriali" +
+                    "zation.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySeriali" +
+                    "zer.Default;\r\n");
             
             #line 30 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } else { 
@@ -160,7 +160,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("(");
             
             #line 34 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceLocator.GetService<{x.FullName}>()"))));
+            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()"))));
             
             #line default
             #line hidden
@@ -171,9 +171,9 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("        public async System.Threding.Task<Amazon.Lambda.APIGatewayEvents.APIGatew" +
-                    "ayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest re" +
-                    "quest, Amazon.Lambda.Core.ILambdaContext context)\r\n");
+            this.Write("        public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.A" +
+                    "PIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyReq" +
+                    "uest request, Amazon.Lambda.Core.ILambdaContext context)\r\n");
             
             #line 39 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
  } else { 
@@ -275,7 +275,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write(">(request.QueryStringParameters, \"");
+            this.Write(">(request.MultiValueQueryStringParameters, \"");
             
             #line 70 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
@@ -427,7 +427,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             #line hidden
             
             #line 97 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
- } else if (parameter.ParameterType == ParameterType.FromService) { 
+ } else if (parameter.ParameterType == ParameterType.FromServices) { 
             
             #line default
             #line hidden
@@ -438,7 +438,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write(" = serviceLocator.GetService<");
+            this.Write(" = serviceResolver.GetService<");
             
             #line 98 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\LambdaTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));

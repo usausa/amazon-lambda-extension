@@ -9,8 +9,8 @@ namespace <#= handler.Namespace #>
 {
     public sealed class <#= handler.WrapperClass #>
     {
-<# if (function.ServiceLocator is not null) { #>
-        private readonly <#= function.ServiceLocator.FullName #> serviceLocator;
+<# if (function.ServiceResolver is not null) { #>
+        private readonly <#= function.ServiceResolver.FullName #> serviceResolver;
 <# } #>
 
 <# if (handler.IsSerializerRequired()) { #>
@@ -21,21 +21,21 @@ namespace <#= handler.Namespace #>
 
         public <#= handler.WrapperClass #>()
         {
-<# if (function.ServiceLocator is not null) { #>
-            serviceLocator = new <#= function.ServiceLocator.FullName #>();
+<# if (function.ServiceResolver is not null) { #>
+            serviceResolver = new <#= function.ServiceResolver.FullName #>();
 <# } #>
 <# if (handler.IsSerializerRequired()) { #>
-<# if (function.ServiceLocator is not null) { #>
-            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+<# if (function.ServiceResolver is not null) { #>
+            serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
 <# } else { #>
             serializer = AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
 <# } #>
 <# } #>
-            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceLocator.GetService<{x.FullName}>()")) #>);
+            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
         }
 
 <# if (handler.IsAsync) { #>
-        public async System.Threding.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
+        public async System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } else { #>
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
 <# } #>
@@ -67,7 +67,7 @@ namespace <#= handler.Namespace #>
                 }
 <# } else if (parameter.ParameterType == ParameterType.FromQuery) { #>
 <# if (parameter.Type.IsArrayType) { #>
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<<#= parameter.Type.ElementType.FullName #>>(request.QueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<<#= parameter.Type.ElementType.FullName #>>(request.MultiValueQueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
@@ -94,8 +94,8 @@ namespace <#= handler.Namespace #>
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 <# } #>
-<# } else if (parameter.ParameterType == ParameterType.FromService) { #>
-                var p<#= i #> = serviceLocator.GetService<<#= parameter.Type.FullName #>()>();
+<# } else if (parameter.ParameterType == ParameterType.FromServices) { #>
+                var p<#= i #> = serviceResolver.GetService<<#= parameter.Type.FullName #>()>();
 <# } else { #>
 <# if (parameter.Type.IsAPIGatewayProxyRequest()) { #>
                 var p<#= i #> = request;

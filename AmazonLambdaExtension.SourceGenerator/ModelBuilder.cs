@@ -12,14 +12,17 @@ public static class ModelBuilder
     private const string FromBodyAttribute = "AmazonLambdaExtension.Annotations.FromBodyAttribute";
     private const string FromRouteAttribute = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
     private const string FromHeaderAttribute = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
-    private const string FromServiceAttribute = "AmazonLambdaExtension.Annotations.FromServiceAttribute";
+    private const string FromServicesAttribute = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
+
+    private const string APIGatewayProxyRequest = "Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest";
+    private const string LambdaContext = "Amazon.Lambda.Core.ILambdaContext";
 
     public static FunctionModel BuildFunctionInfo(ITypeSymbol symbol)
     {
         var ctor = symbol.GetConstructors()
             .OrderByDescending(x => x.Parameters.Length)
             .First();
-        var serviceLocator = symbol.GetAttributes()
+        var serviceResolver = symbol.GetAttributes()
             .Where(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttribute)
             .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
             .FirstOrDefault();
@@ -27,7 +30,7 @@ public static class ModelBuilder
         return new FunctionModel(
             BuildTypeInfo(symbol),
             ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
-            serviceLocator is not null ? BuildTypeInfo(serviceLocator) : null);
+            serviceResolver is not null ? BuildTypeInfo(serviceResolver) : null);
     }
 
     public static HandlerModel BuildHandlerInfo(IMethodSymbol symbol)
@@ -48,11 +51,12 @@ public static class ModelBuilder
             return null;
         }
 
-        var fullName = symbol.ToDisplayString();
+        var fullName = symbol.ReturnType.ToDisplayString();
         if (fullName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
             fullName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal))
         {
-            return symbol.ReturnType.IsGenericType() ? BuildTypeInfo(symbol.TypeArguments.First()) : null;
+            var typeArguments = symbol.ReturnType.GetTypeArguments();
+            return typeArguments.Length > 0 ? BuildTypeInfo(typeArguments[0]) : null;
         }
 
         return BuildTypeInfo(symbol.ReturnType);
@@ -62,27 +66,33 @@ public static class ModelBuilder
     {
         foreach (var attribute in symbol.GetAttributes())
         {
-            var name = attribute.AttributeClass!.ToDisplayString();
-            if (name == FromQueryAttribute)
+            var attributeName = attribute.AttributeClass!.ToDisplayString();
+            if (attributeName == FromQueryAttribute)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, FindKeyNameFromAttribute(attribute));
             }
-            if (name == FromBodyAttribute)
+            if (attributeName == FromBodyAttribute)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody);
             }
-            if (name == FromRouteAttribute)
+            if (attributeName == FromRouteAttribute)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromRoute, FindKeyNameFromAttribute(attribute));
             }
-            if (name == FromHeaderAttribute)
+            if (attributeName == FromHeaderAttribute)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromHeader, FindKeyNameFromAttribute(attribute));
             }
-            if (name == FromServiceAttribute)
+            if (attributeName == FromServicesAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromService);
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromServices);
             }
+        }
+
+        var typeName = symbol.Type.ToDisplayString();
+        if ((typeName == APIGatewayProxyRequest) || (typeName == LambdaContext))
+        {
+            return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.None);
         }
 
         return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery);
@@ -90,15 +100,7 @@ public static class ModelBuilder
 
     private static string? FindKeyNameFromAttribute(AttributeData attributeData)
     {
-        foreach (var pair in attributeData.NamedArguments)
-        {
-            if ((pair.Key == "Name") && (pair.Value.Value is string value))
-            {
-                return value;
-            }
-        }
-
-        return null;
+        return attributeData.ConstructorArguments.Length > 0 ? attributeData.ConstructorArguments[0].Value?.ToString() : null;
     }
 
     private static TypeModel BuildTypeInfo(ITypeSymbol symbol)

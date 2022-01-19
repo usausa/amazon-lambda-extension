@@ -1,6 +1,6 @@
 ﻿namespace AmazonLambdaExtension.TargetProject
 {
-    public sealed class Function2_TestCalc
+    public sealed class Function2_TestCalcWithName
     {
         private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceResolver;
 
@@ -8,7 +8,7 @@
 
         private readonly AmazonLambdaExtension.TargetProject.Function2 function;
 
-        public Function2_TestCalc()
+        public Function2_TestCalcWithName()
         {
             serviceResolver = new AmazonLambdaExtension.TargetProject.ServiceLocator();
             serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
@@ -24,17 +24,17 @@
 
             try
             {
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "x", out var p0))
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "a", out var p0))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "y", out var p1))
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "b", out var p1))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                var output = function.TestCalc(p0, p1);
+                var output = function.TestCalcWithName(p0, p1);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
                 {

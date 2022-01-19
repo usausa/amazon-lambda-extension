@@ -1,18 +1,18 @@
 ﻿namespace AmazonLambdaExtension.TargetProject
 {
-    public sealed class Function2_TestCalc
+    public sealed class Function1_TestQuery
     {
         private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceResolver;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
-        private readonly AmazonLambdaExtension.TargetProject.Function2 function;
+        private readonly AmazonLambdaExtension.TargetProject.Function1 function;
 
-        public Function2_TestCalc()
+        public Function1_TestQuery()
         {
             serviceResolver = new AmazonLambdaExtension.TargetProject.ServiceLocator();
             serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
-            function = new AmazonLambdaExtension.TargetProject.Function2(serviceResolver.GetService<AmazonLambdaExtension.TargetProject.ICalculator>());
+            function = new AmazonLambdaExtension.TargetProject.Function1(serviceResolver.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
         }
 
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
@@ -24,17 +24,17 @@
 
             try
             {
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "x", out var p0))
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "a", out var p0))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<int>(request.QueryStringParameters, "y", out var p1))
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<int>(request.MultiValueQueryStringParameters, "b", out var p1))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 
-                var output = function.TestCalc(p0, p1);
+                var output = function.TestQuery(p0, p1);
 
                 return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse
                 {

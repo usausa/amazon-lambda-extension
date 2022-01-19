@@ -7,5 +7,5 @@ public enum ParameterType
     FromBody,
     FromRoute,
     FromHeader,
-    FromService
+    FromServices
 }

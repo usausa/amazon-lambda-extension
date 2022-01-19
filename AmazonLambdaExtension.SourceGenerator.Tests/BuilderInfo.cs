@@ -31,6 +31,7 @@ public sealed class BuilderInfo
         var tree = CSharpSyntaxTree.ParseText(source);
         var compilation = CSharpCompilation.Create("Test", new[] { tree })
             .AddReferences(
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(LambdaAttribute).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(APIGatewayProxyRequest).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(ILambdaContext).GetTypeInfo().Assembly.Location));

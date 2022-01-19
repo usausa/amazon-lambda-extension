@@ -3,6 +3,9 @@ namespace AmazonLambdaExtension.TargetProject;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
+using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.Core;
+
 using AmazonLambdaExtension.Annotations;
 
 using Microsoft.Extensions.Logging;
@@ -11,21 +14,6 @@ using Microsoft.Extensions.Logging;
 
 public sealed class ServiceLocator
 {
-    //private readonly ILoggerFactory loggerFactory = new LambdaLoggerFactory(LogLevel.Information, null);
-
-    //public void Dispose()
-    //{
-    //    loggerFactory.Dispose();
-    //}
-
-    //public ILogger<T> CreateLogger<T>() => loggerFactory.CreateLogger<T>();
-
-    //public static ICalculator ResolveCalculator() => new Calculator();
-
-    //// TODO
-    //public IBodySerializer ResolveSerializer() => JsonBodySerializer.Default;
-
-    // TODO
     public T GetService<T>() => default!;
 }
 
@@ -74,6 +62,18 @@ public class Function1
     {
         logger.LogDebug("Value=[{Value}]", input.Value);
     }
+
+    [HttpApi]
+    public int TestQuery([FromQuery] int a, [FromQuery] int[] b)
+    {
+        return a + b.Length;
+    }
+
+    [HttpApi]
+    public void TestRaw(APIGatewayProxyRequest request, ILambdaContext context)
+    {
+        context.Logger.LogLine(request.Path);
+    }
 }
 
 [Lambda]
@@ -97,5 +97,46 @@ public class Function2
     public int TestCalcNoAttribute(int x, int y)
     {
         return calculator.Add(x, y);
+    }
+
+    [HttpApi]
+    public int TestCalcWithName([FromQuery("a")] int x, [FromQuery("b")] int y)
+    {
+        return calculator.Add(x, y);
+    }
+}
+
+[Lambda]
+public class Function3
+{
+    [HttpApi]
+    public void TestVoid()
+    {
+    }
+
+    [HttpApi]
+    public async Task TestTask()
+    {
+        await Task.Delay(0).ConfigureAwait(false);
+    }
+
+    [HttpApi]
+    public async Task<int> TestTask2()
+    {
+        await Task.Delay(0).ConfigureAwait(false);
+        return 0;
+    }
+
+    [HttpApi]
+    public async ValueTask TestValueTask()
+    {
+        await Task.Delay(0).ConfigureAwait(false);
+    }
+
+    [HttpApi]
+    public async ValueTask<int> TestValueTask2()
+    {
+        await Task.Delay(0).ConfigureAwait(false);
+        return 0;
     }
 }

@@ -1,5 +1,7 @@
 namespace AmazonLambdaExtension.SourceGenerator;
 
+using System.Collections.Immutable;
+
 using Microsoft.CodeAnalysis;
 
 public static class Extensions
@@ -10,8 +12,8 @@ public static class Extensions
     public static bool IsNullableType(this ITypeSymbol symbol) =>
         symbol.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
 
-    public static bool IsGenericType(this ITypeSymbol symbol) =>
-        (symbol as INamedTypeSymbol)?.IsGenericType ?? false;
+    public static ImmutableArray<ITypeSymbol> GetTypeArguments(this ITypeSymbol symbol) =>
+        (symbol as INamedTypeSymbol)?.TypeArguments ?? ImmutableArray<ITypeSymbol>.Empty;
 
     public static ITypeSymbol GetArrayElementType(this ITypeSymbol symbol) =>
         ((IArrayTypeSymbol)symbol).ElementType;

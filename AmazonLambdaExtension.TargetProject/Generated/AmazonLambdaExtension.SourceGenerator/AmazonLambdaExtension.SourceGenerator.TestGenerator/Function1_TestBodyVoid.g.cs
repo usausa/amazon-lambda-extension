@@ -2,7 +2,7 @@
 {
     public sealed class Function1_TestBodyVoid
     {
-        private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceLocator;
+        private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceResolver;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
@@ -10,9 +10,9 @@
 
         public Function1_TestBodyVoid()
         {
-            serviceLocator = new AmazonLambdaExtension.TargetProject.ServiceLocator();
-            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
-            function = new AmazonLambdaExtension.TargetProject.Function1(serviceLocator.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
+            serviceResolver = new AmazonLambdaExtension.TargetProject.ServiceLocator();
+            serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+            function = new AmazonLambdaExtension.TargetProject.Function1(serviceResolver.GetService<Microsoft.Extensions.Logging.ILogger<AmazonLambdaExtension.TargetProject.Function1>>());
         }
 
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)

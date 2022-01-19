@@ -2,7 +2,7 @@
 {
     public sealed class Function2_TestCalcNoAttribute
     {
-        private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceLocator;
+        private readonly AmazonLambdaExtension.TargetProject.ServiceLocator serviceResolver;
 
         private readonly AmazonLambdaExtension.Serialization.IBodySerializer serializer;
 
@@ -10,9 +10,9 @@
 
         public Function2_TestCalcNoAttribute()
         {
-            serviceLocator = new AmazonLambdaExtension.TargetProject.ServiceLocator();
-            serializer = serviceLocator.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
-            function = new AmazonLambdaExtension.TargetProject.Function2(serviceLocator.GetService<AmazonLambdaExtension.TargetProject.ICalculator>());
+            serviceResolver = new AmazonLambdaExtension.TargetProject.ServiceLocator();
+            serializer = serviceResolver.GetService<AmazonLambdaExtension.Serialization.IBodySerializer>() ?? AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
+            function = new AmazonLambdaExtension.TargetProject.Function2(serviceResolver.GetService<AmazonLambdaExtension.TargetProject.ICalculator>());
         }
 
         public Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.ILambdaContext context)
