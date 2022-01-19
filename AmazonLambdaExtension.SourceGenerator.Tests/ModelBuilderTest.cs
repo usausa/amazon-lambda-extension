@@ -395,6 +395,4 @@ public class Function
         Assert.Equal(ParameterType.None, handler.Parameters[0].ParameterType);
         Assert.Equal(ParameterType.None, handler.Parameters[1].ParameterType);
     }
-
-    // TODO Mixed
 }

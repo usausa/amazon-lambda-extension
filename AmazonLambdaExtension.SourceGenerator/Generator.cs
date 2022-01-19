@@ -34,7 +34,17 @@ public sealed class TestGenerator : IIncrementalGenerator
     private static ClassDeclarationSyntax? GetTargetSyntax(GeneratorSyntaxContext context)
     {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
-        return HasAttribute(context.SemanticModel, classDeclarationSyntax.AttributeLists, LambdaAttribute) ? classDeclarationSyntax : null;
+
+        foreach (var attributeSyntax in classDeclarationSyntax.AttributeLists.SelectMany(x => x.Attributes))
+        {
+            if ((context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is IMethodSymbol attributeSymbol) &&
+                (attributeSymbol.ContainingType.ToDisplayString() == LambdaAttribute))
+            {
+                return classDeclarationSyntax;
+            }
+        }
+
+        return null;
     }
 
     private static void Execute(SourceProductionContext context, Compilation compilation, ImmutableArray<ClassDeclarationSyntax> classes)
@@ -66,13 +76,12 @@ public sealed class TestGenerator : IIncrementalGenerator
 
                 // Build metadata
                 var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
-
-                if (!HasAttribute(methodSemantic, methodDeclarationSyntax.AttributeLists, HttpApiAttribute))
+                var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
+                if (!methodSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == HttpApiAttribute))
                 {
                     continue;
                 }
 
-                var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
                 var handler = ModelBuilder.BuildHandlerInfo((IMethodSymbol)methodSymbol);
 
                 // Generate wrapper
@@ -81,27 +90,5 @@ public sealed class TestGenerator : IIncrementalGenerator
                 context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
             }
         }
-    }
-
-    private static bool HasAttribute(SemanticModel model, SyntaxList<AttributeListSyntax> list, string name)
-    {
-        foreach (var attributeListSyntax in list)
-        {
-            foreach (var attributeSyntax in attributeListSyntax.Attributes)
-            {
-                if (model.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
-                {
-                    continue;
-                }
-
-                var fullName = attributeSymbol.ContainingType.ToDisplayString();
-                if (fullName == name)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 }
