@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="AmazonLambdaExtension.Helpers" #>
 <#@ import namespace="AmazonLambdaExtension.SourceGenerator.Models" #>
+#pragma warning disable CS8669
 namespace <#= handler.Namespace #>
 {
     public sealed class <#= handler.WrapperClass #>
