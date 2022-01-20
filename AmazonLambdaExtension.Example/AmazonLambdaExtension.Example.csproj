@@ -27,8 +27,8 @@
 
   <!--
   <ItemGroup>
-    <PackageReference Include="AmazonLambdaExtension" Version="1.0.0-beta1" />
-    <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="1.0.0-beta1">
+    <PackageReference Include="AmazonLambdaExtension" Version="1.0.1" />
+    <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="1.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
