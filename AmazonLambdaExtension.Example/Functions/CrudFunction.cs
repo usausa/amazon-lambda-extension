@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-[Filter(typeof(Filter))]
+[Filter(typeof(HttpApiFilter))]
 public sealed class CrudFunction
 {
     private readonly ILogger<CrudFunction> logger;

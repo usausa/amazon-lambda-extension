@@ -152,6 +152,29 @@
       }
     },
 
+    "Timer": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.TimerFunction_Logging::Handle",
+        "Architectures": [ "arm64" ],
+        "Runtime": "dotnetcore3.1",
+        "CodeUri": "",
+        "MemorySize": 128,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "Events": {
+          "Time": {
+            "Type": "Schedule",
+            "Properties": {
+              "Schedule": "cron(*/10 * * * ? *)"
+            }
+          }
+        }
+      }
+    },
     "DataTable": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {

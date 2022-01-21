@@ -40,17 +40,26 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Templates\LambdaTemplate.tt">
+    <None Update="Templates\EventTemplate.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>LambdaTemplate.cs</LastGenOutput>
+      <LastGenOutput>EventTemplate.cs</LastGenOutput>
+    </None>
+    <None Update="Templates\HttpApiTemplate.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>HttpApiTemplate.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Templates\LambdaTemplate.cs">
+    <Compile Update="Templates\EventTemplate.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>LambdaTemplate.tt</DependentUpon>
+      <DependentUpon>EventTemplate.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\HttpApiTemplate.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>HttpApiTemplate.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

@@ -14,6 +14,14 @@ public sealed class TestGenerator : IIncrementalGenerator
 {
     private const string LambdaAttribute = "AmazonLambdaExtension.Annotations.LambdaAttribute";
     private const string HttpApiAttribute = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
+    private const string EventAttribute = "AmazonLambdaExtension.Annotations.EventAttribute";
+
+    private enum HandlerType
+    {
+        None,
+        HttpApi,
+        Event
+    }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -77,18 +85,47 @@ public sealed class TestGenerator : IIncrementalGenerator
                 // Build metadata
                 var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
                 var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
-                if (!methodSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == HttpApiAttribute))
+                var handlerType = ResolveHandlerType(methodSymbol);
+
+                if (handlerType == HandlerType.None)
                 {
-                    continue;
+                    return;
                 }
 
                 var handler = ModelBuilder.BuildHandlerInfo((IMethodSymbol)methodSymbol);
 
-                // Generate wrapper
-                var template = new LambdaTemplate(function, handler);
-                var sourceText = template.TransformText();
-                context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
+                if (handlerType == HandlerType.HttpApi)
+                {
+                    // Generate wrapper
+                    var template = new HttpApiTemplate(function, handler);
+                    var sourceText = template.TransformText();
+                    context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
+                }
+                else if (handlerType == HandlerType.Event)
+                {
+                    // Generate wrapper
+                    var template = new EventTemplate(function, handler);
+                    var sourceText = template.TransformText();
+                    context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
+                }
             }
         }
+    }
+
+    private static HandlerType ResolveHandlerType(ISymbol symbol)
+    {
+        foreach (var name in symbol.GetAttributes().Select(attribute => attribute.AttributeClass!.ToDisplayString()))
+        {
+            if (name == HttpApiAttribute)
+            {
+                return HandlerType.HttpApi;
+            }
+            if (name == EventAttribute)
+            {
+                return HandlerType.Event;
+            }
+        }
+
+        return HandlerType.None;
     }
 }

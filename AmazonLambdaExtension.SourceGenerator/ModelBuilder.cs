@@ -15,8 +15,7 @@ public static class ModelBuilder
     private const string FromHeaderAttribute = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
     private const string FromServicesAttribute = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
 
-    private const string APIGatewayProxyRequest = "Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest";
-    private const string LambdaContext = "Amazon.Lambda.Core.ILambdaContext";
+    private const string AmazonLambdaNamespace = "Amazon.Lambda.";
 
     private const string FunctionExecuting = "OnFunctionExecuting";
     private const string FunctionExecuted = "OnFunctionExecuted";
@@ -120,7 +119,7 @@ public static class ModelBuilder
         }
 
         var typeName = symbol.Type.ToDisplayString();
-        if ((typeName == APIGatewayProxyRequest) || (typeName == LambdaContext))
+        if (typeName.StartsWith(AmazonLambdaNamespace, StringComparison.Ordinal))
         {
             return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.None);
         }

@@ -6,7 +6,7 @@ using AmazonLambdaExtension.Example.Parameters;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-[Filter(typeof(Filter))]
+[Filter(typeof(HttpApiFilter))]
 public sealed class MiscFunction
 {
     [HttpApi]

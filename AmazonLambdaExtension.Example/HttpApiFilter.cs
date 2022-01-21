@@ -5,7 +5,7 @@ using Amazon.Lambda.Core;
 
 using AmazonLambdaExtension.Example.Components.Logging;
 
-public sealed class Filter
+public sealed class HttpApiFilter
 {
     public APIGatewayProxyResponse? OnFunctionExecuting(APIGatewayProxyRequest request, ILambdaContext context)
     {
