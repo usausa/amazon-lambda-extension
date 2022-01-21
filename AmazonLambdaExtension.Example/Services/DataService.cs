@@ -1,34 +1,32 @@
 namespace AmazonLambdaExtension.Example.Services;
 
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-
+using AmazonLambdaExtension.Example.Components.DynamoDB;
 using AmazonLambdaExtension.Example.Models;
 
 public class DataService
 {
-    private readonly IAmazonDynamoDB dynamoClient;
+    private readonly IDynamoDBFactory dynamoDBFactory;
 
-    public DataService(IAmazonDynamoDB dynamoClient)
+    public DataService(IDynamoDBFactory dynamoDBFactory)
     {
-        this.dynamoClient = dynamoClient;
+        this.dynamoDBFactory = dynamoDBFactory;
     }
 
     public async ValueTask<DataEntity?> QueryDataAsync(string id)
     {
-        using var context = new DynamoDBContext(dynamoClient);
+        using var context = dynamoDBFactory.Create();
         return await context.LoadAsync<DataEntity>(id).ConfigureAwait(false);
     }
 
     public async ValueTask CreateDataAsync(DataEntity entity)
     {
-        using var context = new DynamoDBContext(dynamoClient);
+        using var context = dynamoDBFactory.Create();
         await context.SaveAsync(entity).ConfigureAwait(false);
     }
 
     public async ValueTask DeleteDataAsync(string id)
     {
-        using var context = new DynamoDBContext(dynamoClient);
+        using var context = dynamoDBFactory.Create();
         await context.DeleteAsync<DataEntity>(id).ConfigureAwait(false);
     }
 }

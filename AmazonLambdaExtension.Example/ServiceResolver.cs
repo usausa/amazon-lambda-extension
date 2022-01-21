@@ -1,11 +1,18 @@
 namespace AmazonLambdaExtension.Example;
 
 using System;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
 using Amazon.DynamoDBv2;
 
+using AmazonLambdaExtension.Example.Components.DynamoDB;
+using AmazonLambdaExtension.Example.Components.Json;
 using AmazonLambdaExtension.Example.Components.Logging;
 using AmazonLambdaExtension.Example.Services;
+using AmazonLambdaExtension.Serialization;
 
 using AutoMapper;
 
@@ -27,8 +34,18 @@ public sealed class ServiceResolver
             c.AddLambdaLogger();
         });
 
+        // Serializer
+        services.AddSingleton<IBodySerializer>(_ => new JsonBodySerializer(new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new DateTimeConverter() }
+        }));
+
         // Dynamo
         services.AddSingleton<IAmazonDynamoDB, AmazonDynamoDBClient>();
+        services.AddSingleton<IDynamoDBFactory, DynamoDBFactory>();
 
         // Http client
         services.AddHttpClient(ConnectorNames.Ipify, c =>

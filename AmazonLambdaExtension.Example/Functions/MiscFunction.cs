@@ -7,7 +7,7 @@ using AmazonLambdaExtension.Example.Parameters;
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
 [Filter(typeof(Filter))]
-public class MiscFunction
+public sealed class MiscFunction
 {
     [HttpApi]
     public MiscTimeOutput Time()
