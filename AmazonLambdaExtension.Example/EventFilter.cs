@@ -1,6 +1,5 @@
 namespace AmazonLambdaExtension.Example;
 
-using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 
 using AmazonLambdaExtension.Example.Components.Logging;
