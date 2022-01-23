@@ -34,11 +34,13 @@ public static class ModelBuilder
             .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
             .FirstOrDefault();
 
+        // TODO
         return new FunctionModel(
             BuildTypeInfo(symbol),
             ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
+            filter is not null ? BuildFilterInfo(filter) : null,
             serviceResolver is not null ? BuildTypeInfo(serviceResolver) : null,
-            filter is not null ? BuildFilterInfo(filter) : null);
+            false);
     }
 
     private static FilterModel BuildFilterInfo(ITypeSymbol symbol)
@@ -98,33 +100,34 @@ public static class ModelBuilder
             var attributeName = attribute.AttributeClass!.ToDisplayString();
             if (attributeName == FromQueryAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, FindKeyNameFromAttribute(attribute));
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, false, FindKeyNameFromAttribute(attribute));
             }
             if (attributeName == FromBodyAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody);
+                // TODO
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody, false);
             }
             if (attributeName == FromRouteAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromRoute, FindKeyNameFromAttribute(attribute));
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromRoute, false, FindKeyNameFromAttribute(attribute));
             }
             if (attributeName == FromHeaderAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromHeader, FindKeyNameFromAttribute(attribute));
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromHeader, false, FindKeyNameFromAttribute(attribute));
             }
             if (attributeName == FromServicesAttribute)
             {
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromServices);
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromServices, false);
             }
         }
 
         var typeName = symbol.Type.ToDisplayString();
         if (typeName.StartsWith(AmazonLambdaNamespace, StringComparison.Ordinal))
         {
-            return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.None);
+            return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.None, false);
         }
 
-        return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery);
+        return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, false);
     }
 
     private static string? FindKeyNameFromAttribute(AttributeData attributeData)

@@ -6,16 +6,19 @@ public sealed class FunctionModel
 
     public List<TypeModel> ConstructorParameters { get; }
 
-    public TypeModel? ServiceResolver { get; }
-
     public FilterModel? Filter { get; }
 
-    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, TypeModel? serviceResolver, FilterModel? filter)
+    public TypeModel? ServiceResolver { get; }
+
+    public bool ResolveFunction { get; }
+
+    public FunctionModel(TypeModel function, List<TypeModel> constructorParameters, FilterModel? filter, TypeModel? serviceResolver, bool resolveFunction)
     {
         Function = function;
         ConstructorParameters = constructorParameters;
-        ServiceResolver = serviceResolver;
         Filter = filter;
+        ServiceResolver = serviceResolver;
+        ResolveFunction = resolveFunction;
     }
 }
 
