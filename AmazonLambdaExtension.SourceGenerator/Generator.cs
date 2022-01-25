@@ -27,13 +27,13 @@ public sealed class TestGenerator : IIncrementalGenerator
     {
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                static (s, _) => IsTargetSyntax(s),
-                static (ctx, _) => GetTargetSyntax(ctx))
-            .SelectMany(static (x, _) => x is not null ? ImmutableArray.Create(x) : ImmutableArray<ClassDeclarationSyntax>.Empty);
+                (s, _) => IsTargetSyntax(s),
+                (ctx, _) => GetTargetSyntax(ctx))
+            .SelectMany((x, _) => x is not null ? ImmutableArray.Create(x) : ImmutableArray<ClassDeclarationSyntax>.Empty);
         IncrementalValueProvider<(Compilation, ImmutableArray<ClassDeclarationSyntax>)> compilationAndClasses =
             context.CompilationProvider.Combine(classDeclarations.Collect());
 
-        context.RegisterImplementationSourceOutput(compilationAndClasses, static (spc, source) => Execute(spc, source.Item1, source.Item2));
+        context.RegisterImplementationSourceOutput(compilationAndClasses, (spc, source) => Execute(spc, source.Item1, source.Item2));
     }
 
     private static bool IsTargetSyntax(SyntaxNode node) =>
