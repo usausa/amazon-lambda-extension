@@ -189,23 +189,50 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("            function = new ");
             
             #line 42 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ if (function.ResolveFunction) { 
+            
+            #line default
+            #line hidden
+            this.Write("            function = serviceResolver.GetService<");
+            
+            #line 43 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(function.Function.FullName));
+            
+            #line default
+            #line hidden
+            this.Write(">();\r\n");
+            
+            #line 44 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ } else { 
+            
+            #line default
+            #line hidden
+            this.Write("            function = new ");
+            
+            #line 45 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Function.FullName));
             
             #line default
             #line hidden
             this.Write("(");
             
-            #line 42 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 45 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()"))));
             
             #line default
             #line hidden
-            this.Write(");\r\n        }\r\n\r\n");
+            this.Write(");\r\n");
             
-            #line 45 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 46 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("        }\r\n\r\n");
+            
+            #line 49 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (handler.IsAsync || function.IsAsyncRequired()) { 
             
             #line default
@@ -214,7 +241,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "PIGatewayProxyResponse> Handle(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyReq" +
                     "uest request, Amazon.Lambda.Core.ILambdaContext context)\r\n");
             
-            #line 47 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 51 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } else { 
             
             #line default
@@ -223,34 +250,34 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "on.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, Amazon.Lambda.Core.IL" +
                     "ambdaContext context)\r\n");
             
-            #line 49 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("        {\r\n");
             
-            #line 51 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 55 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (function.Filter?.Executing != null) { 
             
             #line default
             #line hidden
             
-            #line 52 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 56 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (function.Filter.Executing.HasResult) { 
             
             #line default
             #line hidden
             this.Write("            var executingResult = ");
             
-            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 57 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("filter.OnFunctionExecuting(request, context)");
             
-            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 57 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
@@ -258,82 +285,82 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write(";\r\n            if (executingResult != null)\r\n            {\r\n                retur" +
                     "n executingResult;\r\n            }\r\n");
             
-            #line 58 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } else { 
             
             #line default
             #line hidden
             this.Write("            ");
             
-            #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 63 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("filter.OnFunctionExecuting(request, context)");
             
-            #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 63 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
             #line hidden
             this.Write(";\r\n");
             
-            #line 60 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 64 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("\r\n");
             
-            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 66 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("            try\r\n            {\r\n");
             
-            #line 65 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 69 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  for (var i = 0; i < handler.Parameters.Count; i++) { 
             
             #line default
             #line hidden
             
-            #line 66 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 70 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  var parameter = handler.Parameters[i]; 
             
             #line default
             #line hidden
             
-            #line 67 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 71 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (parameter.ParameterType == ParameterType.FromBody) { 
             
             #line default
             #line hidden
             this.Write("                ");
             
-            #line 68 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 72 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
             
             #line default
             #line hidden
             this.Write(" p");
             
-            #line 68 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 72 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write(";\r\n                try\r\n                {\r\n                    p");
             
-            #line 71 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 75 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write(" = serializer.Deserialize<");
             
-            #line 71 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 75 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
             
             #line default
@@ -345,10 +372,16 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     context.Logger.LogLine(ex.ToString());
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
-
-                if (!AmazonLambdaExtension.Helpers.ValidationHelper.Validate(p");
+");
             
-            #line 79 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 82 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ if (!parameter.SkipValidation) { 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n                if (!AmazonLambdaExtension.Helpers.ValidationHelper.Validate(p");
+            
+            #line 84 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
@@ -356,78 +389,49 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("))\r\n                {\r\n                    return new Amazon.Lambda.APIGatewayEve" +
                     "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
             
-            #line 83 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 88 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ } 
+            
+            #line default
+            #line hidden
+            
+            #line 89 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } else if (parameter.ParameterType == ParameterType.FromQuery) { 
             
             #line default
             #line hidden
             
-            #line 84 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 90 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (parameter.Type.IsArrayType) { 
             
             #line default
             #line hidden
             this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<");
             
-            #line 85 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 91 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.ElementType.FullName));
             
             #line default
             #line hidden
             this.Write(">(request.MultiValueQueryStringParameters, \"");
             
-            #line 85 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 91 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
             
             #line default
             #line hidden
             this.Write("\", out var p");
             
-            #line 85 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 91 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write("))\r\n                {\r\n                    return new Amazon.Lambda.APIGatewayEve" +
                     "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
-            
-            #line 89 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } else { 
-            
-            #line default
-            #line hidden
-            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<");
-            
-            #line 90 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
-            
-            #line default
-            #line hidden
-            this.Write(">(request.QueryStringParameters, \"");
-            
-            #line 90 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
-            
-            #line default
-            #line hidden
-            this.Write("\", out var p");
-            
-            #line 90 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(i));
-            
-            #line default
-            #line hidden
-            this.Write("))\r\n                {\r\n                    return new Amazon.Lambda.APIGatewayEve" +
-                    "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
-            
-            #line 94 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } 
-            
-            #line default
-            #line hidden
             
             #line 95 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } else if (parameter.ParameterType == ParameterType.FromRoute) { 
+ } else { 
             
             #line default
             #line hidden
@@ -438,7 +442,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write(">(request.PathParameters, \"");
+            this.Write(">(request.QueryStringParameters, \"");
             
             #line 96 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
@@ -456,24 +460,24 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
             
             #line 100 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } else if (parameter.ParameterType == ParameterType.FromHeader) { 
+ } 
             
             #line default
             #line hidden
             
             #line 101 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- if (parameter.Type.IsArrayType) { 
+ } else if (parameter.ParameterType == ParameterType.FromRoute) { 
             
             #line default
             #line hidden
-            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<");
+            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<");
             
             #line 102 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.ElementType.FullName));
+            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
             
             #line default
             #line hidden
-            this.Write(">(request.MultiValueHeaders, \"");
+            this.Write(">(request.PathParameters, \"");
             
             #line 102 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
@@ -491,27 +495,33 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
             
             #line 106 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } else { 
+ } else if (parameter.ParameterType == ParameterType.FromHeader) { 
             
             #line default
             #line hidden
-            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<");
             
             #line 107 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
+ if (parameter.Type.IsArrayType) { 
             
             #line default
             #line hidden
-            this.Write(">(request.Headers, \"");
+            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<");
             
-            #line 107 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.ElementType.FullName));
+            
+            #line default
+            #line hidden
+            this.Write(">(request.MultiValueHeaders, \"");
+            
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
             
             #line default
             #line hidden
             this.Write("\", out var p");
             
-            #line 107 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 108 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
@@ -519,122 +529,151 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("))\r\n                {\r\n                    return new Amazon.Lambda.APIGatewayEve" +
                     "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
             
-            #line 111 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } 
-            
-            #line default
-            #line hidden
-            
             #line 112 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
- } else if (parameter.ParameterType == ParameterType.FromServices) { 
+ } else { 
             
             #line default
             #line hidden
-            this.Write("                var p");
-            
-            #line 113 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(i));
-            
-            #line default
-            #line hidden
-            this.Write(" = serviceResolver.GetService<");
+            this.Write("                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<");
             
             #line 113 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
             
             #line default
             #line hidden
+            this.Write(">(request.Headers, \"");
+            
+            #line 113 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Key));
+            
+            #line default
+            #line hidden
+            this.Write("\", out var p");
+            
+            #line 113 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(i));
+            
+            #line default
+            #line hidden
+            this.Write("))\r\n                {\r\n                    return new Amazon.Lambda.APIGatewayEve" +
+                    "nts.APIGatewayProxyResponse { StatusCode = 400 };\r\n                }\r\n");
+            
+            #line 117 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ } 
+            
+            #line default
+            #line hidden
+            
+            #line 118 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+ } else if (parameter.ParameterType == ParameterType.FromServices) { 
+            
+            #line default
+            #line hidden
+            this.Write("                var p");
+            
+            #line 119 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(i));
+            
+            #line default
+            #line hidden
+            this.Write(" = serviceResolver.GetService<");
+            
+            #line 119 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
+            
+            #line default
+            #line hidden
             this.Write(">();\r\n");
             
-            #line 114 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 120 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } else { 
             
             #line default
             #line hidden
             
-            #line 115 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 121 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (parameter.Type.IsAPIGatewayProxyRequest()) { 
             
             #line default
             #line hidden
             this.Write("                var p");
             
-            #line 116 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 122 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write(" = request;\r\n");
             
-            #line 117 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } else if (parameter.Type.IsLambdaContext()) { 
             
             #line default
             #line hidden
             this.Write("                var p");
             
-            #line 118 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 124 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write(" = context;\r\n");
             
-            #line 119 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 125 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             
-            #line 120 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 126 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("\r\n");
             
-            #line 122 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 128 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("                ");
             
-            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType != null ? "var output = " : ""));
             
             #line default
             #line hidden
             
-            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("function.");
             
-            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.MethodName));
             
             #line default
             #line hidden
             this.Write("(");
             
-            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}"))));
             
             #line default
             #line hidden
             this.Write(")");
             
-            #line 123 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
             #line hidden
             this.Write(";\r\n");
             
-            #line 124 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 130 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (handler.ResultType?.AllowNull ?? false) { 
             
             #line default
@@ -643,7 +682,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "n new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 404 " +
                     "};\r\n                }\r\n");
             
-            #line 129 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 135 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
@@ -651,7 +690,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("\r\n                return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRespon" +
                     "se\r\n                {\r\n");
             
-            #line 133 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 139 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (handler.ResultType != null) { 
             
             #line default
@@ -660,7 +699,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
                     "ders = new Dictionary<string, string> { { \"Content-Type\", \"application/json\" } }" +
                     ",\r\n");
             
-            #line 136 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 142 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default
@@ -679,28 +718,28 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             }
 ");
             
-            #line 149 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 155 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  if (function.Filter?.Executed != null) { 
             
             #line default
             #line hidden
             this.Write("            finally\r\n            {\r\n                ");
             
-            #line 152 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 158 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executed.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("filter.OnFunctionExecuted(request, context)");
             
-            #line 152 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 158 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executed.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
             #line hidden
             this.Write(";\r\n            }\r\n");
             
-            #line 154 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
+            #line 160 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\HttpApiTemplate.tt"
  } 
             
             #line default

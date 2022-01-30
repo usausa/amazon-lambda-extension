@@ -10,11 +10,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 [Generator]
-public sealed class TestGenerator : IIncrementalGenerator
+public sealed class Generator : IIncrementalGenerator
 {
-    private const string LambdaAttribute = "AmazonLambdaExtension.Annotations.LambdaAttribute";
-    private const string HttpApiAttribute = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
-    private const string EventAttribute = "AmazonLambdaExtension.Annotations.EventAttribute";
+    private const string LambdaAttributeName = "AmazonLambdaExtension.Annotations.LambdaAttribute";
+    private const string HttpApiAttributeName = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
+    private const string EventAttributeName = "AmazonLambdaExtension.Annotations.EventAttribute";
 
     private enum HandlerType
     {
@@ -46,7 +46,7 @@ public sealed class TestGenerator : IIncrementalGenerator
         foreach (var attributeSyntax in classDeclarationSyntax.AttributeLists.SelectMany(x => x.Attributes))
         {
             if ((context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is IMethodSymbol attributeSymbol) &&
-                (attributeSymbol.ContainingType.ToDisplayString() == LambdaAttribute))
+                (attributeSymbol.ContainingType.ToDisplayString() == LambdaAttributeName))
             {
                 return classDeclarationSyntax;
             }
@@ -116,11 +116,11 @@ public sealed class TestGenerator : IIncrementalGenerator
     {
         foreach (var name in symbol.GetAttributes().Select(attribute => attribute.AttributeClass!.ToDisplayString()))
         {
-            if (name == HttpApiAttribute)
+            if (name == HttpApiAttributeName)
             {
                 return HandlerType.HttpApi;
             }
-            if (name == EventAttribute)
+            if (name == EventAttributeName)
             {
                 return HandlerType.Event;
             }

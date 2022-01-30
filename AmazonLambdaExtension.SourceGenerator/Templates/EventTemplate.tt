@@ -41,7 +41,11 @@ namespace <#= handler.Namespace #>
 <# if (function.Filter != null) { #>
             filter = new <#= function.Filter.Type.FullName #>();
 <# } #>
+<# if (function.ResolveFunction) { #>
+            function = serviceResolver.GetService<<#= function.Function.FullName #>>();
+<# } else { #>
             function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
+<# } #>
         }
 
 <# if (handler.IsAsync || function.IsAsyncRequired()) { #>

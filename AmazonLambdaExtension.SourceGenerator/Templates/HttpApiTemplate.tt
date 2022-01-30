@@ -39,7 +39,11 @@ namespace <#= handler.Namespace #>
             serializer = AmazonLambdaExtension.Serialization.JsonBodySerializer.Default;
 <# } #>
 <# } #>
+<# if (function.ResolveFunction) { #>
+            function = serviceResolver.GetService<<#= function.Function.FullName #>>();
+<# } else { #>
             function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
+<# } #>
         }
 
 <# if (handler.IsAsync || function.IsAsyncRequired()) { #>
@@ -75,11 +79,13 @@ namespace <#= handler.Namespace #>
                     context.Logger.LogLine(ex.ToString());
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
+<# if (!parameter.SkipValidation) { #>
 
                 if (!AmazonLambdaExtension.Helpers.ValidationHelper.Validate(p<#= i #>))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
+<# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromQuery) { #>
 <# if (parameter.Type.IsArrayType) { #>
                 if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<<#= parameter.Type.ElementType.FullName #>>(request.MultiValueQueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))

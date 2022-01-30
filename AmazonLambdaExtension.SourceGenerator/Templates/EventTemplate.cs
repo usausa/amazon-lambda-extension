@@ -158,88 +158,82 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line default
             #line hidden
-            this.Write("            function = new ");
             
             #line 44 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ if (function.ResolveFunction) { 
+            
+            #line default
+            #line hidden
+            this.Write("            function = serviceResolver.GetService<");
+            
+            #line 45 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(function.Function.FullName));
+            
+            #line default
+            #line hidden
+            this.Write(">();\r\n");
+            
+            #line 46 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ } else { 
+            
+            #line default
+            #line hidden
+            this.Write("            function = new ");
+            
+            #line 47 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Function.FullName));
             
             #line default
             #line hidden
             this.Write("(");
             
-            #line 44 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 47 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()"))));
             
             #line default
             #line hidden
-            this.Write(");\r\n        }\r\n\r\n");
+            this.Write(");\r\n");
             
-            #line 47 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 48 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("        }\r\n\r\n");
+            
+            #line 51 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  if (handler.IsAsync || function.IsAsyncRequired()) { 
             
             #line default
             #line hidden
             
-            #line 48 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 52 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  if (handler.ResultType != null) { 
             
             #line default
             #line hidden
             this.Write("        public async System.Threading.Tasks.Task<");
             
-            #line 49 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType.FullName));
             
             #line default
             #line hidden
             this.Write("> Handle(");
             
-            #line 49 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(artument));
             
             #line default
             #line hidden
             this.Write(")\r\n");
             
-            #line 50 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 54 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } else { 
             
             #line default
             #line hidden
             this.Write("        public async System.Threading.Tasks.Task Handle(");
-            
-            #line 51 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(artument));
-            
-            #line default
-            #line hidden
-            this.Write(")\r\n");
-            
-            #line 52 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
- } 
-            
-            #line default
-            #line hidden
-            
-            #line 53 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
- } else { 
-            
-            #line default
-            #line hidden
-            
-            #line 54 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
- if (handler.ResultType != null) { 
-            
-            #line default
-            #line hidden
-            this.Write("        public ");
-            
-            #line 55 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType.FullName));
-            
-            #line default
-            #line hidden
-            this.Write(" Handle(");
             
             #line 55 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(artument));
@@ -249,141 +243,174 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write(")\r\n");
             
             #line 56 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ } 
+            
+            #line default
+            #line hidden
+            
+            #line 57 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } else { 
             
             #line default
             #line hidden
-            this.Write("        public void Handle(");
             
-            #line 57 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 58 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ if (handler.ResultType != null) { 
+            
+            #line default
+            #line hidden
+            this.Write("        public ");
+            
+            #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType.FullName));
+            
+            #line default
+            #line hidden
+            this.Write(" Handle(");
+            
+            #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(artument));
             
             #line default
             #line hidden
             this.Write(")\r\n");
             
-            #line 58 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 60 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+ } else { 
+            
+            #line default
+            #line hidden
+            this.Write("        public void Handle(");
+            
+            #line 61 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(artument));
+            
+            #line default
+            #line hidden
+            this.Write(")\r\n");
+            
+            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default
             #line hidden
             
-            #line 59 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 63 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("        {\r\n");
             
-            #line 61 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 65 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  if (function.Filter?.Executing is not null) { 
             
             #line default
             #line hidden
             this.Write("            ");
             
-            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 66 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("filter.OnFunctionExecuting(");
             
-            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 66 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(contextArtument));
             
             #line default
             #line hidden
             this.Write(")");
             
-            #line 62 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 66 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executing.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
             #line hidden
             this.Write(";\r\n\r\n");
             
-            #line 64 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 68 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("            try\r\n            {\r\n");
             
-            #line 67 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 71 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  for (var i = 0; i < handler.Parameters.Count; i++) { 
             
             #line default
             #line hidden
             
-            #line 68 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 72 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  var parameter = handler.Parameters[i]; 
             
             #line default
             #line hidden
             
-            #line 69 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 73 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  if (parameter.ParameterType == ParameterType.FromServices) { 
             
             #line default
             #line hidden
             this.Write("                var p");
             
-            #line 70 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(i));
             
             #line default
             #line hidden
             this.Write(" = serviceResolver.GetService<");
             
-            #line 70 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(parameter.Type.FullName));
             
             #line default
             #line hidden
             this.Write(">();\r\n\r\n");
             
-            #line 72 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 76 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default
             #line hidden
             
-            #line 73 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 77 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default
             #line hidden
             this.Write("                ");
             
-            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.ResultType != null ? "return " : ""));
             
             #line default
             #line hidden
             
-            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("function.");
             
-            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.MethodName));
             
             #line default
             #line hidden
             this.Write("(");
             
-            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}"))));
             
             #line default
             #line hidden
             this.Write(")");
             
-            #line 74 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(handler.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
@@ -391,42 +418,42 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write(";\r\n            }\r\n            catch (System.Exception ex)\r\n            {\r\n       " +
                     "         ");
             
-            #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 82 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(contextArtument));
             
             #line default
             #line hidden
             this.Write(".Logger.LogLine(ex.ToString());\r\n                throw;\r\n            }\r\n");
             
-            #line 81 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 85 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  if (function.Filter?.Executed is not null) { 
             
             #line default
             #line hidden
             this.Write("            finally\r\n            {\r\n                ");
             
-            #line 84 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 88 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executed.IsAsync ? "await " : ""));
             
             #line default
             #line hidden
             this.Write("filter.OnFunctionExecuted(");
             
-            #line 84 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 88 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(contextArtument));
             
             #line default
             #line hidden
             this.Write(")");
             
-            #line 84 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 88 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(function.Filter.Executed.IsAsync ? ".ConfigureAwait(false)" : ""));
             
             #line default
             #line hidden
             this.Write(";\r\n            }\r\n");
             
-            #line 86 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
+            #line 90 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
  } 
             
             #line default

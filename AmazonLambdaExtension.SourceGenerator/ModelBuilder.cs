@@ -1,19 +1,20 @@
 namespace AmazonLambdaExtension.SourceGenerator;
 
+using AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.SourceGenerator.Models;
 
 using Microsoft.CodeAnalysis;
 
 public static class ModelBuilder
 {
-    private const string ServiceResolverAttribute = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
-    private const string FilterAttribute = "AmazonLambdaExtension.Annotations.FilterAttribute";
+    private const string ServiceResolverAttributeName = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
+    private const string FilterAttributeName = "AmazonLambdaExtension.Annotations.FilterAttribute";
 
-    private const string FromQueryAttribute = "AmazonLambdaExtension.Annotations.FromQueryAttribute";
-    private const string FromBodyAttribute = "AmazonLambdaExtension.Annotations.FromBodyAttribute";
-    private const string FromRouteAttribute = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
-    private const string FromHeaderAttribute = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
-    private const string FromServicesAttribute = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
+    private const string FromQueryAttributeName = "AmazonLambdaExtension.Annotations.FromQueryAttribute";
+    private const string FromBodyAttributeName = "AmazonLambdaExtension.Annotations.FromBodyAttribute";
+    private const string FromRouteAttributeName = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
+    private const string FromHeaderAttributeName = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
+    private const string FromServicesAttributeName = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
 
     private const string AmazonLambdaNamespace = "Amazon.Lambda.";
 
@@ -26,21 +27,16 @@ public static class ModelBuilder
             .OrderByDescending(x => x.Parameters.Length)
             .First();
         var serviceResolver = symbol.GetAttributes()
-            .Where(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttribute)
-            .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
-            .FirstOrDefault();
+            .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttributeName);
         var filter = symbol.GetAttributes()
-            .Where(x => x.AttributeClass!.ToDisplayString() == FilterAttribute)
-            .Select(x => (ITypeSymbol)x.ConstructorArguments[0].Value!)
-            .FirstOrDefault();
+            .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == FilterAttributeName);
 
-        // TODO
         return new FunctionModel(
             BuildTypeInfo(symbol),
             ctor.Parameters.Select(static x => BuildTypeInfo(x.Type)).ToList(),
-            filter is not null ? BuildFilterInfo(filter) : null,
-            serviceResolver is not null ? BuildTypeInfo(serviceResolver) : null,
-            false);
+            filter is not null ? BuildFilterInfo((ITypeSymbol)filter.ConstructorArguments[0].Value!) : null,
+            serviceResolver is not null ? BuildTypeInfo((ITypeSymbol)serviceResolver.ConstructorArguments[0].Value!) : null,
+            serviceResolver is not null && ResolveNamedArgument(serviceResolver, nameof(ServiceResolverAttribute.ResolveFunction), false));
     }
 
     private static FilterModel BuildFilterInfo(ITypeSymbol symbol)
@@ -98,24 +94,23 @@ public static class ModelBuilder
         foreach (var attribute in symbol.GetAttributes())
         {
             var attributeName = attribute.AttributeClass!.ToDisplayString();
-            if (attributeName == FromQueryAttribute)
+            if (attributeName == FromQueryAttributeName)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromQuery, false, FindKeyNameFromAttribute(attribute));
             }
-            if (attributeName == FromBodyAttribute)
+            if (attributeName == FromBodyAttributeName)
             {
-                // TODO
-                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody, false);
+                return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromBody, ResolveNamedArgument(attribute, nameof(FromBodyAttribute.SkipValidate), false));
             }
-            if (attributeName == FromRouteAttribute)
+            if (attributeName == FromRouteAttributeName)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromRoute, false, FindKeyNameFromAttribute(attribute));
             }
-            if (attributeName == FromHeaderAttribute)
+            if (attributeName == FromHeaderAttributeName)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromHeader, false, FindKeyNameFromAttribute(attribute));
             }
-            if (attributeName == FromServicesAttribute)
+            if (attributeName == FromServicesAttributeName)
             {
                 return new ParameterModel(symbol.Name, BuildTypeInfo(symbol.Type), ParameterType.FromServices, false);
             }
@@ -133,6 +128,19 @@ public static class ModelBuilder
     private static string? FindKeyNameFromAttribute(AttributeData attributeData)
     {
         return attributeData.ConstructorArguments.Length > 0 ? attributeData.ConstructorArguments[0].Value?.ToString() : null;
+    }
+
+    private static T ResolveNamedArgument<T>(AttributeData attribute, string name, T defaultValue)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key == name && argument.Value.Value is T value)
+            {
+                return value;
+            }
+        }
+
+        return defaultValue;
     }
 
     private static TypeModel BuildTypeInfo(ITypeSymbol symbol)
