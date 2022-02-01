@@ -53,8 +53,8 @@ Change Handler in serverless.template to generated code.
 
 ## Basic
 
-Set `LambdaAttribute` to Function class.
-Set `HttpApiAttribute` to method to handle HTTP API and `EventAttribute` for other.
+Set `LambdaAttribute` to Function class.  
+Set `HttpApiAttribute` to method to handle HTTP API and `EventAttribute` for other.  
 Then the wrapper class will be generated.
 
 ## Dependency Injection
@@ -96,12 +96,11 @@ If set `ResolveFunction = true` in `ServiceResolverAttribute`, Function class wi
 
 ## Pre/Post action
 
-Create class with `OnFunctionExecuting()`/`OnFunctionExecuted()` methods and set type in `FilterAttribute`, method will be called before and after Function is processed.
-In the case of HTTP API, `APIGatewayProxyRequest` and `ILambdaContext` are arguments to method.
-In the case of Event, `ILambdaContext` is arguments to method.
-In the HTTP API filter, if `OnFunctionExecuting()` returns `APIGatewayProxyResponse`, the Function process will not be called and its value will be used as the response.
+Create class with `OnFunctionExecuting()`/`OnFunctionExecuted()` methods and set type in `FilterAttribute`, method will be called before and after Function is processed.  
+In the case of HTTP API, `APIGatewayProxyRequest` and `ILambdaContext` are arguments to method.  
+In the case of Event, `ILambdaContext` is arguments to method.  
+In the HTTP API filter, if `OnFunctionExecuting()` returns `APIGatewayProxyResponse`, the Function process will not be called and its value will be used as the response.  
 Filter methods support `async`.
-
 
 ```csharp
 public sealed class HttpApiFilter
