@@ -8,7 +8,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Get::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 256,
         "Timeout": 30,
@@ -33,7 +33,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Create::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 256,
         "Timeout": 30,
@@ -58,7 +58,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Delete::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 256,
         "Timeout": 30,
@@ -84,7 +84,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Time::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 128,
         "Timeout": 30,
@@ -108,7 +108,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Calc::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 128,
         "Timeout": 30,
@@ -132,7 +132,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Http::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 256,
         "Timeout": 30,
@@ -157,7 +157,7 @@
       "Properties": {
         "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.TimerFunction_Logging::Handle",
         "Architectures": [ "arm64" ],
-        "Runtime": "dotnetcore3.1",
+        "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 128,
         "Timeout": 30,
