@@ -24,7 +24,9 @@ public sealed class FunctionModel
 
 public static class FunctionModelExtensions
 {
+    // ReSharper disable ConstantNullCoalescingCondition TODO remove, R# bug?
     public static bool IsAsyncRequired(this FunctionModel model) =>
         (model.Filter?.Executing?.IsAsync ?? false) ||
         (model.Filter?.Executed?.IsAsync ?? false);
+    // ReSharper restore ConstantNullCoalescingCondition
 }
