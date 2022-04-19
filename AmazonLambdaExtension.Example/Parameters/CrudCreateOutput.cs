@@ -4,6 +4,5 @@ using System.Diagnostics.CodeAnalysis;
 
 public class CrudCreateOutput
 {
-    [AllowNull]
-    public string Id { get; set; }
+    public string Id { get; set; } = default!;
 }
