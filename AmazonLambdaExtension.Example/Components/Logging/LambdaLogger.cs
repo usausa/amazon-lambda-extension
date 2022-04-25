@@ -1,6 +1,5 @@
 namespace AmazonLambdaExtension.Example.Components.Logging;
 
-using System;
 using System.Runtime.CompilerServices;
 
 using Microsoft.Extensions.Logging;
