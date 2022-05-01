@@ -6,22 +6,22 @@ using AmazonLambdaExtension.Example.Parameters;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-[Filter(typeof(HttpApiFilter))]
+[Filter(typeof(ApiFilter))]
 public sealed class MiscFunction
 {
-    [HttpApi]
+    [Api]
     public MiscTimeOutput Time()
     {
         return new MiscTimeOutput { DateTime = DateTime.Now };
     }
 
-    [HttpApi]
+    [Api]
     public int Calc(int x, int y)
     {
         return x + y;
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask<MiscHttpOutput> Http([FromServices] IHttpClientFactory httpClientFactory)
     {
         using var client = httpClientFactory.CreateClient(ConnectorNames.Ipify);

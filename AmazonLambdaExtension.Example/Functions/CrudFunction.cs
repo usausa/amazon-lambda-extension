@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-[Filter(typeof(HttpApiFilter))]
+[Filter(typeof(ApiFilter))]
 public sealed class CrudFunction
 {
     private readonly ILogger<CrudFunction> logger;
@@ -28,13 +28,13 @@ public sealed class CrudFunction
         this.dataService = dataService;
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask<DataEntity?> Get([FromRoute] string id)
     {
         return await dataService.QueryDataAsync(id).ConfigureAwait(false);
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask<CrudCreateOutput> Create([FromBody] CrudCreateInput input)
     {
         var entity = mapper.Map<DataEntity>(input);
@@ -48,7 +48,7 @@ public sealed class CrudFunction
         return new CrudCreateOutput { Id = entity.Id };
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask Delete([FromRoute] string id)
     {
         await dataService.DeleteDataAsync(id).ConfigureAwait(false);

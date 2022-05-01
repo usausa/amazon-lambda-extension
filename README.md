@@ -54,7 +54,7 @@ Change Handler in serverless.template to generated code.
 ## Basic
 
 Set `LambdaAttribute` to Function class.  
-Set `HttpApiAttribute` to method to handle HTTP API and `EventAttribute` for other.  
+Set `ApiAttribute` to method to handle HTTP API and `EventAttribute` for other.  
 Then the wrapper class will be generated.
 
 ## Dependency Injection
@@ -103,7 +103,7 @@ In the HTTP API filter, if `OnFunctionExecuting()` returns `APIGatewayProxyRespo
 Filter methods support `async`.
 
 ```csharp
-public sealed class HttpApiFilter
+public sealed class ApiFilter
 {
     public APIGatewayProxyResponse OnFunctionExecuting(APIGatewayProxyRequest request, ILambdaContext context)
     {
@@ -126,7 +126,7 @@ public sealed class HttpApiFilter
 
 ```csharp
 [Lambda]
-[Filter(typeof(HttpApiFilter))]
+[Filter(typeof(ApiFilter))]
 public sealed class Function
 {
 ...
@@ -170,13 +170,13 @@ public class CrudFunction
         this.dataService = dataService;
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask<DataEntity?> Get([FromRoute] string id)
     {
         return await dataService.QueryDataAsync(id).ConfigureAwait(false);
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask<CrudCreateOutput> Create([FromBody] CrudCreateInput input)
     {
         var entity = mapper.Map<DataEntity>(input);
@@ -190,7 +190,7 @@ public class CrudFunction
         return new CrudCreateOutput { Id = entity.Id };
     }
 
-    [HttpApi]
+    [Api]
     public async ValueTask Delete([FromRoute] string id)
     {
         await dataService.DeleteDataAsync(id).ConfigureAwait(false);

@@ -21,7 +21,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public string Handle()
     {
         return ""OK"";
@@ -45,7 +45,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle([FromQuery] string input)
     {
     }
@@ -72,7 +72,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle()
     {
     }
@@ -98,7 +98,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public async Task Handle()
     {
         await Task.Delay(0);
@@ -125,7 +125,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public async ValueTask Handle()
     {
         await Task.Delay(0);
@@ -152,7 +152,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public async Task<string> Handle()
     {
         await Task.Delay(0);
@@ -180,7 +180,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public async ValueTask<string> Handle()
     {
         await Task.Delay(0);
@@ -220,7 +220,7 @@ public class Output
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public Output Handle([FromBody] Input input)
     {
         return new Output { Value = input.Value };
@@ -245,7 +245,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle([FromQuery] string a, [FromQuery] string[] b)
     {
     }
@@ -272,7 +272,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle(string a, string[] b)
     {
     }
@@ -299,7 +299,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle([FromRoute] string id)
     {
     }
@@ -323,7 +323,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle([FromHeader] string a, [FromHeader] string[] b)
     {
     }
@@ -354,7 +354,7 @@ public interface IService
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle([FromServices] IService service)
     {
     }
@@ -382,7 +382,7 @@ using AmazonLambdaExtension.Annotations;
 [Lambda]
 public class Function
 {
-    [HttpApi]
+    [Api]
     public void Handle(APIGatewayProxyRequest request, ILambdaContext context)
     {
     }

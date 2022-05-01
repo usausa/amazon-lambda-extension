@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 public sealed class BuilderInfo
 {
     private const string LambdaAttribute = "AmazonLambdaExtension.Annotations.LambdaAttribute";
-    private const string HttpApiAttribute = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
+    private const string ApiAttribute = "AmazonLambdaExtension.Annotations.ApiAttribute";
 
     public ITypeSymbol Class { get; }
 
@@ -51,7 +51,7 @@ public sealed class BuilderInfo
 
                     var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
                     var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
-                    if (methodSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == HttpApiAttribute))
+                    if (methodSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == ApiAttribute))
                     {
                         return new BuilderInfo(classSymbol, methodSymbol);
                     }

@@ -13,13 +13,13 @@ using Microsoft.CodeAnalysis.Text;
 public sealed class Generator : IIncrementalGenerator
 {
     private const string LambdaAttributeName = "AmazonLambdaExtension.Annotations.LambdaAttribute";
-    private const string HttpApiAttributeName = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
+    private const string ApiAttributeName = "AmazonLambdaExtension.Annotations.ApiAttribute";
     private const string EventAttributeName = "AmazonLambdaExtension.Annotations.EventAttribute";
 
     private enum HandlerType
     {
         None,
-        HttpApi,
+        Api,
         Event
     }
 
@@ -94,10 +94,10 @@ public sealed class Generator : IIncrementalGenerator
 
                 var handler = ModelBuilder.BuildHandlerInfo((IMethodSymbol)methodSymbol);
 
-                if (handlerType == HandlerType.HttpApi)
+                if (handlerType == HandlerType.Api)
                 {
                     // Generate wrapper
-                    var template = new HttpApiTemplate(function, handler);
+                    var template = new ApiTemplate(function, handler);
                     var sourceText = template.TransformText();
                     context.AddSource($"{handler.WrapperClass}.g.cs", SourceText.From(sourceText, Encoding.UTF8));
                 }
@@ -116,9 +116,9 @@ public sealed class Generator : IIncrementalGenerator
     {
         foreach (var name in symbol.GetAttributes().Select(attribute => attribute.AttributeClass!.ToDisplayString()))
         {
-            if (name == HttpApiAttributeName)
+            if (name == ApiAttributeName)
             {
-                return HandlerType.HttpApi;
+                return HandlerType.Api;
             }
             if (name == EventAttributeName)
             {
