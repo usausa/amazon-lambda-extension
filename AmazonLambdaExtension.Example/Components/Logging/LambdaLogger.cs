@@ -36,7 +36,7 @@ public sealed class LambdaLogger : ILogger
     {
         if (logLevel >= threshold)
         {
-            Amazon.Lambda.Core.LambdaLogger.Log($"{LogLevelFormat(logLevel)} {LambdaLoggerContext.RequestId} ({categoryName}) - {formatter(state, exception)}");
+            Amazon.Lambda.Core.LambdaLogger.Log($"[{LogLevelFormat(logLevel)}] ({categoryName}) - {formatter(state, exception)}");
         }
     }
 
@@ -45,12 +45,12 @@ public sealed class LambdaLogger : ILogger
     {
         return level switch
         {
-            LogLevel.Trace => "🟦 [TRACE]",
-            LogLevel.Debug => "🟪 [DEBUG]",
-            LogLevel.Information => "🟩 [INFO]",
-            LogLevel.Warning => "🟧 [WARN]",
-            LogLevel.Error => "🟥 [ERROR[",
-            LogLevel.Critical => "⬛ [CRITICAL]",
+            LogLevel.Trace => "🟦TRACE",
+            LogLevel.Debug => "🟪DEBUG",
+            LogLevel.Information => "🟩INFO",
+            LogLevel.Warning => "🟧WARN",
+            LogLevel.Error => "🟥ERROR",
+            LogLevel.Critical => "⬛CRITICAL",
             _ => "NONE"
         };
     }
