@@ -86,10 +86,9 @@ public sealed class Generator : IIncrementalGenerator
                 var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
                 var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
                 var handlerType = ResolveHandlerType(methodSymbol);
-
                 if (handlerType == HandlerType.None)
                 {
-                    return;
+                    continue;
                 }
 
                 var handler = ModelBuilder.BuildHandlerInfo((IMethodSymbol)methodSymbol);
