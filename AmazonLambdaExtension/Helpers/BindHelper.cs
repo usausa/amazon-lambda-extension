@@ -7,26 +7,46 @@ public static class BindHelper
 {
     private delegate bool TryConverter<T>(string value, out T result);
 
-    private static class TypeConverterConverter<T>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBind<T>(IDictionary<string, string>? parameter, string key, out T result)
     {
-        private static readonly Type Type = typeof(T);
-
-        private static readonly TypeConverter Converter = TypeDescriptor.GetConverter(typeof(T));
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Ignore")]
-        public static bool TryConvert(string value, out T result)
+        if ((parameter is null) || !parameter.TryGetValue(key, out var value) || String.IsNullOrEmpty(value))
         {
-            try
+            result = default!;
+            return true;
+        }
+
+        return BindConverter<T>.TryConverter(value, out result);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBindArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T[] results)
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
+        {
+            results = Array.Empty<T>();
+            return true;
+        }
+
+        var hasError = false;
+        results = new T[values.Count];
+        for (var i = 0; i < results.Length; i++)
+        {
+            var value = values[i];
+            if (!String.IsNullOrEmpty(value))
             {
-                result = (T)Converter.ConvertTo(value, Type)!;
-                return true;
-            }
-            catch (Exception)
-            {
-                result = default!;
-                return false;
+                if (BindConverter<T>.TryConverter(value, out var result))
+                {
+                    results[i] = result;
+                }
+                else
+                {
+                    hasError = true;
+                }
             }
         }
+
+        return !hasError;
     }
 
     private static class BindConverter<T>
@@ -109,45 +129,23 @@ public static class BindHelper
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryBind<T>(IDictionary<string, string>? parameter, string key, out T result)
+    private static class TypeConverterConverter<T>
     {
-        if ((parameter is null) || !parameter.TryGetValue(key, out var value) || String.IsNullOrEmpty(value))
-        {
-            result = default!;
-            return true;
-        }
+        private static readonly TypeConverter Converter = TypeDescriptor.GetConverter(typeof(T));
 
-        return BindConverter<T>.TryConverter(value, out result);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryBindArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T[] results)
-    {
-        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Ignore")]
+        public static bool TryConvert(string value, out T result)
         {
-            results = Array.Empty<T>();
-            return true;
-        }
-
-        var hasError = false;
-        results = new T[values.Count];
-        for (var i = 0; i < results.Length; i++)
-        {
-            var value = values[i];
-            if (!String.IsNullOrEmpty(value))
+            try
             {
-                if (BindConverter<T>.TryConverter(value, out var result))
-                {
-                    results[i] = result;
-                }
-                else
-                {
-                    hasError = true;
-                }
+                result = (T)Converter.ConvertFrom(value)!;
+                return true;
+            }
+            catch (Exception)
+            {
+                result = default!;
+                return false;
             }
         }
-
-        return !hasError;
     }
 }
