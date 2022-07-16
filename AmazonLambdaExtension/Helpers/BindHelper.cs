@@ -20,6 +20,26 @@ public static class BindHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBindNullable<T>(IDictionary<string, string>? parameter, string key, out T? result)
+        where T : struct
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var value) || String.IsNullOrEmpty(value))
+        {
+            result = default!;
+            return true;
+        }
+
+        if (BindConverter<T>.TryConverter(value, out var temp))
+        {
+            result = temp;
+            return true;
+        }
+
+        result = default!;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryBindArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T[] results)
     {
         if ((parameter is null) || !parameter.TryGetValue(key, out var values))
@@ -30,6 +50,37 @@ public static class BindHelper
 
         var hasError = false;
         results = new T[values.Count];
+        for (var i = 0; i < results.Length; i++)
+        {
+            var value = values[i];
+            if (!String.IsNullOrEmpty(value))
+            {
+                if (BindConverter<T>.TryConverter(value, out var result))
+                {
+                    results[i] = result;
+                }
+                else
+                {
+                    hasError = true;
+                }
+            }
+        }
+
+        return !hasError;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryBindNullableArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T?[] results)
+        where T : struct
+    {
+        if ((parameter is null) || !parameter.TryGetValue(key, out var values))
+        {
+            results = Array.Empty<T?>();
+            return true;
+        }
+
+        var hasError = false;
+        results = new T?[values.Count];
         for (var i = 0; i < results.Length; i++)
         {
             var value = values[i];

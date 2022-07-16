@@ -147,9 +147,22 @@ public static class ModelBuilder
     {
         if (symbol.IsArrayType())
         {
-            return new TypeModel(symbol.ToDisplayString(), true, true, BuildTypeInfo(symbol.GetArrayElementType()));
+            return new TypeModel(
+                symbol.ToDisplayString(),
+                true,
+                false,
+                null,
+                true,
+                BuildTypeInfo(symbol.GetArrayElementType()));
         }
 
-        return new TypeModel(symbol.ToDisplayString(), symbol.IsReferenceType || symbol.IsNullableType(), false, null);
+        var isNullable = symbol.IsNullableType();
+        return new TypeModel(
+            symbol.ToDisplayString(),
+            symbol.IsReferenceType || isNullable,
+            isNullable,
+            isNullable ? BuildTypeInfo(symbol.GetTypeArguments()[0]) : null,
+            false,
+            null);
     }
 }

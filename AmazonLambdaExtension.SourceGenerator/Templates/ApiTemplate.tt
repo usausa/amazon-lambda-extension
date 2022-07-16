@@ -88,7 +88,20 @@ namespace <#= handler.Namespace #>
 <# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromQuery) { #>
 <# if (parameter.Type.IsArrayType) { #>
+<# if (parameter.Type.ElementType.IsNullable) { #>
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullableArray<<#= parameter.Type.ElementType.UnderlyingType.FullName #>>(request.MultiValueQueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))
+                {
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+<# } else { #>
                 if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<<#= parameter.Type.ElementType.FullName #>>(request.MultiValueQueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))
+                {
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+<# } #>
+<# } else { #>
+<# if (parameter.Type.IsNullable) { #>
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<<#= parameter.Type.UnderlyingType.FullName #>>(request.QueryStringParameters, "<#= parameter.Key #>", out var p<#= i #>))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
@@ -98,14 +111,34 @@ namespace <#= handler.Namespace #>
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
 <# } #>
+<# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromRoute) { #>
+<# if (parameter.Type.IsNullable) { #>
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<<#= parameter.Type.UnderlyingType.FullName #>>(request.PathParameters, "<#= parameter.Key #>", out var p<#= i #>))
+                {
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+<# } else { #>
                 if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<<#= parameter.Type.FullName #>>(request.PathParameters, "<#= parameter.Key #>", out var p<#= i #>))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
+<# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromHeader) { #>
 <# if (parameter.Type.IsArrayType) { #>
+<# if (parameter.Type.ElementType.IsNullable) { #>
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullableArray<<#= parameter.Type.ElementType.UnderlyingType.FullName #>>(request.MultiValueHeaders, "<#= parameter.Key #>", out var p<#= i #>))
+                {
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+<# } else { #>
                 if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<<#= parameter.Type.ElementType.FullName #>>(request.MultiValueHeaders, "<#= parameter.Key #>", out var p<#= i #>))
+                {
+                    return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
+                }
+<# } #>
+<# if (parameter.Type.IsNullable) { #>
+                if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<<#= parameter.Type.UnderlyingType.FullName #>>(request.Headers, "<#= parameter.Key #>", out var p<#= i #>))
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
@@ -114,6 +147,7 @@ namespace <#= handler.Namespace #>
                 {
                     return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };
                 }
+<# } #>
 <# } #>
 <# } else if (parameter.ParameterType == ParameterType.FromServices) { #>
                 var p<#= i #> = serviceResolver.GetService<<#= parameter.Type.FullName #>>();
