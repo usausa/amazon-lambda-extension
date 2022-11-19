@@ -28,6 +28,7 @@ public sealed class LambdaLogger : ILogger
     public bool IsEnabled(LogLevel logLevel) => logLevel >= threshold;
 
     public IDisposable BeginScope<TState>(TState state)
+        where TState : notnull
     {
         return NullScope.Instance;
     }
