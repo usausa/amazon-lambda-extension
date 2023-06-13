@@ -19,6 +19,6 @@ public sealed class TimerFunction
     [Event]
     public void Logging()
     {
-        logger.LogInformation("Timer event raised.");
+        logger.InfoTimerEventRaised();
     }
 }
