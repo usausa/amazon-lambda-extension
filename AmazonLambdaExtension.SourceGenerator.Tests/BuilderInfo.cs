@@ -40,7 +40,7 @@ public sealed class BuilderInfo
         {
             var classSemantic = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
             var classSymbol = classSemantic.GetDeclaredSymbol(classDeclarationSyntax)!;
-            if (classSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == LambdaAttribute))
+            if (classSymbol.GetAttributes().Any(static x => x.AttributeClass!.ToDisplayString() == LambdaAttribute))
             {
                 foreach (var member in classDeclarationSyntax.Members)
                 {
@@ -51,7 +51,7 @@ public sealed class BuilderInfo
 
                     var methodSemantic = compilation.GetSemanticModel(methodDeclarationSyntax.SyntaxTree);
                     var methodSymbol = methodSemantic.GetDeclaredSymbol(methodDeclarationSyntax)!;
-                    if (methodSymbol.GetAttributes().Any(x => x.AttributeClass!.ToDisplayString() == ApiAttribute))
+                    if (methodSymbol.GetAttributes().Any(static x => x.AttributeClass!.ToDisplayString() == ApiAttribute))
                     {
                         return new BuilderInfo(classSymbol, methodSymbol);
                     }

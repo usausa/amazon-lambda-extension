@@ -28,5 +28,5 @@ public sealed class HandlerModel
 public static class HandlerInfoExtensions
 {
     public static bool IsSerializerRequired(this HandlerModel handler) =>
-        (handler.ResultType is not null) || handler.Parameters.Any(x => x.ParameterType == ParameterType.FromBody);
+        (handler.ResultType is not null) || handler.Parameters.Any(static x => x.ParameterType == ParameterType.FromBody);
 }

@@ -21,5 +21,5 @@ public static class Extensions
     public static IEnumerable<IMethodSymbol> GetConstructors(this ITypeSymbol symbol) =>
         symbol.GetMembers()
             .OfType<IMethodSymbol>()
-            .Where(x => x.MethodKind == MethodKind.Constructor);
+            .Where(static x => x.MethodKind == MethodKind.Constructor);
 }

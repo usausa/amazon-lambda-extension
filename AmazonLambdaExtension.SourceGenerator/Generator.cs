@@ -27,13 +27,13 @@ public sealed class Generator : IIncrementalGenerator
     {
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                (s, _) => IsTargetSyntax(s),
-                (ctx, _) => GetTargetSyntax(ctx))
-            .SelectMany((x, _) => x is not null ? ImmutableArray.Create(x) : ImmutableArray<ClassDeclarationSyntax>.Empty);
+                static (s, _) => IsTargetSyntax(s),
+                static (ctx, _) => GetTargetSyntax(ctx))
+            .SelectMany(static (x, _) => x is not null ? ImmutableArray.Create(x) : ImmutableArray<ClassDeclarationSyntax>.Empty);
         IncrementalValueProvider<(Compilation, ImmutableArray<ClassDeclarationSyntax>)> compilationAndClasses =
             context.CompilationProvider.Combine(classDeclarations.Collect());
 
-        context.RegisterImplementationSourceOutput(compilationAndClasses, (spc, source) => Execute(spc, source.Item1, source.Item2));
+        context.RegisterImplementationSourceOutput(compilationAndClasses, static (spc, source) => Execute(spc, source.Item1, source.Item2));
     }
 
     private static bool IsTargetSyntax(SyntaxNode node) =>
@@ -43,7 +43,7 @@ public sealed class Generator : IIncrementalGenerator
     {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
 
-        foreach (var attributeSyntax in classDeclarationSyntax.AttributeLists.SelectMany(x => x.Attributes))
+        foreach (var attributeSyntax in classDeclarationSyntax.AttributeLists.SelectMany(static x => x.Attributes))
         {
             if ((context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is IMethodSymbol attributeSymbol) &&
                 (attributeSymbol.ContainingType.ToDisplayString() == LambdaAttributeName))
@@ -113,7 +113,7 @@ public sealed class Generator : IIncrementalGenerator
 
     private static HandlerType ResolveHandlerType(ISymbol symbol)
     {
-        foreach (var name in symbol.GetAttributes().Select(attribute => attribute.AttributeClass!.ToDisplayString()))
+        foreach (var name in symbol.GetAttributes().Select(static attribute => attribute.AttributeClass!.ToDisplayString()))
         {
             if (name == ApiAttributeName)
             {

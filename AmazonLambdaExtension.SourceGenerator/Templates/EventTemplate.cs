@@ -33,11 +33,11 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             
             #line 8 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
 
-    var contextIndex = handler.Parameters.FindIndex(x => x.Type.IsLambdaContext());
+    var contextIndex = handler.Parameters.FindIndex(static x => x.Type.IsLambdaContext());
     var arguments = handler.Parameters
-        .Select((x, i) => new { Parameter = x, Index = i })
-        .Where(x => x.Parameter.ParameterType != ParameterType.FromServices)
-        .Select(x => $"{x.Parameter.Type.FullName} p{x.Index}");
+        .Select(static (x, i) => new { Parameter = x, Index = i })
+        .Where(static x => x.Parameter.ParameterType != ParameterType.FromServices)
+        .Select(static x => $"{x.Parameter.Type.FullName} p{x.Index}");
     if (contextIndex < 0)
     {
         arguments = arguments.Append($"Amazon.Lambda.Core.ILambdaContext p{handler.Parameters.Count}");
@@ -188,7 +188,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("(");
             
             #line 47 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()"))));
+            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(static x => $"serviceResolver.GetService<{x.FullName}>()"))));
             
             #line default
             #line hidden
@@ -404,7 +404,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("(");
             
             #line 78 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\EventTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}"))));
+            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select(static (x, i) => $"p{i}"))));
             
             #line default
             #line hidden
@@ -484,7 +484,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
         /// <summary>
         /// The string builder that generation-time code is using to assemble generated output
         /// </summary>
-        protected System.Text.StringBuilder GenerationEnvironment
+        public System.Text.StringBuilder GenerationEnvironment
         {
             get
             {

@@ -15,8 +15,8 @@ public static class LoggingBuilderExtensions
             : LogLevel.Information;
         var logLevels = Environment.GetEnvironmentVariables()
             .OfType<DictionaryEntry>()
-            .Where(x => (x.Key is string key) && key.StartsWith("LogLevel_", StringComparison.Ordinal))
-            .ToDictionary(x => ((string)x.Key)[9..].Replace('_', '.'), x => Enum.TryParse(x.Value as string, out result) ? result : defaultLevel);
+            .Where(static x => (x.Key is string key) && key.StartsWith("LogLevel_", StringComparison.Ordinal))
+            .ToDictionary(static x => ((string)x.Key)[9..].Replace('_', '.'), x => Enum.TryParse(x.Value as string, out result) ? result : defaultLevel);
         builder.AddProvider(new LambdaLoggerProvider(defaultLevel, logLevels.Count == 0 ? null : logLevels));
     }
 }

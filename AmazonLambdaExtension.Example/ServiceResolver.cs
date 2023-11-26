@@ -34,7 +34,7 @@ public sealed class ServiceResolver
         });
 
         // Serializer
-        services.AddSingleton<IBodySerializer>(_ => new JsonBodySerializer(new JsonSerializerOptions
+        services.AddSingleton<IBodySerializer>(static _ => new JsonBodySerializer(new JsonSerializerOptions
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
@@ -53,7 +53,7 @@ public sealed class ServiceResolver
         });
 
         // Mapper
-        services.AddSingleton<IMapper>(_ => new Mapper(new MapperConfiguration(c =>
+        services.AddSingleton<IMapper>(static _ => new Mapper(new MapperConfiguration(c =>
         {
             c.AddProfile<MappingProfile>();
         })));

@@ -219,7 +219,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("(");
             
             #line 45 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\ApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()"))));
+            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(",", function.ConstructorParameters.Select(static x => $"serviceResolver.GetService<{x.FullName}>()"))));
             
             #line default
             #line hidden
@@ -861,7 +861,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
             this.Write("(");
             
             #line 163 "D:\GitHubTemplate\amazon-lambda-extension\AmazonLambdaExtension.SourceGenerator\Templates\ApiTemplate.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}"))));
+            this.Write(this.ToStringHelper.ToStringWithCulture(String.Join(", ", handler.Parameters.Select(static (x, i) => $"p{i}"))));
             
             #line default
             #line hidden
@@ -971,7 +971,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Templates
         /// <summary>
         /// The string builder that generation-time code is using to assemble generated output
         /// </summary>
-        protected System.Text.StringBuilder GenerationEnvironment
+        public System.Text.StringBuilder GenerationEnvironment
         {
             get
             {

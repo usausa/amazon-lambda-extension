@@ -24,12 +24,12 @@ public static class ModelBuilder
     public static FunctionModel BuildFunctionInfo(ITypeSymbol symbol)
     {
         var ctor = symbol.GetConstructors()
-            .OrderByDescending(x => x.Parameters.Length)
+            .OrderByDescending(static x => x.Parameters.Length)
             .First();
         var serviceResolver = symbol.GetAttributes()
-            .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttributeName);
+            .FirstOrDefault(static x => x.AttributeClass!.ToDisplayString() == ServiceResolverAttributeName);
         var filter = symbol.GetAttributes()
-            .FirstOrDefault(x => x.AttributeClass!.ToDisplayString() == FilterAttributeName);
+            .FirstOrDefault(static x => x.AttributeClass!.ToDisplayString() == FilterAttributeName);
 
         return new FunctionModel(
             BuildTypeInfo(symbol),

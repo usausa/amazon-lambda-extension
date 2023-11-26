@@ -42,7 +42,7 @@ namespace <#= handler.Namespace #>
 <# if (function.ResolveFunction) { #>
             function = serviceResolver.GetService<<#= function.Function.FullName #>>();
 <# } else { #>
-            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
+            function = new <#= function.Function.FullName #>(<#= String.Join(",", function.ConstructorParameters.Select(static x => $"serviceResolver.GetService<{x.FullName}>()")) #>);
 <# } #>
         }
 
@@ -160,7 +160,7 @@ namespace <#= handler.Namespace #>
 <# } #>
 
 <# } #>
-                <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select((x, i) => $"p{i}")) #>)<#= handler.IsAsync ? ".ConfigureAwait(false)" : "" #>;
+                <#= handler.ResultType != null ? "var output = " : "" #><#= handler.IsAsync ? "await " : "" #>function.<#= handler.MethodName #>(<#= String.Join(", ", handler.Parameters.Select(static (x, i) => $"p{i}")) #>)<#= handler.IsAsync ? ".ConfigureAwait(false)" : "" #>;
 <# if (handler.ResultType?.AllowNull ?? false) { #>
                 if (output == null)
                 {
