@@ -29,10 +29,8 @@ public sealed class CrudFunction
     }
 
     [Api]
-    public async ValueTask<DataEntity?> Get([FromRoute] string id)
-    {
-        return await dataService.QueryDataAsync(id).ConfigureAwait(false);
-    }
+    public ValueTask<DataEntity?> Get([FromRoute] string id) =>
+        dataService.QueryDataAsync(id);
 
     [Api]
     public async ValueTask<CrudCreateOutput> Create([FromBody] CrudCreateInput input)
