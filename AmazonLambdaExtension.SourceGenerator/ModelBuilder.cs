@@ -48,12 +48,14 @@ public static class ModelBuilder
         {
             if (method.Name == FunctionExecuting)
             {
-                var returnType = ResolveReturnType(method);
-                executing = new FilterExecutingModel(method.IsAsync, returnType is not null);
+                executing = new FilterExecutingModel(
+                    IsAsyncRequired(method),
+                    ResolveReturnType(method) is not null);
             }
             else if (method.Name == FunctionExecuted)
             {
-                executed = new FilterExecutedModel(method.IsAsync);
+                executed = new FilterExecutedModel(
+                    IsAsyncRequired(method));
             }
         }
 
@@ -66,9 +68,26 @@ public static class ModelBuilder
             symbol.ContainingNamespace.ToDisplayString(),
             $"{symbol.ContainingType.Name}_{symbol.Name}",
             symbol.Name,
-            symbol.IsAsync,
+            IsAsyncRequired(symbol),
             symbol.Parameters.Select(static x => BuildParameterInfo(x)).ToList(),
             ResolveReturnType(symbol));
+    }
+
+    private static bool IsAsyncRequired(IMethodSymbol symbol)
+    {
+        if (symbol.IsAsync)
+        {
+            return true;
+        }
+
+        var fullName = symbol.ReturnType.ToDisplayString();
+        if (fullName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
+            fullName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static TypeModel? ResolveReturnType(IMethodSymbol symbol)
