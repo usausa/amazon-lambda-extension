@@ -44,7 +44,7 @@ public static class BindHelper
     {
         if ((parameter is null) || !parameter.TryGetValue(key, out var values))
         {
-            results = Array.Empty<T>();
+            results = [];
             return true;
         }
 
@@ -75,7 +75,7 @@ public static class BindHelper
     {
         if ((parameter is null) || !parameter.TryGetValue(key, out var values))
         {
-            results = Array.Empty<T?>();
+            results = [];
             return true;
         }
 

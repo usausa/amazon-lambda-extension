@@ -9,7 +9,6 @@
     <PackageId>AmazonLambdaExtension</PackageId>
     <Title>AmazonLambdaExtension</Title>
     <Description>Amazon lambda extension.</Description>
-    <Summary>Amazon lambda extension.</Summary>
     <PackageTags>aws amazon lambda</PackageTags>
   </PropertyGroup>
 

@@ -19,7 +19,6 @@
     <PackageId>AmazonLambdaExtension.SourceGenerator</PackageId>
     <Title>AmazonLambdaExtension.SourceGenerator</Title>
     <Description>Amazon lambda extension.</Description>
-    <Summary>Amazon lambda extension.</Summary>
     <PackageTags>aws amazon lambda</PackageTags>
   </PropertyGroup>
 
