@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.Example.Parameters;
 
-public class CrudCreateOutput
+public sealed class CrudCreateOutput
 {
     public string Id { get; set; } = default!;
 }

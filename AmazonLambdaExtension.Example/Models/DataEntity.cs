@@ -3,7 +3,7 @@ namespace AmazonLambdaExtension.Example.Models;
 using Amazon.DynamoDBv2.DataModel;
 
 [DynamoDBTable("ExampleData")]
-public class DataEntity
+public sealed class DataEntity
 {
     [DynamoDBHashKey]
     public string Id { get; set; } = default!;

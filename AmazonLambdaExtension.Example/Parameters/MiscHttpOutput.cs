@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.Example.Parameters;
 
-public class MiscHttpOutput
+public sealed class MiscHttpOutput
 {
     public string Address { get; set; } = default!;
 }

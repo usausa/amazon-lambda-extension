@@ -4,6 +4,7 @@ using Amazon.Lambda.Core;
 
 using AmazonLambdaExtension.Example.Components.Logging;
 
+#pragma warning disable IDE0060
 public sealed class EventFilter
 {
     public void OnFunctionExecuting(ILambdaContext context)
@@ -11,9 +12,9 @@ public sealed class EventFilter
         LambdaLoggerContext.RequestId = context.AwsRequestId;
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060", Justification = "Ignore")]
     public void OnFunctionExecuted(ILambdaContext context)
     {
         LambdaLoggerContext.RequestId = null;
     }
 }
+#pragma warning restore IDE0060

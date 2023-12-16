@@ -184,9 +184,9 @@ public static class BindHelper
     {
         private static readonly TypeConverter Converter = TypeDescriptor.GetConverter(typeof(T));
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Ignore")]
         public static bool TryConvert(string value, out T result)
         {
+#pragma warning disable CA1031
             try
             {
                 result = (T)Converter.ConvertFrom(value)!;
@@ -197,6 +197,7 @@ public static class BindHelper
                 result = default!;
                 return false;
             }
+#pragma warning restore CA1031
         }
     }
 }

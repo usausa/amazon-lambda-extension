@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.Example.Parameters;
 
-public class MiscTimeOutput
+public sealed class MiscTimeOutput
 {
     public DateTime DateTime { get; set; }
 }

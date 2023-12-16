@@ -12,6 +12,7 @@ public sealed class FilterExecutingModel
         HasResult = hasResult;
     }
 }
+
 public sealed class FilterExecutedModel
 {
     public bool IsAsync { get; }

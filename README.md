@@ -155,7 +155,7 @@ Samples of source and generated code.
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
 [Filter(typeof(Filter))]
-public class CrudFunction
+public sealed class CrudFunction
 {
     private readonly ILogger<CrudFunction> logger;
 

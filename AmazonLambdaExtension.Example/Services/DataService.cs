@@ -3,7 +3,7 @@ namespace AmazonLambdaExtension.Example.Services;
 using AmazonLambdaExtension.Example.Components.DynamoDB;
 using AmazonLambdaExtension.Example.Models;
 
-public class DataService
+public sealed class DataService
 {
     private readonly IDynamoDBFactory dynamoDBFactory;
 

@@ -2,9 +2,7 @@ namespace AmazonLambdaExtension.SourceGenerator.Tests;
 
 using AmazonLambdaExtension.SourceGenerator.Models;
 
-using Xunit;
-
-public class ModelBuilderTest
+public sealed class ModelBuilderTest
 {
     // --------------------------------------------------------------------------------
     // Member
@@ -19,7 +17,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public string Handle()
@@ -43,7 +41,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle([FromQuery] string input)
@@ -70,7 +68,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle()
@@ -96,7 +94,7 @@ using System.Threading.Tasks;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public async Task Handle()
@@ -123,7 +121,7 @@ using System.Threading.Tasks;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public async ValueTask Handle()
@@ -150,7 +148,7 @@ using System.Threading.Tasks;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public async Task<string> Handle()
@@ -178,7 +176,7 @@ using System.Threading.Tasks;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public async ValueTask<string> Handle()
@@ -207,18 +205,18 @@ namespace Test;
 
 using AmazonLambdaExtension.Annotations;
 
-public class Input
+public sealed class Input
 {
     public string Value { get; set; }
 }
 
-public class Output
+public sealed class Output
 {
     public string Value { get; set; }
 }
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public Output Handle([FromBody] Input input)
@@ -243,7 +241,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle([FromQuery] string a, [FromQuery] string[] b)
@@ -270,7 +268,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle(string a, string[] b)
@@ -297,7 +295,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle([FromRoute] string id)
@@ -321,7 +319,7 @@ namespace Test;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle([FromHeader] string a, [FromHeader] string[] b)
@@ -352,7 +350,7 @@ public interface IService
 }
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle([FromServices] IService service)
@@ -380,7 +378,7 @@ using Amazon.Lambda.Core;
 using AmazonLambdaExtension.Annotations;
 
 [Lambda]
-public class Function
+public sealed class Function
 {
     [Api]
     public void Handle(APIGatewayProxyRequest request, ILambdaContext context)
