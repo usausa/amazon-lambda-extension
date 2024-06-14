@@ -29,7 +29,7 @@ public sealed class BuilderInfo
     public static BuilderInfo Create(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var compilation = CSharpCompilation.Create("Test", new[] { tree })
+        var compilation = CSharpCompilation.Create("Test", [tree])
             .AddReferences(
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(LambdaAttribute).GetTypeInfo().Assembly.Location),
