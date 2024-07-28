@@ -29,7 +29,7 @@ public sealed class Generator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (s, _) => IsTargetSyntax(s),
                 static (ctx, _) => GetTargetSyntax(ctx))
-            .SelectMany(static (x, _) => x is not null ? ImmutableArray.Create(x) : ImmutableArray<ClassDeclarationSyntax>.Empty);
+            .SelectMany(static (x, _) => x is not null ? ImmutableArray.Create(x) : []);
         IncrementalValueProvider<(Compilation, ImmutableArray<ClassDeclarationSyntax>)> compilationAndClasses =
             context.CompilationProvider.Combine(classDeclarations.Collect());
 

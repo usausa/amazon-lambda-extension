@@ -13,7 +13,7 @@ public static class Extensions
         symbol.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
 
     public static ImmutableArray<ITypeSymbol> GetTypeArguments(this ITypeSymbol symbol) =>
-        (symbol as INamedTypeSymbol)?.TypeArguments ?? ImmutableArray<ITypeSymbol>.Empty;
+        (symbol as INamedTypeSymbol)?.TypeArguments ?? [];
 
     public static ITypeSymbol GetArrayElementType(this ITypeSymbol symbol) =>
         ((IArrayTypeSymbol)symbol).ElementType;
