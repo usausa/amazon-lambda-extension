@@ -12,11 +12,11 @@
     <File Path=".gitignore" />
     <File Path="AmazonLambdaExtension.sln.DotSettings" />
     <File Path="Analyzers.ruleset" />
+    <File Path="CodeCoverage.runsettings" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
     <File Path="LICENSE" />
     <File Path="README.md" />
-    <File Path="test.runsettings" />
   </Folder>
   <Folder Name="/Test/">
     <Project Path="AmazonLambdaExtension.SourceGenerator.Tests/AmazonLambdaExtension.SourceGenerator.Tests.csproj" />
