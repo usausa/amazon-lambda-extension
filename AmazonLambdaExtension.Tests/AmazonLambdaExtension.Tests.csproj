@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
+    <RootNamespace>AmazonLambdaExtension</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TemplateLibraryGeneratorValue>test</TemplateLibraryGeneratorValue>
+  </PropertyGroup>
+
+  <Import Project="..\AmazonLambdaExtension.props" />
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.14.2" />
+    <PackageReference Include="xunit.v3" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AmazonLambdaExtension.Generator\AmazonLambdaExtension.Generator.csproj" OutputItemType="analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
+  </ItemGroup>
+
+</Project>

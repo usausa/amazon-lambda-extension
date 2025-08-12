@@ -1,15 +1,9 @@
 <Solution>
-  <Folder Name="/Example/">
-    <Project Path="AmazonLambdaExtension.Example/AmazonLambdaExtension.Example.csproj" />
-  </Folder>
-  <Folder Name="/Library/">
-    <Project Path="AmazonLambdaExtension.SourceGenerator/AmazonLambdaExtension.SourceGenerator.csproj" />
-    <Project Path="AmazonLambdaExtension/AmazonLambdaExtension.csproj" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
+    <File Path="AmazonLambdaExtension.props" />
     <File Path="AmazonLambdaExtension.sln.DotSettings" />
     <File Path="Analyzers.ruleset" />
     <File Path="CodeCoverage.runsettings" />
@@ -18,7 +12,10 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Folder Name="/Test/">
-    <Project Path="AmazonLambdaExtension.SourceGenerator.Tests/AmazonLambdaExtension.SourceGenerator.Tests.csproj" />
-  </Folder>
+  <Project Path="Develop/Develop.csproj" />
+  <Project Path="AmazonLambdaExtension/AmazonLambdaExtension.csproj">
+    <BuildDependency Project="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
+  </Project>
+  <Project Path="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
+  <Project Path="AmazonLambdaExtension.Tests/AmazonLambdaExtension.Tests.csproj" />
 </Solution>

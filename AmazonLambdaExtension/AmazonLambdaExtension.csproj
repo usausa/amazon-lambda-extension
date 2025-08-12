@@ -1,20 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
+    <NoWarn>$(NoWarn);NU5118;NU5129</NoWarn>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.props" PackagePath="build" />
+      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.Generator\bin\$(Configuration)\netstandard2.0\AmazonLambdaExtension.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <TfmSpecificPackageFile Include="$(PKGSourceGenerateHelper)\lib\netstandard2.0\SourceGenerateHelper.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <PropertyGroup>
     <PackageId>AmazonLambdaExtension</PackageId>
     <Title>AmazonLambdaExtension</Title>
-    <Description>Amazon lambda extension.</Description>
-    <PackageTags>aws amazon lambda</PackageTags>
+    <Description>Template source generator.</Description>
+    <PackageTags>sourcegenerator</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageReference Include="System.Text.Json" Version="9.0.8" />
+    <PackageReference Include="SourceGenerateHelper" Version="1.2.1" GeneratePathProperty="true" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>

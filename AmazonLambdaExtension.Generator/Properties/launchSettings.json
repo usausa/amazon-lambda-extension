@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AmazonLambdaExtension.Generator": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\Develop\\Develop.csproj"
+    }
+  }
+}
