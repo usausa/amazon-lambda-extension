@@ -19,11 +19,11 @@
     <PackageReference Include="Amazon.Lambda.Core" Version="2.7.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.1" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.3" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.3.4" />
     <PackageReference Include="AutoMapper" Version="14.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
     <PackageReference Include="Usa.Smart.Core" Version="2.4.4" />
   </ItemGroup>
 
