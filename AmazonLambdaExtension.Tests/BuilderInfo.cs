@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension.Tests;
+namespace AmazonLambdaExtension;
 
 using System.Reflection;
 

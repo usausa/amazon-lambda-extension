@@ -1,5 +1,6 @@
-namespace AmazonLambdaExtension.Tests;
+namespace AmazonLambdaExtension;
 
+using AmazonLambdaExtension.Generator;
 using AmazonLambdaExtension.Generator.Models;
 
 public sealed class ModelBuilderTest
