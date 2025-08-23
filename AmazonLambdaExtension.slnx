@@ -12,7 +12,6 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="Develop/Develop.csproj" />
   <Project Path="AmazonLambdaExtension/AmazonLambdaExtension.csproj">
     <BuildDependency Project="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
   </Project>
