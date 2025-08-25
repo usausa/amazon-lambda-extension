@@ -1,4 +1,13 @@
 <Solution>
+  <Folder Name="/Example/">
+    <Project Path="AmazonLambdaExtension.Example/AmazonLambdaExtension.Example.csproj" />
+  </Folder>
+  <Folder Name="/Library/">
+    <Project Path="AmazonLambdaExtension/AmazonLambdaExtension.csproj">
+      <BuildDependency Project="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
+    </Project>
+    <Project Path="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />
@@ -12,10 +21,7 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
-  <Project Path="AmazonLambdaExtension.Tests/AmazonLambdaExtension.Tests.csproj" />
-  <Project Path="AmazonLambdaExtension/AmazonLambdaExtension.csproj">
-    <BuildDependency Project="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
-  </Project>
-  <Project Path="Example/src/Example/Example.csproj" Id="172a237f-6cba-4820-a893-71566bc86fd5" />
+  <Folder Name="/Test/">
+    <Project Path="AmazonLambdaExtension.Tests/AmazonLambdaExtension.Tests.csproj" />
+  </Folder>
 </Solution>
