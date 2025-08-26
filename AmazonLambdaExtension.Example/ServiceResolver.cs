@@ -64,8 +64,9 @@ public sealed class ServiceResolver
         return services.BuildServiceProvider();
     }
 
-    public T? GetService<T>()
+    public T GetService<T>()
+        where T : notnull
     {
-        return provider.GetService<T>();
+        return provider.GetRequiredService<T>();
     }
 }

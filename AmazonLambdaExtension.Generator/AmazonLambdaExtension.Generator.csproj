@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Templates\EventTemplate.tt">
-      <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>EventTemplate.cs</LastGenOutput>
-    </None>
     <None Update="Templates\ApiTemplate.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
       <LastGenOutput>ApiTemplate.cs</LastGenOutput>
@@ -25,11 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Templates\EventTemplate.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>EventTemplate.tt</DependentUpon>
-    </Compile>
     <Compile Update="Templates\ApiTemplate.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
