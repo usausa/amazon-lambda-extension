@@ -14,21 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Templates\ApiTemplate.tt">
-      <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>ApiTemplate.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Templates\ApiTemplate.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>ApiTemplate.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.CodeDom" Version="9.0.8" />
     <PackageReference Include="System.Text.Json" Version="9.0.8" />

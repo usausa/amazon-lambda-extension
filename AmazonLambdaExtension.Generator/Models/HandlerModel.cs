@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.Generator.Models;
 
-// TODO record
+// TODO Ex:Refactor
 public sealed class HandlerModel
 {
     public string Namespace { get; }

@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension.Generator.Models;
 
-// TODO record
+// TODO Ex:Refactor
 public sealed class FilterExecutingModel
 {
     public bool IsAsync { get; }
