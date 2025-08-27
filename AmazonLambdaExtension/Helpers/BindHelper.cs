@@ -20,7 +20,7 @@ public static class BindHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryBindNullable<T>(IDictionary<string, string>? parameter, string key, out T? result)
+    public static bool TryBind<T>(IDictionary<string, string>? parameter, string key, out T? result)
         where T : struct
     {
         if ((parameter is null) || !parameter.TryGetValue(key, out var value) || String.IsNullOrEmpty(value))
@@ -70,7 +70,7 @@ public static class BindHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryBindNullableArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T?[] results)
+    public static bool TryBindArray<T>(IDictionary<string, IList<string>>? parameter, string key, out T?[] results)
         where T : struct
     {
         if ((parameter is null) || !parameter.TryGetValue(key, out var values))

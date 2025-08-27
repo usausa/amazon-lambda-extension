@@ -266,14 +266,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             }
             else if (parameter.ParameterType == ParameterType.FromRoute)
             {
-                if (parameter.Type.IsNullable)
-                {
-                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<").Append(parameter.Type.UnderlyingType!.FullName).Append(">(request.PathParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                }
-                else
-                {
-                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<").Append(parameter.Type.FullName).Append(">(request.PathParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                }
+                builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind(request.PathParameters, \"").Append(parameter.Key).Append("\", out ").Append(parameter.Type.FullName).Append(" p").Append(i).Append("))").NewLine();
                 builder.BeginScope();
                 builder.Indent().Append("return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };").NewLine();
                 builder.EndScope();
@@ -282,25 +275,11 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             {
                 if (parameter.Type.IsArrayType)
                 {
-                    if (parameter.Type.ElementType!.IsNullable)
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullableArray<").Append(parameter.Type.ElementType.UnderlyingType!.FullName).Append(">(request.MultiValueQueryStringParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                    }
-                    else
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<").Append(parameter.Type.ElementType.FullName).Append(">(request.MultiValueQueryStringParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();                       // TODO
-                    }
+                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray(request.MultiValueQueryStringParameters, \"").Append(parameter.Key).Append("\", out ").Append(parameter.Type.ElementType!.FullName).Append(" p").Append(i).Append("))").NewLine();
                 }
                 else
                 {
-                    if (parameter.Type.IsNullable)
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<").Append(parameter.Type.UnderlyingType!.FullName).Append(">(request.QueryStringParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();                       // TODO
-                    }
-                    else
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<").Append(parameter.Type.FullName).Append(">(request.QueryStringParameters, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                    }
+                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind(request.QueryStringParameters, \"").Append(parameter.Key).Append("\", out ").Append(parameter.Type.FullName).Append(" p").Append(i).Append("))").NewLine();
                 }
                 builder.BeginScope();
                 builder.Indent().Append("return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };").NewLine();
@@ -310,25 +289,11 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             {
                 if (parameter.Type.IsArrayType)
                 {
-                    if (parameter.Type.ElementType!.IsNullable)
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullableArray<").Append(parameter.Type.ElementType.UnderlyingType!.FullName).Append(">(request.MultiValueHeaders, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                    }
-                    else
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray<").Append(parameter.Type.ElementType.FullName).Append(">(request.MultiValueHeaders, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();                       // TODO
-                    }
+                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindArray(request.MultiValueHeaders, \"").Append(parameter.Key).Append("\", out ").Append(parameter.Type.ElementType!.FullName).Append(" p").Append(i).Append("))").NewLine();
                 }
                 else
                 {
-                    if (parameter.Type.IsNullable)
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBindNullable<").Append(parameter.Type.UnderlyingType!.FullName).Append(">(request.Headers, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();                       // TODO
-                    }
-                    else
-                    {
-                        builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind<").Append(parameter.Type.FullName).Append(">(request.Headers, \"").Append(parameter.Key).Append("\", out var p").Append(i).Append("))").NewLine();
-                    }
+                    builder.Indent().Append("if (!AmazonLambdaExtension.Helpers.BindHelper.TryBind(request.Headers, \"").Append(parameter.Key).Append("\", out ").Append(parameter.Type.FullName).Append(" p").Append(i).Append("))").NewLine();
                 }
                 builder.BeginScope();
                 builder.Indent().Append("return new Amazon.Lambda.APIGatewayEvents.APIGatewayProxyResponse { StatusCode = 400 };").NewLine();
