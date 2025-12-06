@@ -19,12 +19,12 @@
     <PackageReference Include="Amazon.Lambda.Core" Version="2.8.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.2" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.9.5" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.2" />
     <PackageReference Include="AutoMapper" Version="[14.0.0,15.0.0)" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
-    <PackageReference Include="Usa.Smart.Core" Version="2.4.6" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Usa.Smart.Core" Version="2.5.0" />
   </ItemGroup>
 
   <Import Project="..\AmazonLambdaExtension.props" />
@@ -32,6 +32,10 @@
   <ItemGroup>
     <ProjectReference Include="..\AmazonLambdaExtension.Generator\AmazonLambdaExtension.Generator.csproj" OutputItemType="analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Usa.Smart.Analyzers.JapaneseComment" Version="1.4.0" />
   </ItemGroup>
 
 </Project>
