@@ -14,7 +14,9 @@
     <File Path=".gitignore" />
     <File Path="AmazonLambdaExtension.props" />
     <File Path="AmazonLambdaExtension.sln.DotSettings" />
+    <File Path="AGENTS.md" />
     <File Path="Analyzers.ruleset" />
+    <File Path="CLAUDE.md" />
     <File Path="CodeCoverage.runsettings" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
