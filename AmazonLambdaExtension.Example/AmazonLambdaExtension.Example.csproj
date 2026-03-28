@@ -15,15 +15,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.0" />
-    <PackageReference Include="Amazon.Lambda.Core" Version="2.8.0" />
-    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.4" />
-    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.2" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.10.2" />
-    <PackageReference Include="AutoMapper" Version="[14.0.0,15.0.0)" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Amazon.Lambda.CloudWatchEvents" Version="4.4.1" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.8.1" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.5" />
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.3" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.17.2" />
+    <PackageReference Include="AutoMapper" Version="[14.0.0,15.0.0)" NoWarn="NU1903" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
     <PackageReference Include="Usa.Smart.Core" Version="2.5.0" />
   </ItemGroup>
 

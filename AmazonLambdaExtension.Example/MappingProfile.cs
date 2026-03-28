@@ -1,9 +1,9 @@
 namespace AmazonLambdaExtension.Example;
 
-using AutoMapper;
-
 using AmazonLambdaExtension.Example.Models;
 using AmazonLambdaExtension.Example.Parameters;
+
+using AutoMapper;
 
 public sealed class MappingProfile : Profile
 {
