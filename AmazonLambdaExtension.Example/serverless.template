@@ -1,209 +1,364 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Transform": "AWS::Serverless-2016-10-31",
-  "Description": "An AWS Serverless Application.",
+  "Description": "An AWS Serverless Application. This template is partially managed by Amazon.Lambda.Annotations (v1.8.0.0).",
   "Resources": {
-    "CrudGet": {
+    "AmazonLambdaExtension.Example1FunctionsDefaultGenerated": {
       "Type": "AWS::Serverless::Function",
-      "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Get::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 256,
-        "Timeout": 30,
-        "Role": null,
-        "Policies": [
-          "AWSLambdaBasicExecutionRole",
-          "AmazonDynamoDBFullAccess"
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
         ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
+      "Properties": {
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Default_Generated::Default",
         "Events": {
           "RootGet": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
-              "Path": "/crud/{id}",
+              "Path": "/",
               "Method": "GET"
             }
           }
         }
       }
     },
-    "CrudCreate": {
+    "AmazonLambdaExtension.Example1FunctionsAddGenerated": {
       "Type": "AWS::Serverless::Function",
-      "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Create::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 256,
-        "Timeout": 30,
-        "Role": null,
-        "Policies": [
-          "AWSLambdaBasicExecutionRole",
-          "AmazonDynamoDBFullAccess"
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
         ],
-        "Events": {
-          "RootGet": {
-            "Type": "Api",
-            "Properties": {
-              "Path": "/crud",
-              "Method": "POST"
-            }
-          }
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
         }
-      }
-    },
-    "CrudDelete": {
-      "Type": "AWS::Serverless::Function",
+      },
       "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.CrudFunction_Delete::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 256,
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
         "Timeout": 30,
-        "Role": null,
-        "Policies": [
-          "AWSLambdaBasicExecutionRole",
-          "AmazonDynamoDBFullAccess"
-        ],
-        "Events": {
-          "RootGet": {
-            "Type": "Api",
-            "Properties": {
-              "Path": "/crud/{id}",
-              "Method": "DELETE"
-            }
-          }
-        }
-      }
-    },
-
-    "MiscTime": {
-      "Type": "AWS::Serverless::Function",
-      "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Time::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 128,
-        "Timeout": 30,
-        "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Add_Generated::Add",
         "Events": {
           "RootGet": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
-              "Path": "/misc/time",
+              "Path": "/add/{x}/{y}",
               "Method": "GET"
             }
           }
         }
       }
     },
-    "MiscCalc": {
+    "AmazonLambdaExtension.Example1FunctionsSubtractGenerated": {
       "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
       "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Calc::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 128,
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
         "Timeout": 30,
-        "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Subtract_Generated::Subtract",
         "Events": {
           "RootGet": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
-              "Path": "/misc/calc",
+              "Path": "/subtract/{x}/{y}",
               "Method": "GET"
             }
           }
         }
       }
     },
-    "MiscHttp": {
+    "AmazonLambdaExtension.Example1FunctionsMultiplyGenerated": {
       "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
       "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.MiscFunction_Http::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 256,
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
         "Timeout": 30,
-        "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Multiply_Generated::Multiply",
         "Events": {
           "RootGet": {
-            "Type": "Api",
+            "Type": "HttpApi",
             "Properties": {
-              "Path": "/misc/http",
+              "Path": "/multiply/{x}/{y}",
               "Method": "GET"
             }
           }
         }
       }
     },
-
-    "Timer": {
+    "AmazonLambdaExtension.Example1FunctionsDivideGenerated": {
       "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
       "Properties": {
-        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions.TimerFunction_Logging::Handle",
-        "Architectures": [ "arm64" ],
-        "Runtime": "dotnet6",
-        "CodeUri": "",
-        "MemorySize": 128,
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
         "Timeout": 30,
-        "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole"
         ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Divide_Generated::Divide",
         "Events": {
-          "Time": {
-            "Type": "Schedule",
+          "RootGet": {
+            "Type": "HttpApi",
             "Properties": {
-              "Schedule": "cron(*/10 * * * ? *)"
+              "Path": "/divide/{x}/{y}",
+              "Method": "GET"
             }
           }
         }
       }
     },
-    "DataTable": {
-      "Type": "AWS::DynamoDB::Table",
+    "AmazonLambdaExtensionExampleFunctionsDefaultGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
       "Properties": {
-        "TableName": "ExampleData",
-        "AttributeDefinitions": [
-          {
-            "AttributeName": "Id",
-            "AttributeType": "S"
-          }
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
         ],
-        "KeySchema": [
-          {
-            "AttributeName": "Id",
-            "KeyType": "HASH"
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Default_Generated::Default",
+        "Events": {
+          "RootGet": {
+            "Type": "HttpApi",
+            "Properties": {
+              "Path": "/",
+              "Method": "GET"
+            }
           }
+        }
+      }
+    },
+    "AmazonLambdaExtensionExampleFunctionsAddGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
         ],
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": "3",
-          "WriteCapacityUnits": "3"
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
+      "Properties": {
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Add_Generated::Add",
+        "Events": {
+          "RootGet": {
+            "Type": "HttpApi",
+            "Properties": {
+              "Path": "/add/{x}/{y}",
+              "Method": "GET"
+            }
+          }
+        }
+      }
+    },
+    "AmazonLambdaExtensionExampleFunctionsSubtractGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
+      "Properties": {
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Subtract_Generated::Subtract",
+        "Events": {
+          "RootGet": {
+            "Type": "HttpApi",
+            "Properties": {
+              "Path": "/subtract/{x}/{y}",
+              "Method": "GET"
+            }
+          }
+        }
+      }
+    },
+    "AmazonLambdaExtensionExampleFunctionsMultiplyGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
+      "Properties": {
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Multiply_Generated::Multiply",
+        "Events": {
+          "RootGet": {
+            "Type": "HttpApi",
+            "Properties": {
+              "Path": "/multiply/{x}/{y}",
+              "Method": "GET"
+            }
+          }
+        }
+      }
+    },
+    "AmazonLambdaExtensionExampleFunctionsDivideGenerated": {
+      "Type": "AWS::Serverless::Function",
+      "Metadata": {
+        "Tool": "Amazon.Lambda.Annotations",
+        "SyncedEvents": [
+          "RootGet"
+        ],
+        "SyncedEventProperties": {
+          "RootGet": [
+            "Path",
+            "Method"
+          ]
+        }
+      },
+      "Properties": {
+        "Runtime": "dotnet10",
+        "CodeUri": ".",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "PackageType": "Zip",
+        "Handler": "AmazonLambdaExtension.Example::AmazonLambdaExtension.Example.Functions_Divide_Generated::Divide",
+        "Events": {
+          "RootGet": {
+            "Type": "HttpApi",
+            "Properties": {
+              "Path": "/divide/{x}/{y}",
+              "Method": "GET"
+            }
+          }
         }
       }
     }
   },
-
   "Outputs": {
     "ApiURL": {
       "Description": "API endpoint URL for Prod environment",
       "Value": {
-        "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+        "Fn::Sub": "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/"
       }
     }
   }

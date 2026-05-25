@@ -8,9 +8,8 @@
   "profile": "default",
   "region": "ap-northeast-1",
   "configuration": "Release",
-  "s3-prefix": "Extension.Example/",
+  "s3-prefix": "AmazonLambdaExtension.Example/",
   "template": "serverless.template",
   "template-parameters": "",
-  "s3-bucket": "amazon-lambda-extension",
-  "stack-name": "ExtensionExample"
+  "docker-host-build-output-dir": "./bin/Release/lambda-publish"
 }
