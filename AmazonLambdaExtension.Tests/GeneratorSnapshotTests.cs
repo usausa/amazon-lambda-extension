@@ -3,10 +3,8 @@ namespace AmazonLambdaExtension;
 using Xunit;
 using Xunit.Sdk;
 
-/// <summary>
-/// LambdaGenerator が想定どおりのコードを生成することを確認するスナップショットテスト。
-/// 生成コードのシグネチャ・構造を検証する。
-/// </summary>
+// LambdaGenerator が想定どおりのコードを生成することを確認するスナップショットテスト。
+// 生成コードのシグネチャ・構造を検証する。
 public sealed class GeneratorSnapshotTests(ITestOutputHelper output)
 {
     // ---------------------------------------------------------------------------
@@ -32,16 +30,16 @@ public sealed partial class QueueProcessor
     }
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
         // エントリポイントは public static で正しい引数型を持つ
-        Assert.Contains("public static", handlerSource);
-        Assert.Contains("Handle_Handler", handlerSource);
-        Assert.Contains("global::Amazon.Lambda.SQSEvents.SQSEvent", handlerSource);
-        Assert.Contains("global::Amazon.Lambda.Core.ILambdaContext", handlerSource);
+        Assert.Contains("public static", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("Handle_Handler", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("global::Amazon.Lambda.SQSEvents.SQSEvent", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("global::Amazon.Lambda.Core.ILambdaContext", handlerSource, StringComparison.Ordinal);
         // Event ハンドラは例外を throw する
-        Assert.Contains("throw;", handlerSource);
+        Assert.Contains("throw;", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -65,15 +63,15 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
         // Stream を返す
-        Assert.Contains("global::System.IO.Stream", handlerSource);
+        Assert.Contains("global::System.IO.Stream", handlerSource, StringComparison.Ordinal);
         // IHttpResult.Serialize を呼ぶ
-        Assert.Contains(".Serialize(", handlerSource);
+        Assert.Contains(".Serialize(", handlerSource, StringComparison.Ordinal);
         // ApiException をキャッチする
-        Assert.Contains("global::AmazonLambdaExtension.ApiException", handlerSource);
+        Assert.Contains("global::AmazonLambdaExtension.ApiException", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -97,19 +95,19 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("GetItem_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("GetItem_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
         // PathParameters から id をバインド
-        Assert.Contains("PathParameters", handlerSource);
-        Assert.Contains(@"""id""", handlerSource);
+        Assert.Contains("PathParameters", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(@"""id""", handlerSource, StringComparison.Ordinal);
         // QueryStringParameters から page をバインド
-        Assert.Contains("QueryStringParameters", handlerSource);
-        Assert.Contains(@"""page""", handlerSource);
+        Assert.Contains("QueryStringParameters", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(@"""page""", handlerSource, StringComparison.Ordinal);
         // int への変換
-        Assert.Contains("TryToInt32", handlerSource);
+        Assert.Contains("TryToInt32", handlerSource, StringComparison.Ordinal);
         // 変換失敗時 BadRequest 返却
-        Assert.Contains("BadRequest", handlerSource);
+        Assert.Contains("BadRequest", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -133,13 +131,13 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
         // カンマ区切りで Split
-        Assert.Contains("Split(',')", handlerSource);
+        Assert.Contains("Split(',')", handlerSource, StringComparison.Ordinal);
         // 配列生成
-        Assert.Contains("new int[", handlerSource);
+        Assert.Contains("new int[", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -179,17 +177,17 @@ public sealed class Resolver
         => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
         // パイプライン構造を持つ
-        Assert.Contains("__Handle_Pipeline__", handlerSource);
-        Assert.Contains("__Handle_Inner__", handlerSource);
-        Assert.Contains("BuildHandlePipeline()", handlerSource);
+        Assert.Contains("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("BuildHandlePipeline()", handlerSource, StringComparison.Ordinal);
         // フィルタは DI から解決される
-        Assert.Contains("__filter0__", handlerSource);
+        Assert.Contains("__filter0__", handlerSource, StringComparison.Ordinal);
         // Inner では ctx.Result にセット
-        Assert.Contains("ctx.Result", handlerSource);
+        Assert.Contains("ctx.Result", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -221,14 +219,14 @@ public sealed class Resolver
 }
 ");
         // 共有フィールドソース（__Shared__.g.cs など）
-        var sharedSource = sources.Values.FirstOrDefault(s => s.Contains("__provider__"));
+        var sharedSource = sources.Values.FirstOrDefault(s => s.Contains("__provider__", StringComparison.Ordinal));
         Assert.NotNull(sharedSource);
         output.WriteLine(sharedSource);
 
-        Assert.Contains("static readonly", sharedSource);
-        Assert.Contains("__provider__", sharedSource);
-        Assert.Contains("__target__", sharedSource);
-        Assert.Contains("BuildServiceProvider(", sharedSource);
+        Assert.Contains("static readonly", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("__provider__", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("__target__", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("BuildServiceProvider(", sharedSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -259,11 +257,11 @@ public sealed partial class AuthFunction
     }
 }
 ");
-        var handlerSource = sources.Values.Single(s => s.Contains("Authorize_Handler"));
+        var handlerSource = sources.Values.Single(s => s.Contains("Authorize_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
-        Assert.Contains("Authorize_Handler", handlerSource);
-        Assert.Contains("AuthorizerResult", handlerSource);
-        Assert.Contains(".Serialize(", handlerSource);
+        Assert.Contains("Authorize_Handler", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("AuthorizerResult", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(".Serialize(", handlerSource, StringComparison.Ordinal);
     }
 }

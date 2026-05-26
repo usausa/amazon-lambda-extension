@@ -37,56 +37,60 @@ public class CrudFunctionsHandlerTests
     [Fact]
     public async Task GetItem_Handler_ExistingId_Returns200()
     {
-        var req = MakeRequest(path: new Dictionary<string, string> { ["id"] = "item-1" },
-                              query: new Dictionary<string, string> { ["page"] = "1" });
+        var req = MakeRequest(
+            path: new Dictionary<string, string> { ["id"] = "item-1" },
+            query: new Dictionary<string, string> { ["page"] = "1" });
         var ctx = new TestLambdaContext();
 
         var stream = await CrudFunctions.GetItem_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
     [Fact]
     public async Task GetItem_Handler_MissingId_Returns404()
     {
-        var req = MakeRequest(path: new Dictionary<string, string> { ["id"] = "not-exist" },
-                              query: new Dictionary<string, string> { ["page"] = "0" });
+        var req = MakeRequest(
+            path: new Dictionary<string, string> { ["id"] = "not-exist" },
+            query: new Dictionary<string, string> { ["page"] = "0" });
         var ctx = new TestLambdaContext();
 
         var stream = await CrudFunctions.GetItem_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(404, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
     [Fact]
     public async Task GetItem_Handler_InvalidPage_Returns400()
     {
-        var req = MakeRequest(path: new Dictionary<string, string> { ["id"] = "item-1" },
-                              query: new Dictionary<string, string> { ["page"] = "notanumber" });
+        var req = MakeRequest(
+            path: new Dictionary<string, string> { ["id"] = "item-1" },
+            query: new Dictionary<string, string> { ["page"] = "notanumber" });
         var ctx = new TestLambdaContext();
 
         var stream = await CrudFunctions.GetItem_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
     [Fact]
     public async Task ListItems_Handler_ValidRequest_Returns200()
     {
-        var req = MakeRequest(query: new Dictionary<string, string> { ["ids"] = "1,2" },
-                              headers: new Dictionary<string, string> { ["x-tenant-id"] = "tenant-a" });
+        var req = MakeRequest(
+            query: new Dictionary<string, string> { ["ids"] = "1,2" },
+            headers: new Dictionary<string, string> { ["x-tenant-id"] = "tenant-a" });
         var ctx = new TestLambdaContext();
 
         var stream = await CrudFunctions.ListItems_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
@@ -94,8 +98,10 @@ public class CrudFunctionsHandlerTests
     public async Task CreateItem_Handler_AdminRole_Returns201()
     {
         var body = JsonSerializer.Serialize(new { Name = "Widget", Description = "A test widget" });
-        var req = MakeRequest(method: "POST", body: body,
-                              headers: new Dictionary<string, string> { ["content-type"] = "application/json" });
+        var req = MakeRequest(
+            method: "POST",
+            body: body,
+            headers: new Dictionary<string, string> { ["content-type"] = "application/json" });
         req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
         {
             Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
@@ -109,7 +115,7 @@ public class CrudFunctionsHandlerTests
         var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(201, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
@@ -131,7 +137,7 @@ public class CrudFunctionsHandlerTests
         var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(403, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
@@ -144,7 +150,7 @@ public class CrudFunctionsHandlerTests
         var stream = await CrudFunctions.Authorize_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(doc.RootElement.GetProperty("isAuthorized").GetBoolean());
     }
 
@@ -157,7 +163,7 @@ public class CrudFunctionsHandlerTests
         var stream = await CrudFunctions.Authorize_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(doc.RootElement.GetProperty("isAuthorized").GetBoolean());
     }
 }

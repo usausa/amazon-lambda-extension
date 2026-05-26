@@ -191,7 +191,6 @@ internal static class ModelBuilder
     private static HandlerModel? BuildHandlerModel(IMethodSymbol method, INamedTypeSymbol _containingType, List<DiagnosticInfo> diagnostics)
     {
         HandlerKind? kind = null;
-        HttpApiHandlerOptions? httpApiOptions = null;
         AuthorizerHandlerOptions? authorizerOptions = null;
         var handlerAttrCount = 0;
 
@@ -202,16 +201,11 @@ internal static class ModelBuilder
             {
                 handlerAttrCount++;
                 kind = HandlerKind.HttpApi;
-                var httpMethod = attr.ConstructorArguments.Length > 0 ? (int)(attr.ConstructorArguments[0].Value ?? 0) : 0;
-                var template = attr.ConstructorArguments.Length > 1 ? attr.ConstructorArguments[1].Value as string : null;
-                var authorizerName = attr.NamedArguments.FirstOrDefault(static a => a.Key == "Authorizer").Value.Value as string;
-                httpApiOptions = new HttpApiHandlerOptions(httpMethod, template, authorizerName);
             }
             else if (attrName == FunctionUrlAttributeName)
             {
                 handlerAttrCount++;
                 kind = HandlerKind.FunctionUrl;
-                httpApiOptions = new HttpApiHandlerOptions(0, null, null);
             }
             else if (attrName == HttpApiAuthorizerAttributeName)
             {
@@ -292,10 +286,10 @@ internal static class ModelBuilder
         }
 
         var returnsHttpResult = resultType != null && IsImplementing(method.ReturnType, IHttpResultFullName);
-        var returnsAuthorizerResult = resultType != null && IsImplementing(method.ReturnType, IAuthorizerResultFullName);
 
         // ALE0007: [HttpApiAuthorizer] の戻り値型が IAuthorizerResult でない
-        if (kind == HandlerKind.HttpApiAuthorizer && !returnsAuthorizerResult)
+        if (kind == HandlerKind.HttpApiAuthorizer &&
+            !(resultType != null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
         {
             var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
             diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, loc, method.Name));
@@ -308,9 +302,7 @@ internal static class ModelBuilder
             isAsync,
             resultType,
             returnsHttpResult,
-            returnsAuthorizerResult,
             new EquatableArray<ParameterModel>(parameters.ToArray()),
-            httpApiOptions,
             authorizerOptions);
     }
 
@@ -501,7 +493,6 @@ internal static class ModelBuilder
         {
             return new TypeRefModel(
                 type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                type.NullableAnnotation == NullableAnnotation.Annotated,
                 false,
                 null,
                 true,
@@ -510,7 +501,6 @@ internal static class ModelBuilder
 
         return new TypeRefModel(
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            type.NullableAnnotation == NullableAnnotation.Annotated,
             isNullable,
             underlyingType,
             false,

@@ -2,12 +2,10 @@ namespace AmazonLambdaExtension;
 
 using Xunit;
 
-/// <summary>
-/// LambdaGenerator の診断（ALE0001〜ALE0012）の発生条件を検証するテスト。
-/// </summary>
+// LambdaGenerator の診断（ALE0001〜ALE0012）の発生条件を検証するテスト。
 public sealed class DiagnosticsTests
 {
-    private static IReadOnlyList<string> GetDiagnosticIds(string source)
+    private static List<string> GetDiagnosticIds(string source)
     {
         var (_, diagnostics) = CompilationHelper.RunGeneratorWithDiagnostics(source);
         return diagnostics.Select(d => d.Id).ToList();

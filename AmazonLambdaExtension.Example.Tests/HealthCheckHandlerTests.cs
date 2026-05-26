@@ -26,7 +26,7 @@ public class HealthCheckHandlerTests
         var stream = await HealthCheck.Ping_Handler(req, ctx);
 
         stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream);
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 }

@@ -18,9 +18,7 @@ internal sealed record HandlerModel(
     bool IsAsync,
     TypeRefModel? ResultType,
     bool ReturnsHttpResult,
-    bool ReturnsAuthorizerResult,
     EquatableArray<ParameterModel> Parameters,
-    HttpApiHandlerOptions? HttpApi,
     AuthorizerHandlerOptions? Authorizer);
 
 internal enum HandlerKind
@@ -30,11 +28,6 @@ internal enum HandlerKind
     FunctionUrl,
     HttpApiAuthorizer
 }
-
-internal sealed record HttpApiHandlerOptions(
-    int Method,
-    string? Template,
-    string? AuthorizerMethodName);
 
 internal sealed record AuthorizerHandlerOptions(
     bool EnableSimpleResponses);
@@ -61,7 +54,6 @@ internal enum ParameterBindingKind
 
 internal sealed record TypeRefModel(
     string FullName,
-    bool AllowNull,
     bool IsNullable,
     TypeRefModel? UnderlyingType,
     bool IsArray,

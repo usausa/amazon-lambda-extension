@@ -4,10 +4,8 @@ using AmazonLambdaExtension.Generator.Models;
 
 using Xunit;
 
-/// <summary>
-/// LambdaGenerator が生成するモデルの構造を検証するテスト。
-/// 旧版の ModelBuilderTest に相当する。
-/// </summary>
+// LambdaGenerator が生成するモデルの構造を検証するテスト。
+// 旧版の ModelBuilderTest に相当する。
 public sealed class ModelBuilderTests
 {
     // ---------------------------------------------------------------------------
@@ -55,7 +53,7 @@ public sealed partial class QueueFunction
     }
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
     }
 
@@ -80,7 +78,7 @@ public sealed partial class CrudFunctions
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("GetItem_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("GetItem_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
     }
 
@@ -105,9 +103,9 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("QueryStringParameters", handlerSource);
+        Assert.Contains("QueryStringParameters", handlerSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -127,9 +125,9 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("Split(',')", handlerSource);
+        Assert.Contains("Split(',')", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -153,9 +151,9 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("GetItem_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("GetItem_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("PathParameters", handlerSource);
+        Assert.Contains("PathParameters", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -179,9 +177,9 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("Headers", handlerSource);
+        Assert.Contains("Headers", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -212,9 +210,9 @@ public sealed class Resolver
         => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("GetRequiredService", handlerSource);
+        Assert.Contains("GetRequiredService", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -254,10 +252,10 @@ public sealed class Resolver
         => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("__Handle_Pipeline__", handlerSource);
-        Assert.Contains("__Handle_Inner__", handlerSource);
+        Assert.Contains("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -277,10 +275,10 @@ public sealed partial class SimpleFunctions
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.DoesNotContain("__Handle_Pipeline__", handlerSource);
-        Assert.DoesNotContain("__Handle_Inner__", handlerSource);
+        Assert.DoesNotContain("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -304,9 +302,9 @@ public sealed partial class Function
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("TryToInt32", handlerSource);
+        Assert.Contains("TryToInt32", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -330,7 +328,7 @@ public sealed partial class HealthCheck
         => HttpResults.Ok(new { });
 }
 ");
-        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Ping_Handler"));
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Ping_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
     }
 }

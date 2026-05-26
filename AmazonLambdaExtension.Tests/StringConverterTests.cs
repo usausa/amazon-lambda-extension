@@ -232,7 +232,12 @@ public sealed class StringConverterTests
     }
 
     // Enum
-    public enum Color { Red, Green, Blue }
+    public enum Color
+    {
+        Red,
+        Green,
+        Blue,
+    }
 
     [Theory]
     [InlineData("Red", Color.Red)]
