@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension.Tests;
+namespace AmazonLambdaExtension.Example.Tests;
 
 using Amazon.Lambda.SQSEvents;
 using Amazon.Lambda.TestUtilities;

@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension.Tests;
+namespace AmazonLambdaExtension.Example.Tests;
 
 using System.Text.Json;
 

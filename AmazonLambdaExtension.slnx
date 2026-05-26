@@ -24,6 +24,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Test/">
+    <Project Path="AmazonLambdaExtension.Example.Tests/AmazonLambdaExtension.Example.Tests.csproj" />
     <Project Path="AmazonLambdaExtension.Tests/AmazonLambdaExtension.Tests.csproj" />
   </Folder>
 </Solution>
