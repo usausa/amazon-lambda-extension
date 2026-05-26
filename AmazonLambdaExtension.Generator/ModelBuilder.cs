@@ -134,9 +134,13 @@ internal static class ModelBuilder
                 continue;
             }
 
-            var handlerResult = BuildHandlerModel(member, symbol);
+            var handlerResult = BuildHandlerModel(member, symbol, diagnostics);
             if (handlerResult == null)
             {
+                if (diagnostics.Count > 0)
+                {
+                    return Results.Error<LambdaModel>(diagnostics[0]);
+                }
                 continue;
             }
 
@@ -164,7 +168,8 @@ internal static class ModelBuilder
         if (attrClass.IsGenericType)
         {
             var original = attrClass.OriginalDefinition;
-            return original.ToDisplayString() == FilterAttributeName;
+            var ns = original.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            return ns + "." + original.MetadataName == FilterAttributeName;
         }
         return false;
     }
@@ -184,7 +189,7 @@ internal static class ModelBuilder
         return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceFullName);
     }
 
-    private static HandlerModel? BuildHandlerModel(IMethodSymbol method, INamedTypeSymbol _containingType)
+    private static HandlerModel? BuildHandlerModel(IMethodSymbol method, INamedTypeSymbol _containingType, List<DiagnosticInfo> diagnostics)
     {
         HandlerKind? kind = null;
         HttpApiHandlerOptions? httpApiOptions = null;
@@ -229,10 +234,26 @@ internal static class ModelBuilder
             return null;
         }
 
+        // ALE0003: 複数のハンドラー属性
+        if (handlerAttrCount > 1)
+        {
+            var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.MultipleHandlerAttributes, loc, method.Name));
+            return null;
+        }
+
         // Parameters
         var parameters = new List<ParameterModel>();
         foreach (var param in method.Parameters)
         {
+            // ALE0005: [Event] ハンドラに [FromBody] は使用不可
+            if (kind == HandlerKind.Event && param.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == FromBodyAttributeName))
+            {
+                var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOnEventHandler, loc, method.Name));
+                return null;
+            }
+
             var paramModel = BuildParameterModel(param, kind.Value);
             parameters.Add(paramModel);
         }
@@ -273,6 +294,14 @@ internal static class ModelBuilder
 
         var returnsHttpResult = resultType != null && IsImplementing(method.ReturnType, IHttpResultFullName);
         var returnsAuthorizerResult = resultType != null && IsImplementing(method.ReturnType, IAuthorizerResultFullName);
+
+        // ALE0007: [HttpApiAuthorizer] の戻り値型が IAuthorizerResult でない
+        if (kind == HandlerKind.HttpApiAuthorizer && !returnsAuthorizerResult)
+        {
+            var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, loc, method.Name));
+            return null;
+        }
 
         return new HandlerModel(
             method.Name,

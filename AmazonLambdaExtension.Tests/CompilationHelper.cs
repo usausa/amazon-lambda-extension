@@ -1,5 +1,6 @@
 namespace AmazonLambdaExtension;
 
+using System.Collections.Generic;
 using System.Reflection;
 
 using Amazon.Lambda.APIGatewayEvents;
@@ -11,6 +12,7 @@ using AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// テスト用のコンパイルヘルパー。
@@ -27,7 +29,7 @@ public static class CompilationHelper
         var compilation = CreateCompilation(source);
         var generator = new LambdaGenerator();
         var driver = CSharpGeneratorDriver
-            .Create(generator)
+            .Create(generator.AsSourceGenerator())
             .RunGenerators(compilation);
 
         var result = driver.GetRunResult();
@@ -45,7 +47,7 @@ public static class CompilationHelper
         var compilation = CreateCompilation(source);
         var generator = new LambdaGenerator();
         var driver = CSharpGeneratorDriver
-            .Create(generator)
+            .Create(generator.AsSourceGenerator())
             .RunGenerators(compilation);
 
         var result = driver.GetRunResult();
@@ -71,21 +73,52 @@ public static class CompilationHelper
 
     private static IEnumerable<MetadataReference> GetDefaultReferences()
     {
-        yield return MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+        // ライブラリ参照
         yield return MetadataReference.CreateFromFile(typeof(LambdaAttribute).GetTypeInfo().Assembly.Location);
         yield return MetadataReference.CreateFromFile(typeof(APIGatewayHttpApiV2ProxyRequest).GetTypeInfo().Assembly.Location);
         yield return MetadataReference.CreateFromFile(typeof(ILambdaContext).GetTypeInfo().Assembly.Location);
         yield return MetadataReference.CreateFromFile(typeof(SQSEvent).GetTypeInfo().Assembly.Location);
+        yield return MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection).GetTypeInfo().Assembly.Location);
 
-        // System 関連アセンブリ
-        var systemAssembly = typeof(object).Assembly;
-        var runtimeDir = System.IO.Path.GetDirectoryName(systemAssembly.Location)!;
-        foreach (var name in new[] { "System.Runtime.dll", "System.Collections.dll", "System.Threading.Tasks.dll", "netstandard.dll", "System.Linq.dll" })
+        // System 関連アセンブリ（AppContext.GetData で信頼できるパスから取得）
+        var trustedPlatformAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
+        if (trustedPlatformAssemblies != null)
         {
-            var path = System.IO.Path.Combine(runtimeDir, name);
-            if (System.IO.File.Exists(path))
+            var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                yield return MetadataReference.CreateFromFile(path);
+                "System.Runtime.dll",
+                "System.Collections.dll",
+                "System.Threading.Tasks.dll",
+                "System.Linq.dll",
+                "System.Text.RegularExpressions.dll",
+                "System.ObjectModel.dll",
+                "System.Console.dll",
+                "System.ComponentModel.dll",
+                "System.Net.Primitives.dll",
+                "netstandard.dll",
+                "mscorlib.dll",
+            };
+
+            foreach (var path in trustedPlatformAssemblies.Split(System.IO.Path.PathSeparator))
+            {
+                var fileName = System.IO.Path.GetFileName(path);
+                if (needed.Contains(fileName) || fileName.StartsWith("System.Private.", StringComparison.Ordinal))
+                {
+                    yield return MetadataReference.CreateFromFile(path);
+                }
+            }
+        }
+        else
+        {
+            // フォールバック: ランタイムディレクトリから取得
+            var runtimeDir = System.IO.Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+            foreach (var name in new[] { "System.Runtime.dll", "System.Collections.dll", "System.Threading.Tasks.dll", "netstandard.dll", "System.Linq.dll" })
+            {
+                var path = System.IO.Path.Combine(runtimeDir, name);
+                if (System.IO.File.Exists(path))
+                {
+                    yield return MetadataReference.CreateFromFile(path);
+                }
             }
         }
     }

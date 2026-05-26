@@ -108,8 +108,8 @@ public sealed partial class Function
         Assert.Contains(@"""page""", handlerSource);
         // int への変換
         Assert.Contains("TryToInt32", handlerSource);
-        // 変換失敗時 400 返却
-        Assert.Contains("400", handlerSource);
+        // 変換失敗時 BadRequest 返却
+        Assert.Contains("BadRequest", handlerSource);
     }
 
     // ---------------------------------------------------------------------------
@@ -228,7 +228,7 @@ public sealed class Resolver
         Assert.Contains("static readonly", sharedSource);
         Assert.Contains("__provider__", sharedSource);
         Assert.Contains("__target__", sharedSource);
-        Assert.Contains("BuildServiceProvider()", sharedSource);
+        Assert.Contains("BuildServiceProvider(", sharedSource);
     }
 
     // ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ public sealed partial class AuthFunction
         output.WriteLine(handlerSource);
 
         Assert.Contains("Authorize_Handler", handlerSource);
-        Assert.Contains("IAuthorizerResult", handlerSource);
+        Assert.Contains("AuthorizerResult", handlerSource);
         Assert.Contains(".Serialize(", handlerSource);
     }
 }

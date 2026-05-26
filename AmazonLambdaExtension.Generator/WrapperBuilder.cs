@@ -910,7 +910,7 @@ internal static class SourceBuilderExtensions
 {
     public static void AppendLine(this SourceBuilder builder, string line)
     {
-        builder.Append(line).NewLine();
+        builder.Indent().Append(line).NewLine();
     }
 
     public static void BeginBlock(this SourceBuilder builder)
