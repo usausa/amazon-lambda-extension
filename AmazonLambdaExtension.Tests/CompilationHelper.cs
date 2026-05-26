@@ -96,7 +96,7 @@ public static class CompilationHelper
                 "System.ComponentModel.dll",
                 "System.Net.Primitives.dll",
                 "netstandard.dll",
-                "mscorlib.dll",
+                "mscorlib.dll"
             };
 
             foreach (var path in trustedPlatformAssemblies.Split(System.IO.Path.PathSeparator))

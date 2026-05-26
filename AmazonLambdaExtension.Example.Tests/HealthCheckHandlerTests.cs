@@ -18,8 +18,8 @@ public class HealthCheckHandlerTests
         {
             RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
             {
-                Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "GET" },
-            },
+                Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "GET" }
+            }
         };
         var ctx = new TestLambdaContext();
 

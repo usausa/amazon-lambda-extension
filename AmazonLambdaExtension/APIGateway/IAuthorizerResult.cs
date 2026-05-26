@@ -7,7 +7,7 @@ public sealed class AuthorizerResultSerializationOptions
     public enum AuthorizerFormat
     {
         HttpApiSimple,
-        HttpApiIamPolicy,
+        HttpApiIamPolicy
     }
 
     public AuthorizerFormat Format { get; set; }

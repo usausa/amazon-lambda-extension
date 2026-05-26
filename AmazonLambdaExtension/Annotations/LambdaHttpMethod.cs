@@ -9,5 +9,5 @@ public enum LambdaHttpMethod
     Patch,
     Head,
     Delete,
-    Options,
+    Options
 }

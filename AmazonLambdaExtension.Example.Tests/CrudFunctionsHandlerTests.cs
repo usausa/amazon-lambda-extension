@@ -24,13 +24,13 @@ public class CrudFunctionsHandlerTests
             {
                 Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription
                 {
-                    Method = method,
-                },
+                    Method = method
+                }
             },
             Body = body,
-            Headers = headers ?? new Dictionary<string, string>(),
-            QueryStringParameters = query ?? new Dictionary<string, string>(),
-            PathParameters = path ?? new Dictionary<string, string>(),
+            Headers = headers ?? [],
+            QueryStringParameters = query ?? [],
+            PathParameters = path ?? []
         };
     }
 
@@ -101,8 +101,8 @@ public class CrudFunctionsHandlerTests
             Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
             Authorizer = new APIGatewayHttpApiV2ProxyRequest.AuthorizerDescription
             {
-                Lambda = new Dictionary<string, object> { ["role"] = "admin" },
-            },
+                Lambda = new Dictionary<string, object> { ["role"] = "admin" }
+            }
         };
         var ctx = new TestLambdaContext();
 
@@ -123,8 +123,8 @@ public class CrudFunctionsHandlerTests
             Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
             Authorizer = new APIGatewayHttpApiV2ProxyRequest.AuthorizerDescription
             {
-                Lambda = new Dictionary<string, object> { ["role"] = "viewer" },
-            },
+                Lambda = new Dictionary<string, object> { ["role"] = "viewer" }
+            }
         };
         var ctx = new TestLambdaContext();
 

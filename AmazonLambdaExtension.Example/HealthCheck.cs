@@ -9,9 +9,9 @@ public partial class HealthCheck
 {
     [FunctionUrl(
         AuthType = FunctionUrlAuthType.NONE,
-        AllowOrigins = new[] { "*" },
-        AllowMethods = new[] { "GET" },
-        AllowHeaders = new[] { "Content-Type" },
+        AllowOrigins = ["*"],
+        AllowMethods = ["GET"],
+        AllowHeaders = ["Content-Type"],
         MaxAge = 300)]
     public IHttpResult Ping()
         => HttpResults.Ok(new { status = "ok", timestamp = DateTime.UtcNow });

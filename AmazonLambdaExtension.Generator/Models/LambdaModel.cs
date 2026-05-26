@@ -28,7 +28,7 @@ internal enum HandlerKind
     Event,
     HttpApi,
     FunctionUrl,
-    HttpApiAuthorizer,
+    HttpApiAuthorizer
 }
 
 internal sealed record HttpApiHandlerOptions(
@@ -56,7 +56,7 @@ internal enum ParameterBindingKind
     FromRoute,
     FromBody,
     FromServices,
-    FromCustomAuthorizer,
+    FromCustomAuthorizer
 }
 
 internal sealed record TypeRefModel(

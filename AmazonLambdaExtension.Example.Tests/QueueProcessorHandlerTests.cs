@@ -14,11 +14,11 @@ public class QueueProcessorHandlerTests
     {
         var ev = new SQSEvent
         {
-            Records = new List<SQSEvent.SQSMessage>
-            {
-                new SQSEvent.SQSMessage { MessageId = "msg-1", Body = "hello" },
-                new SQSEvent.SQSMessage { MessageId = "msg-2", Body = "world" },
-            },
+            Records =
+            [
+                new() { MessageId = "msg-1", Body = "hello" },
+                new() { MessageId = "msg-2", Body = "world" }
+            ]
         };
         var ctx = new TestLambdaContext();
 

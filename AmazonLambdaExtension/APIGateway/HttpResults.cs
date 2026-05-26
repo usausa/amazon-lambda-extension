@@ -61,7 +61,7 @@ public static class HttpResults
             (true, true) => System.Net.HttpStatusCode.PermanentRedirect,
             (true, false) => System.Net.HttpStatusCode.MovedPermanently,
             (false, true) => System.Net.HttpStatusCode.TemporaryRedirect,
-            _ => System.Net.HttpStatusCode.Found,
+            _ => System.Net.HttpStatusCode.Found
         };
         var result = new HttpResult(statusCode);
         result.AddHeader("location", uri);

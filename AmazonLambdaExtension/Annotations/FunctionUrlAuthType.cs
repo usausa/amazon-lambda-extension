@@ -4,6 +4,6 @@ namespace AmazonLambdaExtension.Annotations;
 public enum FunctionUrlAuthType
 {
     NONE,
-    AWS_IAM,
+    AWS_IAM
 }
 #pragma warning restore CA1707

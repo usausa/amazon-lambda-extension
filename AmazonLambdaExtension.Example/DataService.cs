@@ -21,7 +21,7 @@ public sealed class DataService
         {
             Id = id.ToString(CultureInfo.InvariantCulture),
             Name = $"Item-{id}",
-            TenantId = tenantId,
+            TenantId = tenantId
         }).ToArray();
         return ValueTask.FromResult(items);
     }
@@ -32,7 +32,7 @@ public sealed class DataService
         {
             Id = Guid.NewGuid().ToString("N"),
             Name = input.Name,
-            TenantId = "tenant-1",
+            TenantId = "tenant-1"
         };
         return ValueTask.FromResult(item);
     }

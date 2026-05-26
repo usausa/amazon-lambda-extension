@@ -1,6 +1,5 @@
 #pragma warning disable IDE0060, IDE0042, SA1313
 namespace AmazonLambdaExtension.Generator;
-using System.Linq;
 
 using AmazonLambdaExtension.Generator.Models;
 
@@ -260,7 +259,7 @@ internal static class ModelBuilder
 
         // Result type analysis
         var returnType = method.ReturnType;
-        TypeRefModel? resultType = null;
+        TypeRefModel? resultType;
         var isAsync = false;
 
         if (returnType is INamedTypeSymbol namedReturn)
