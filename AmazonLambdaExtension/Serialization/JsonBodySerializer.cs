@@ -32,6 +32,8 @@ public sealed class JsonBodySerializer : IBodySerializer
         this.context = context;
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Reflection path is used only when constructed with JsonSerializerOptions. The caller already opted in to reflection via that constructor.")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = "Reflection path is used only when constructed with JsonSerializerOptions. The caller already opted in to reflection via that constructor.")]
     public T Deserialize<T>(string body)
     {
         if (context is not null)
@@ -41,6 +43,8 @@ public sealed class JsonBodySerializer : IBodySerializer
         return JsonSerializer.Deserialize<T>(body, options)!;
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "Reflection path is used only when constructed with JsonSerializerOptions. The caller already opted in to reflection via that constructor.")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = "Reflection path is used only when constructed with JsonSerializerOptions. The caller already opted in to reflection via that constructor.")]
     public string Serialize<T>(T value)
     {
         if (context is not null)
