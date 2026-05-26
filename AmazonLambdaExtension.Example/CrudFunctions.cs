@@ -23,6 +23,7 @@ public partial class CrudFunctions
         [FromQuery] int page,
         ILambdaContext context)
     {
+        context.Logger.LogInformation($"GetItem id={id} page={page}");
         var item = await data.GetAsync(id, page);
         return item is null ? HttpResults.NotFound() : HttpResults.Ok(item);
     }
@@ -55,6 +56,7 @@ public partial class CrudFunctions
         APIGatewayHttpApiV2ProxyRequest request,
         ILambdaContext context)
     {
+        context.Logger.LogInformation("Authorize called");
         if (!request.Headers.TryGetValue("authorization", out var token) ||
             !await data.IsValidTokenAsync(token))
         {

@@ -36,4 +36,4 @@ public static class ServiceResolver
 [JsonSerializable(typeof(Item))]
 [JsonSerializable(typeof(Item[]))]
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
-internal partial class AppJsonContext : JsonSerializerContext;
+internal sealed partial class AppJsonContext : JsonSerializerContext;

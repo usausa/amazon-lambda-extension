@@ -157,7 +157,10 @@ internal static class ModelBuilder
     private static bool IsFilterAttribute(AttributeData attr)
     {
         var attrClass = attr.AttributeClass;
-        if (attrClass == null) return false;
+        if (attrClass == null)
+        {
+            return false;
+        }
         if (attrClass.IsGenericType)
         {
             var original = attrClass.OriginalDefinition;
@@ -170,7 +173,9 @@ internal static class ModelBuilder
     {
         var namedArg = attr.NamedArguments.FirstOrDefault(static a => a.Key == "Order");
         if (namedArg.Value.Value is int order)
+        {
             return order;
+        }
         return 0;
     }
 

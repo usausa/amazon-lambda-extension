@@ -1,5 +1,6 @@
 namespace AmazonLambdaExtension.Example;
 
+using System.Globalization;
 // ReSharper disable MemberCanBeMadeStatic.Global
 #pragma warning disable CA1822
 public sealed class DataService
@@ -10,7 +11,7 @@ public sealed class DataService
         {
             return ValueTask.FromResult<Item?>(null);
         }
-        var item = new Item { Id = id, Name = $"Item-{id}", TenantId = "tenant-1" };
+        var item = new Item { Id = id, Name = $"Item-{id}-Page{page.ToString(CultureInfo.InvariantCulture)}", TenantId = "tenant-1" };
         return ValueTask.FromResult<Item?>(item);
     }
 
@@ -18,7 +19,7 @@ public sealed class DataService
     {
         var items = ids.Select(id => new Item
         {
-            Id = id.ToString(),
+            Id = id.ToString(CultureInfo.InvariantCulture),
             Name = $"Item-{id}",
             TenantId = tenantId,
         }).ToArray();

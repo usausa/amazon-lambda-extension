@@ -61,7 +61,9 @@ public sealed class LambdaGenerator : IIncrementalGenerator
     private static string MakeFilename(string ns, string className, string methodName)
     {
         if (string.IsNullOrEmpty(ns))
+        {
             return $"{className}__{methodName}.g.cs";
+        }
         return $"{ns}.{className}__{methodName}.g.cs";
     }
 }

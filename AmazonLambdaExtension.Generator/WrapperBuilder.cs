@@ -186,7 +186,10 @@ internal static class WrapperBuilder
             var idx = filters[i].Index;
             builder.AppendLine($"var inner{i} = p;");
             builder.AppendLine($"p = ctx => __filter{idx}__.InvokeAsync(ctx, inner{i});");
-            if (i > 0) builder.NewLine();
+            if (i > 0)
+            {
+                builder.NewLine();
+            }
         }
 
         builder.NewLine();
@@ -249,9 +252,13 @@ internal static class WrapperBuilder
             builder.BeginBlock();
 
             if (handler.Kind == HandlerKind.Event)
+            {
                 builder.AppendLine("Request = ev,");
+            }
             else
+            {
                 builder.AppendLine("Request = request,");
+            }
 
             builder.AppendLine("LambdaContext = context,");
             builder.AppendLine("CancellationToken = default,");
@@ -841,9 +848,13 @@ internal static class WrapperBuilder
             {
                 case ParameterBindingKind.Request:
                     if (isEvent)
+                    {
                         argParts.Add(hasFilter ? $"({p.Type.FullName})ctx.Request" : "ev");
+                    }
                     else
+                    {
                         argParts.Add(hasFilter ? "request" : "request");
+                    }
                     break;
                 case ParameterBindingKind.Context:
                     argParts.Add(hasFilter ? "ctx.LambdaContext" : "context");
@@ -913,8 +924,12 @@ internal static class SourceBuilderExtensions
         builder.IndentLevel--;
         builder.Indent();
         if (semicolon)
+        {
             builder.Append("};").NewLine();
+        }
         else
+        {
             builder.Append("}").NewLine();
+        }
     }
 }

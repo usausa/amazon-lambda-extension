@@ -18,14 +18,14 @@ public sealed class LoggingFilter : ILambdaFilter
         this.logger = logger;
     }
 
-    public async ValueTask InvokeAsync(LambdaInvocationContext ctx, LambdaFilterDelegate next)
+    public async ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next)
     {
-        var requestId = ctx.LambdaContext.AwsRequestId;
+        var requestId = context.LambdaContext.AwsRequestId;
         logger.LogInformation("Begin {RequestId}", requestId);
         var sw = Stopwatch.StartNew();
         try
         {
-            await next(ctx);
+            await next(context);
         }
         finally
         {
@@ -36,15 +36,15 @@ public sealed class LoggingFilter : ILambdaFilter
 
 public sealed class ApiKeyFilter : ILambdaFilter
 {
-    public ValueTask InvokeAsync(LambdaInvocationContext ctx, LambdaFilterDelegate next)
+    public ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next)
     {
-        var req = ctx.GetRequest<APIGatewayHttpApiV2ProxyRequest>();
+        var req = context.GetRequest<APIGatewayHttpApiV2ProxyRequest>();
         if (!req.Headers.TryGetValue("x-api-key", out var key) || key != "expected")
         {
-            ctx.Result = HttpResults.Unauthorized();
+            context.Result = HttpResults.Unauthorized();
             return default;
         }
 
-        return next(ctx);
+        return next(context);
     }
 }

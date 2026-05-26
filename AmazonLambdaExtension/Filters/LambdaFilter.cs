@@ -14,6 +14,7 @@ public interface ILambdaFilter
     ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next);
 }
 
+#pragma warning disable CA1721
 public sealed class LambdaInvocationContext
 {
     public object Request { get; init; } = default!;
@@ -29,9 +30,8 @@ public sealed class LambdaInvocationContext
     public IDictionary<string, object?> Items =>
         items ??= [];
 
-#pragma warning disable CA1721
     public TRequest GetRequest<TRequest>()
         where TRequest : class
         => (TRequest)Request;
-#pragma warning restore CA1721
 }
+#pragma warning restore CA1721
