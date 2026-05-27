@@ -230,6 +230,91 @@ public sealed class Resolver
     }
 
     // ---------------------------------------------------------------------------
+    // [FromBody] + validation → __requestValidator__ が shared フィールドに生成される
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FromBody_WithValidation_GeneratesRequestValidatorField()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+public sealed class Input { public string? Name { get; set; } }
+
+[Lambda]
+[ServiceResolver(typeof(Resolver))]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Post, ""/items"")]
+    public IHttpResult Create([FromBody] Input input)
+        => HttpResults.Ok(new { });
+}
+
+public sealed class Resolver
+{
+    public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+        => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+}
+");
+        var sharedSource = sources.Values.FirstOrDefault(s => s.Contains("__provider__", StringComparison.Ordinal));
+        Assert.NotNull(sharedSource);
+        output.WriteLine(sharedSource);
+
+        // __requestValidator__ が shared フィールドとして生成される
+        Assert.Contains("__requestValidator__", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("global::AmazonLambdaExtension.Validation.IRequestValidator", sharedSource, StringComparison.Ordinal);
+
+        var handlerSource = sources.Values.Single(s => s.Contains("Create_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        // validation 呼び出しが IRequestValidator ベース
+        Assert.Contains("__requestValidator__.Validate", handlerSource, StringComparison.Ordinal);
+        // ValidationHelper への直接参照は存在しない
+        Assert.DoesNotContain("ValidationHelper", handlerSource, StringComparison.Ordinal);
+    }
+
+    // ---------------------------------------------------------------------------
+    // [FromBody(SkipValidate = true)] → __requestValidator__ が生成されない
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void FromBody_SkipValidate_DoesNotGenerateRequestValidatorField()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+public sealed class Input { public string? Name { get; set; } }
+
+[Lambda]
+[ServiceResolver(typeof(Resolver))]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Post, ""/items"")]
+    public IHttpResult Create([FromBody(SkipValidate = true)] Input input)
+        => HttpResults.Ok(new { });
+}
+
+public sealed class Resolver
+{
+    public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+        => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+}
+");
+        var sharedSource = sources.Values.FirstOrDefault(s => s.Contains("__provider__", StringComparison.Ordinal));
+        Assert.NotNull(sharedSource);
+        output.WriteLine(sharedSource);
+
+        // SkipValidate = true の場合 __requestValidator__ は生成されない
+        Assert.DoesNotContain("__requestValidator__", sharedSource, StringComparison.Ordinal);
+    }
+
+    // ---------------------------------------------------------------------------
     // [HttpApiAuthorizer]
     // ---------------------------------------------------------------------------
 

@@ -97,7 +97,7 @@ public class CrudFunctionsHandlerTests
     [Fact]
     public async Task CreateItem_Handler_AdminRole_Returns201()
     {
-        var body = JsonSerializer.Serialize(new { Name = "Widget", Description = "A test widget" });
+        var body = JsonSerializer.Serialize(new { name = "Widget", description = "A test widget" });
         var req = MakeRequest(
             method: "POST",
             body: body,
@@ -122,7 +122,7 @@ public class CrudFunctionsHandlerTests
     [Fact]
     public async Task CreateItem_Handler_NonAdminRole_Returns403()
     {
-        var body = JsonSerializer.Serialize(new { Name = "Widget", Description = "A test widget" });
+        var body = JsonSerializer.Serialize(new { name = "Widget", description = "A test widget" });
         var req = MakeRequest(method: "POST", body: body);
         req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
         {
@@ -139,6 +139,50 @@ public class CrudFunctionsHandlerTests
         stream.Position = 0;
         var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(403, doc.RootElement.GetProperty("statusCode").GetInt32());
+    }
+
+    [Fact]
+    public async Task CreateItem_Handler_ValidationFails_EmptyName_Returns400()
+    {
+        var body = JsonSerializer.Serialize(new { name = "" });
+        var req = MakeRequest(method: "POST", body: body);
+        req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
+        {
+            Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
+            Authorizer = new APIGatewayHttpApiV2ProxyRequest.AuthorizerDescription
+            {
+                Lambda = new Dictionary<string, object> { ["role"] = "admin" }
+            }
+        };
+        var ctx = new TestLambdaContext();
+
+        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+
+        stream.Position = 0;
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
+    }
+
+    [Fact]
+    public async Task CreateItem_Handler_ValidationFails_NameTooLong_Returns400()
+    {
+        var body = JsonSerializer.Serialize(new { name = new string('x', 101) });
+        var req = MakeRequest(method: "POST", body: body);
+        req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
+        {
+            Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
+            Authorizer = new APIGatewayHttpApiV2ProxyRequest.AuthorizerDescription
+            {
+                Lambda = new Dictionary<string, object> { ["role"] = "admin" }
+            }
+        };
+        var ctx = new TestLambdaContext();
+
+        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+
+        stream.Position = 0;
+        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
     }
 
     [Fact]

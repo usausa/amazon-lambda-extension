@@ -7,6 +7,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
 using AmazonLambdaExtension.Serialization;
+using AmazonLambdaExtension.Validation;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +21,8 @@ public static class ServiceResolver
             new SourceGeneratorLambdaJsonSerializer<AppJsonContext>());
 
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
+
+        services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
 
         services.AddSingleton<DataService>();
         services.AddSingleton<IProcessor, MockProcessor>();

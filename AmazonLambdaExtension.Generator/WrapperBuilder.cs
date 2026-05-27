@@ -20,7 +20,7 @@ internal static class WrapperBuilder
     private const string AuthorizerResultOptionsType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions";
     private const string AuthorizerFormatType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions.AuthorizerFormat";
     private const string StringConverterType = "global::AmazonLambdaExtension.Binders.StringConverter";
-    private const string ValidationHelperType = "global::AmazonLambdaExtension.Helpers.ValidationHelper";
+    private const string RequestValidatorType = "global::AmazonLambdaExtension.Validation.IRequestValidator";
     private const string ApiExceptionType = "global::AmazonLambdaExtension.ApiException";
     private const string StreamType = "global::System.IO.Stream";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
@@ -85,6 +85,8 @@ internal static class WrapperBuilder
             h.Kind == HandlerKind.HttpApiAuthorizer);
         var hasBodyParam = handlers.Any(static h =>
             h.Parameters.AsArray().Any(static p => p.BindingKind == ParameterBindingKind.FromBody));
+        var hasValidation = handlers.Any(static h =>
+            h.Parameters.AsArray().Any(static p => p.BindingKind == ParameterBindingKind.FromBody && !p.SkipValidation));
 
         if (model.ServiceResolver != null)
         {
@@ -121,6 +123,13 @@ internal static class WrapperBuilder
             builder.NewLine();
             builder.AppendLine($"private static readonly global::AmazonLambdaExtension.Serialization.IBodySerializer __bodySerializer__ =");
             builder.AppendLine($"    {GetRequiredService}<global::AmazonLambdaExtension.Serialization.IBodySerializer>(__provider__);");
+        }
+
+        if (hasValidation && model.ServiceResolver != null)
+        {
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {RequestValidatorType} __requestValidator__ =");
+            builder.AppendLine($"    {GetRequiredService}<{RequestValidatorType}>(__provider__);");
         }
 
         foreach (var filter in model.Filters.AsArray())
@@ -472,7 +481,7 @@ internal static class WrapperBuilder
                 builder.AppendLine($"var {pVar} = __bodySerializer__.Deserialize<{typeName}>({requestVar}.Body ?? string.Empty);");
                 if (!param.SkipValidation)
                 {
-                    builder.AppendLine($"if ({pVar} is not null && !{ValidationHelperType}.Validate({pVar}))");
+                    builder.AppendLine($"if ({pVar} is not null && !__requestValidator__.Validate({pVar}))");
                     builder.BeginBlock();
                     if (hasFilter)
                     {
