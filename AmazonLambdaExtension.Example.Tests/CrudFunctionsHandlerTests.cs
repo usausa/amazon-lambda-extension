@@ -144,7 +144,7 @@ public class CrudFunctionsHandlerTests
     [Fact]
     public async Task CreateItem_Handler_ValidationFails_EmptyName_Returns400()
     {
-        var body = JsonSerializer.Serialize(new { name = "" });
+        var body = JsonSerializer.Serialize(new { name = string.Empty });
         var req = MakeRequest(method: "POST", body: body);
         req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
         {

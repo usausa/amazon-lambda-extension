@@ -32,7 +32,7 @@ internal static class WrapperBuilder
         builder.EnableNullable();
         builder.NewLine();
 
-        if (!string.IsNullOrEmpty(model.Namespace))
+        if (!String.IsNullOrEmpty(model.Namespace))
         {
             builder.Namespace(model.Namespace);
             builder.NewLine();
@@ -53,7 +53,7 @@ internal static class WrapperBuilder
         builder.EnableNullable();
         builder.NewLine();
 
-        if (!string.IsNullOrEmpty(model.Namespace))
+        if (!String.IsNullOrEmpty(model.Namespace))
         {
             builder.Namespace(model.Namespace);
             builder.NewLine();
@@ -80,13 +80,13 @@ internal static class WrapperBuilder
     {
         var handlers = model.Handlers.AsArray();
         var hasHttpHandler = handlers.Any(static h =>
-            h.Kind == HandlerKind.HttpApi ||
-            h.Kind == HandlerKind.FunctionUrl ||
-            h.Kind == HandlerKind.HttpApiAuthorizer);
+            (h.Kind == HandlerKind.HttpApi) ||
+            (h.Kind == HandlerKind.FunctionUrl) ||
+            (h.Kind == HandlerKind.HttpApiAuthorizer));
         var hasBodyParam = handlers.Any(static h =>
             h.Parameters.AsArray().Any(static p => p.BindingKind == ParameterBindingKind.FromBody));
         var hasValidation = handlers.Any(static h =>
-            h.Parameters.AsArray().Any(static p => p.BindingKind == ParameterBindingKind.FromBody && !p.SkipValidation));
+            h.Parameters.AsArray().Any(static p => (p.BindingKind == ParameterBindingKind.FromBody) && !p.SkipValidation));
 
         if (model.ServiceResolver != null)
         {
@@ -213,8 +213,8 @@ internal static class WrapperBuilder
         var hasFilters = filters.Length > 0;
 
         string returnType;
-        if (handler.Kind == HandlerKind.HttpApi || handler.Kind == HandlerKind.FunctionUrl ||
-            handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl) ||
+            (handler.Kind == HandlerKind.HttpApiAuthorizer))
         {
             if (handler.ReturnsHttpResult || handler.Kind == HandlerKind.HttpApiAuthorizer)
             {
@@ -315,7 +315,7 @@ internal static class WrapperBuilder
             builder.AppendLine(");");
             builder.EndBlock();
         }
-        else if (handler.Kind == HandlerKind.HttpApi || handler.Kind == HandlerKind.FunctionUrl)
+        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
@@ -503,7 +503,7 @@ internal static class WrapperBuilder
                 builder.AppendLine($"    {requestVar}.RequestContext.Authorizer.Lambda.TryGetValue(\"{key}\", out var {pRaw}ca) &&");
                 builder.AppendLine($"    {pRaw}ca is not null)");
                 builder.BeginBlock();
-                if (string.IsNullOrEmpty(param.ConverterMethod))
+                if (String.IsNullOrEmpty(param.ConverterMethod))
                 {
                     builder.AppendLine($"{pVar} = {pRaw}ca as {typeName};");
                 }
@@ -599,7 +599,7 @@ internal static class WrapperBuilder
             builder.AppendLine($"{pVar} = new {elemType}[{pVar}parts.Length];");
             builder.AppendLine($"for (var i = 0; i < {pVar}parts.Length; i++)");
             builder.BeginBlock();
-            if (string.IsNullOrEmpty(converterMethod))
+            if (String.IsNullOrEmpty(converterMethod))
             {
                 builder.AppendLine($"{pVar}[i] = {pVar}parts[i];");
             }
@@ -636,7 +636,7 @@ internal static class WrapperBuilder
             builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
             builder.AppendLine($"    {pRaw} is not null)");
             builder.BeginBlock();
-            if (string.IsNullOrEmpty(converterMethod))
+            if (String.IsNullOrEmpty(converterMethod))
             {
                 builder.AppendLine($"{pVar} = {pRaw};");
             }
@@ -667,7 +667,7 @@ internal static class WrapperBuilder
         {
             // Scalar
             var converterMethod = param.ConverterMethod;
-            if (string.IsNullOrEmpty(converterMethod))
+            if (String.IsNullOrEmpty(converterMethod))
             {
                 // string
                 builder.AppendLine($"var {pVar} = default({typeName})!;");
@@ -811,7 +811,7 @@ internal static class WrapperBuilder
                 builder.AppendLine(");");
             }
         }
-        else if (handler.Kind == HandlerKind.HttpApi || handler.Kind == HandlerKind.FunctionUrl)
+        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
         {
             if (handler.ReturnsHttpResult)
             {
@@ -906,7 +906,7 @@ internal static class WrapperBuilder
 
     private static string ToPascalCase(string name)
     {
-        if (string.IsNullOrEmpty(name))
+        if (String.IsNullOrEmpty(name))
         {
             return name;
         }
