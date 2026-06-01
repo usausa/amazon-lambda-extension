@@ -32,6 +32,7 @@ internal static class ModelBuilder
 
     public static Result<LambdaModel> BuildLambdaModel(GeneratorAttributeSyntaxContext context)
     {
+        // シンタックスノードとシンボルを取得 / Retrieve syntax node and symbol from context
         var syntax = (ClassDeclarationSyntax)context.TargetNode;
         var symbol = (INamedTypeSymbol)context.TargetSymbol;
 
@@ -43,23 +44,24 @@ internal static class ModelBuilder
                 Diagnostics.NotPartialClass, syntax.GetLocation(), symbol.Name));
         }
 
+        // 名前空間とクラスの型参照を構築 / Build namespace and type reference for the class
         var ns = string.IsNullOrEmpty(symbol.ContainingNamespace.Name)
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
 
         var functionType = MakeTypeRef(symbol);
 
-        // Constructor parameters
+        // 最もパラメータ数の多い public コンストラクタを選択し、引数型一覧を取得
+        // Select the public constructor with the most parameters and collect its parameter types
         var ctor = symbol.InstanceConstructors
             .Where(static c => c.DeclaredAccessibility == Accessibility.Public)
             .OrderByDescending(static c => c.Parameters.Length)
             .FirstOrDefault();
 
-        var ctorParams = ctor != null
-            ? ctor.Parameters.Select(static p => MakeTypeRef(p.Type)).ToArray()
-            : [];
+        var ctorParams = ctor?.Parameters.Select(static p => MakeTypeRef(p.Type)).ToArray() ?? [];
 
-        // ALE0010: constructor params but no [ServiceResolver]
+        // [ServiceResolver] 属性を検索し、DIコンテナのセットアップ情報を構築
+        // Find [ServiceResolver] attribute and build DI container setup info (ALE0010/ALE0011)
         ServiceResolverModel? serviceResolver = null;
         var serviceResolverAttr = symbol.GetAttributes()
             .FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == ServiceResolverAttributeName);
@@ -90,7 +92,8 @@ internal static class ModelBuilder
                 Diagnostics.MissingServiceResolver, syntax.GetLocation(), symbol.Name));
         }
 
-        // Filters: collect [Filter<TFilter>(Order=N)] attributes, sort by (Order ASC, DeclarationIndex ASC)
+        // [Filter<T>] 属性を収集し、Order → 宣言順でソートしてフィルターリストを構築
+        // Collect [Filter<T>] attributes and sort by Order then declaration index to build filter list
         var filterAttrs = symbol.GetAttributes()
             .Select(static (a, i) => (Attr: a, Index: i))
             .Where(static x => IsFilterAttribute(x.Attr))
@@ -106,7 +109,8 @@ internal static class ModelBuilder
             })
             .ToArray();
 
-        // Check ALE0012 for each filter
+        // 各フィルターが ILambdaFilter を実装しているか検証 (ALE0012)
+        // Validate that each filter implements ILambdaFilter (ALE0012)
         var diagnostics = new List<DiagnosticInfo>();
         foreach (var fd in sortedFilters)
         {
@@ -124,7 +128,8 @@ internal static class ModelBuilder
             return Results.Error<LambdaModel>(diagnostics[0]);
         }
 
-        // Handlers: scan methods
+        // クラスの全メンバーを走査してハンドラーメソッドモデルを収集
+        // Scan all members of the class and collect handler method models
         var handlers = new List<HandlerModel>();
         foreach (var member in symbol.GetMembers().OfType<IMethodSymbol>())
         {
@@ -133,7 +138,7 @@ internal static class ModelBuilder
                 continue;
             }
 
-            var handlerResult = BuildHandlerModel(member, symbol, diagnostics);
+            var handlerResult = BuildHandlerModel(member, diagnostics);
             if (handlerResult == null)
             {
                 if (diagnostics.Count > 0)
@@ -188,8 +193,10 @@ internal static class ModelBuilder
         return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceFullName);
     }
 
-    private static HandlerModel? BuildHandlerModel(IMethodSymbol method, INamedTypeSymbol _containingType, List<DiagnosticInfo> diagnostics)
+    private static HandlerModel? BuildHandlerModel(IMethodSymbol method, List<DiagnosticInfo> diagnostics)
     {
+        // ハンドラー種別属性([HttpApi]/[FunctionUrl]/[HttpApiAuthorizer]/[Event])を検出
+        // Detect handler kind attribute ([HttpApi]/[FunctionUrl]/[HttpApiAuthorizer]/[Event])
         HandlerKind? kind = null;
         AuthorizerHandlerOptions? authorizerOptions = null;
         var handlerAttrCount = 0;
@@ -235,7 +242,8 @@ internal static class ModelBuilder
             return null;
         }
 
-        // Parameters
+        // メソッドの各パラメーターをバインディングモデルに変換
+        // Convert each method parameter into a binding model
         var parameters = new List<ParameterModel>();
         foreach (var param in method.Parameters)
         {
@@ -251,7 +259,8 @@ internal static class ModelBuilder
             parameters.Add(paramModel);
         }
 
-        // Result type analysis
+        // 戻り値型を解析し、Task<T>/ValueTask<T>/void などを展開して実際の結果型を取得
+        // Analyze return type and unwrap Task<T>/ValueTask<T>/void to get the actual result type
         var returnType = method.ReturnType;
         TypeRefModel? resultType;
         var isAsync = false;
@@ -323,6 +332,8 @@ internal static class ModelBuilder
 
     private static ParameterModel BuildParameterModel(IParameterSymbol param, HandlerKind handlerKind)
     {
+        // デフォルトのバインディング種別を QueryString に設定し、変換メソッドを決定
+        // Default binding kind to QueryString and determine string converter method
         var paramType = param.Type;
         var bindingKind = ParameterBindingKind.FromQuery;
         var key = param.Name;
@@ -388,7 +399,8 @@ internal static class ModelBuilder
             }
         }
 
-        // Auto-detect special types when no explicit binding
+        // バインディング属性がない場合は型名で Request / Context / Event ペイロードを自動判定
+        // When no binding attribute is present, auto-detect Request, Context, or Event payload by type name
         if (!param.GetAttributes().Any(HasBindingAttribute))
         {
             var typeName = paramType.ToDisplayString();
@@ -410,6 +422,8 @@ internal static class ModelBuilder
             }
         }
 
+        // [FromBody] の SkipValidate フラグを取得してバリデーションをスキップするか決定
+        // Read SkipValidate flag from [FromBody] attribute to determine whether to skip validation
         var skipValidation = false;
         var fromBodyAttr = param.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == FromBodyAttributeName);
         if (fromBodyAttr != null)
@@ -437,6 +451,8 @@ internal static class ModelBuilder
 
     private static string GetConverterMethod(ITypeSymbol type)
     {
+        // 配列・Nullable<T> をアンラップしてから型名に対応する変換メソッド名を返す
+        // Unwrap array and Nullable<T>, then return the converter method name for the type
         // Array type
         if (type is IArrayTypeSymbol arr)
         {
@@ -479,6 +495,8 @@ internal static class ModelBuilder
 
     internal static TypeRefModel MakeTypeRef(ITypeSymbol type)
     {
+        // Nullable<T>/配列型を判定しながら TypeRefModel を再帰的に構築
+        // Recursively build TypeRefModel, detecting Nullable<T> and array types
         var isNullable = false;
         TypeRefModel? underlyingType = null;
 
