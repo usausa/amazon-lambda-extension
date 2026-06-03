@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using SourceGenerateHelper;
 
-internal static class ModelBuilder
+internal static class LambdaModelBuilder
 {
     private const string ServiceResolverAttributeName = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
     private const string FilterAttributeName = "AmazonLambdaExtension.Annotations.FilterAttribute`1";

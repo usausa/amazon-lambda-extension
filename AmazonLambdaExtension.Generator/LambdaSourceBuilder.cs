@@ -5,7 +5,7 @@ using AmazonLambdaExtension.Generator.Models;
 
 using SourceGenerateHelper;
 
-internal static class WrapperBuilder
+internal static class LambdaSourceBuilder
 {
     private const string V2RequestType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest";
     private const string V2AuthorizerRequestType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";

@@ -21,7 +21,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 LambdaAttributeFullName,
                 static (syntax, _) => syntax is ClassDeclarationSyntax,
-                static (ctx, _) => ModelBuilder.BuildLambdaModel(ctx))
+                static (ctx, _) => LambdaModelBuilder.BuildLambdaModel(ctx))
             .Collect();
 
         context.RegisterImplementationSourceOutput(provider, static (ctx, results) => Execute(ctx, results));
@@ -44,7 +44,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
 
             // Emit shared static fields once per class
             builder.Clear();
-            WrapperBuilder.BuildShared(builder, model);
+            LambdaSourceBuilder.BuildShared(builder, model);
             context.AddSource(
                 MakeFilename(model.Namespace, model.ClassName, "__shared__"),
                 SourceText.From(builder.ToString(), Encoding.UTF8));
@@ -52,7 +52,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             foreach (var handler in model.Handlers)
             {
                 builder.Clear();
-                WrapperBuilder.Build(builder, model, handler);
+                LambdaSourceBuilder.Build(builder, model, handler);
 
                 var filename = MakeFilename(model.Namespace, model.ClassName, handler.MethodName);
                 context.AddSource(filename, SourceText.From(builder.ToString(), Encoding.UTF8));
