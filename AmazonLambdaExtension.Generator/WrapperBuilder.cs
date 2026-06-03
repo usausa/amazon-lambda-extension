@@ -69,7 +69,7 @@ internal static class WrapperBuilder
 
         if (model.Filters.Count > 0)
         {
-            BuildInnerMethod(builder, model, handler);
+            BuildInnerMethod(builder, handler);
             builder.NewLine();
             BuildPipeline(builder, model, handler);
             builder.NewLine();
@@ -169,7 +169,7 @@ internal static class WrapperBuilder
         }
     }
 
-    private static void BuildInnerMethod(SourceBuilder builder, LambdaModel model, HandlerModel handler)
+    private static void BuildInnerMethod(SourceBuilder builder, HandlerModel handler)
     {
         // フィルターパイプラインの最内部処理となる __Inner__ メソッドを生成
         // Generate the __Inner__ method that is the innermost delegate of the filter pipeline
@@ -198,7 +198,7 @@ internal static class WrapperBuilder
 
         BuildParameterBindings(builder, handler, hasFilter: true);
 
-        BuildHandlerInvocation(builder, model, handler, hasFilter: true);
+        BuildHandlerInvocation(builder, handler, hasFilter: true);
 
         builder.EndBlock();
     }
@@ -318,11 +318,11 @@ internal static class WrapperBuilder
             // Without filters: directly execute parameter binding and handler invocation
             if (handler.Kind == HandlerKind.Event)
             {
-                BuildEventTryCatch(builder, model, handler);
+                BuildEventTryCatch(builder, handler);
             }
             else
             {
-                BuildHttpTryCatch(builder, model, handler);
+                BuildHttpTryCatch(builder, handler);
             }
         }
 
@@ -395,13 +395,13 @@ internal static class WrapperBuilder
         BuildResultExtraction(builder, handler, hasFilter: true);
     }
 
-    private static void BuildHttpTryCatch(SourceBuilder builder, LambdaModel model, HandlerModel handler)
+    private static void BuildHttpTryCatch(SourceBuilder builder, HandlerModel handler)
     {
         builder.AppendLine("try");
         builder.BeginBlock();
 
         BuildParameterBindings(builder, handler, hasFilter: false);
-        BuildHandlerInvocation(builder, model, handler, hasFilter: false);
+        BuildHandlerInvocation(builder, handler, hasFilter: false);
 
         builder.EndBlock();
 
@@ -453,12 +453,12 @@ internal static class WrapperBuilder
         }
     }
 
-    private static void BuildEventTryCatch(SourceBuilder builder, LambdaModel model, HandlerModel handler)
+    private static void BuildEventTryCatch(SourceBuilder builder, HandlerModel handler)
     {
         builder.AppendLine("try");
         builder.BeginBlock();
 
-        BuildHandlerInvocationDirect(builder, model, handler);
+        BuildHandlerInvocationDirect(builder, handler);
 
         builder.EndBlock();
         builder.AppendLine("catch (global::System.Exception ex)");
@@ -588,8 +588,7 @@ internal static class WrapperBuilder
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.PathParameters",
-                    "PathParameters");
+                    $"{requestVar}.PathParameters");
                 return;
 
             case ParameterBindingKind.FromQuery:
@@ -601,8 +600,7 @@ internal static class WrapperBuilder
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.QueryStringParameters",
-                    "QueryStringParameters");
+                    $"{requestVar}.QueryStringParameters");
                 return;
 
             case ParameterBindingKind.FromHeader:
@@ -614,13 +612,12 @@ internal static class WrapperBuilder
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.Headers",
-                    "Headers");
+                    $"{requestVar}.Headers");
                 return;
         }
     }
 
-    private static void BuildScalarOrArrayBinding(SourceBuilder builder, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string dictExpr, string _dictName)
+    private static void BuildScalarOrArrayBinding(SourceBuilder builder, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string dictExpr)
     {
         // 型に応じて 配列 / Nullable<T> / スカラー のバインディングコードを生成
         // Generate binding code for array, Nullable<T>, or scalar type accordingly
@@ -767,7 +764,7 @@ internal static class WrapperBuilder
         }
     }
 
-    private static void BuildHandlerInvocation(SourceBuilder builder, LambdaModel _model, HandlerModel handler, bool hasFilter)
+    private static void BuildHandlerInvocation(SourceBuilder builder, HandlerModel handler, bool hasFilter)
     {
         // 引数リストを組み立ててターゲットメソッドを呼び出し、結果をコンテキストまたは戻り値に設定
         // Build argument list, invoke target method, and assign result to context or return
@@ -808,7 +805,7 @@ internal static class WrapperBuilder
         }
     }
 
-    private static void BuildHandlerInvocationDirect(SourceBuilder builder, LambdaModel _model, HandlerModel handler)
+    private static void BuildHandlerInvocationDirect(SourceBuilder builder, HandlerModel handler)
     {
         // フィルターなしのイベントハンドラー向け: 引数を直接指定してターゲットメソッドを呼び出す
         // For Event handler without filter: invoke target method with directly specified arguments
