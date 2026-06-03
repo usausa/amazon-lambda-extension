@@ -102,7 +102,7 @@ internal static class LambdaSourceBuilder
         {
             // DIコンテナを構築し、コンストラクタ DI でターゲットインスタンスを生成
             // Build DI container and create target instance via constructor injection
-            builder.AppendLine($"private static readonly global::System.IServiceProvider __provider__ =");
+            builder.AppendLine("private static readonly global::System.IServiceProvider __provider__ =");
             builder.AppendLine($"    {BuildServiceProvider}({model.ServiceResolver.Type.FullName}.ConfigureServices());");
             builder.NewLine();
 
@@ -124,15 +124,15 @@ internal static class LambdaSourceBuilder
             {
                 // DIから ILambdaSerializer を解決
                 // Resolve ILambdaSerializer from DI container
-                builder.AppendLine($"private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
+                builder.AppendLine("private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
                 builder.AppendLine($"    {GetRequiredService}<global::Amazon.Lambda.Core.ILambdaSerializer>(__provider__);");
             }
             else
             {
                 // DIなしの場合はデフォルトの JSON シリアライザーを使用
                 // Use default JSON serializer when no DI is configured
-                builder.AppendLine($"private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
-                builder.AppendLine($"    new global::Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer();");
+                builder.AppendLine("private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
+                builder.AppendLine("    new global::Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer();");
             }
         }
 
@@ -512,11 +512,8 @@ internal static class LambdaSourceBuilder
                 return $"return {HttpResultsType}.BadRequest($\"Invalid parameter: {paramName}\")" +
                        $".Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});";
             }
-            else
-            {
-                return $"return new {V2ResponseType} {{ StatusCode = 400, " +
-                       $"Body = $\"Invalid parameter: {paramName}\" }};";
-            }
+            return $"return new {V2ResponseType} {{ StatusCode = 400, " +
+                   $"Body = $\"Invalid parameter: {paramName}\" }};";
         }
 
         switch (param.BindingKind)
@@ -650,10 +647,7 @@ internal static class LambdaSourceBuilder
                 return $"return {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\")" +
                        $".Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});";
             }
-            else
-            {
-                return $"return new {V2ResponseType} {{ StatusCode = 400, Body = $\"Invalid parameter: {key}\" }};";
-            }
+            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = $\"Invalid parameter: {key}\" }};";
         }
 
         if (param.Type.IsArray && param.Type.ElementType != null)
@@ -912,6 +906,7 @@ internal static class LambdaSourceBuilder
                     }
                     else
                     {
+                        // TODO 判定の意味がないのが、元の意図を再確認
                         argParts.Add(hasFilter ? "request" : "request");
                     }
                     break;
