@@ -67,7 +67,7 @@ internal static class WrapperBuilder
         builder.AppendLine($"partial {classKeyword} {model.ClassName}");
         builder.BeginBlock();
 
-        if (model.Filters.AsArray().Length > 0)
+        if (model.Filters.Count > 0)
         {
             BuildInnerMethod(builder, model, handler);
             builder.NewLine();
@@ -84,15 +84,15 @@ internal static class WrapperBuilder
     {
         // ハンドラーの使用状況を事前チェックして必要なフィールドの要否を判定
         // Pre-check handler usage to determine which static fields are required
-        var handlers = model.Handlers.AsArray();
+        var handlers = model.Handlers;
         var hasHttpHandler = handlers.Any(static h =>
             (h.Kind == HandlerKind.HttpApi) ||
             (h.Kind == HandlerKind.FunctionUrl) ||
             (h.Kind == HandlerKind.HttpApiAuthorizer));
         var hasBodyParam = handlers.Any(static h =>
-            h.Parameters.AsArray().Any(static p => p.BindingKind == ParameterBindingKind.FromBody));
+            h.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromBody));
         var hasValidation = handlers.Any(static h =>
-            h.Parameters.AsArray().Any(static p => (p.BindingKind == ParameterBindingKind.FromBody) && !p.SkipValidation));
+            h.Parameters.Any(static p => (p.BindingKind == ParameterBindingKind.FromBody) && !p.SkipValidation));
 
         if (model.ServiceResolver != null)
         {
@@ -103,7 +103,7 @@ internal static class WrapperBuilder
             builder.NewLine();
 
             // target
-            var ctorArgs = String.Join(", ", model.ConstructorParameters.AsArray().Select(static (p, _) => $"{GetRequiredService}<{p.FullName}>(__provider__)"));
+            var ctorArgs = String.Join(", ", model.ConstructorParameters.Select(static (p, _) => $"{GetRequiredService}<{p.FullName}>(__provider__)"));
             builder.AppendLine($"private static readonly {model.FunctionType.FullName} __target__ = new {model.FunctionType.FullName}({ctorArgs});");
         }
         else
@@ -150,7 +150,7 @@ internal static class WrapperBuilder
             builder.AppendLine($"    {GetRequiredService}<{RequestValidatorType}>(__provider__);");
         }
 
-        foreach (var filter in model.Filters.AsArray())
+        foreach (var filter in model.Filters)
         {
             builder.NewLine();
             if (model.ServiceResolver != null)
@@ -214,13 +214,13 @@ internal static class WrapperBuilder
         builder.AppendLine($"private static {FilterDelegateType} Build{pascal}Pipeline()");
         builder.BeginBlock();
 
-        var filters = model.Filters.AsArray();
+        var filters = model.Filters;
         // 最内部デリゲートから开始して外側に向かってフィルターを順次ラップ
         // Start from the innermost delegate and wrap each filter outward
         builder.AppendLine($"{FilterDelegateType} p = __{methodName}_Inner__;");
         builder.NewLine();
 
-        for (var i = filters.Length - 1; i >= 0; i--)
+        for (var i = filters.Count - 1; i >= 0; i--)
         {
             var idx = filters[i].Index;
             builder.AppendLine($"var inner{i} = p;");
@@ -241,8 +241,8 @@ internal static class WrapperBuilder
         // Lambda エントリポイントとなる public static メソッド (*_Handler) を生成
         // Generate the public static *_Handler method that serves as the Lambda entry point
         var methodName = handler.MethodName;
-        var filters = model.Filters.AsArray();
-        var hasFilters = filters.Length > 0;
+        var filters = model.Filters;
+        var hasFilters = filters.Count > 0;
 
         // ハンドラー種別と戻り値型に応じた戻り値型文字列を決定
         // Determine the return type string based on handler kind and result type
@@ -472,8 +472,8 @@ internal static class WrapperBuilder
     {
         // 全パラメーターを順にバインディングコードを生成
         // Generate binding code for each parameter in order
-        var parameters = handler.Parameters.AsArray();
-        for (var i = 0; i < parameters.Length; i++)
+        var parameters = handler.Parameters;
+        for (var i = 0; i < parameters.Count; i++)
         {
             var p = parameters[i];
             BuildParameterBinding(builder, handler, p, i, hasFilter);
@@ -814,10 +814,10 @@ internal static class WrapperBuilder
         // For Event handler without filter: invoke target method with directly specified arguments
         // For Event handler without filter
         var awaitPrefix = handler.IsAsync ? "await " : string.Empty;
-        var parameters = handler.Parameters.AsArray();
-        var argParts = new System.Collections.Generic.List<string>();
+        var parameters = handler.Parameters;
+        var argParts = new List<string>();
 
-        for (var i = 0; i < parameters.Length; i++)
+        for (var i = 0; i < parameters.Count; i++)
         {
             var p = parameters[i];
             switch (p.BindingKind)
@@ -914,11 +914,11 @@ internal static class WrapperBuilder
     {
         // バインディング種別とフィルター有無に応じてハンドラー呼び出し用の引数文字列を構築
         // Build the argument string for the handler invocation based on binding kind and filter presence
-        var parameters = handler.Parameters.AsArray();
-        var argParts = new System.Collections.Generic.List<string>();
+        var parameters = handler.Parameters;
+        var argParts = new List<string>();
         var isEvent = handler.Kind == HandlerKind.Event;
 
-        for (var i = 0; i < parameters.Length; i++)
+        for (var i = 0; i < parameters.Count; i++)
         {
             var p = parameters[i];
             switch (p.BindingKind)
@@ -947,7 +947,7 @@ internal static class WrapperBuilder
 
     private static ParameterModel? GetRequestParam(HandlerModel handler)
     {
-        foreach (var p in handler.Parameters.AsArray())
+        foreach (var p in handler.Parameters)
         {
             if (p.BindingKind == ParameterBindingKind.Request)
             {
