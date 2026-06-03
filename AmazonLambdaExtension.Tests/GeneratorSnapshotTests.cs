@@ -314,6 +314,71 @@ public sealed class Resolver
         Assert.DoesNotContain("__requestValidator__", sharedSource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void FromBody_WithoutServiceResolver_GeneratesDefaultSerializerAndValidator()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+public sealed class Input { public string? Name { get; set; } }
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Post, ""/items"")]
+    public IHttpResult Create([FromBody] Input input)
+        => HttpResults.Ok(input);
+}
+");
+        var sharedSource = sources.Values.FirstOrDefault(s => s.Contains("__bodySerializer__", StringComparison.Ordinal));
+        Assert.NotNull(sharedSource);
+        output.WriteLine(sharedSource);
+
+        Assert.Contains("JsonBodySerializer.Default", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("new global::AmazonLambdaExtension.Validation.DataAnnotationsRequestValidator()", sharedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EventHandler_WithFromServices_NoFilter_GeneratesServiceBinding()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using Amazon.Lambda.SQSEvents;
+
+public interface IProcessor
+{
+    void Process(string value);
+}
+
+[Lambda]
+[ServiceResolver(typeof(Resolver))]
+public sealed partial class QueueProcessor
+{
+    [Event]
+    public void Handle(SQSEvent ev, [FromServices] IProcessor processor)
+    {
+        processor.Process(ev.Records[0].Body);
+    }
+}
+
+public sealed class Resolver
+{
+    public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+        => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("GetRequiredService<global::Test.IProcessor>(__provider__)", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("__target__.Handle(ev, p1!)", handlerSource, StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------
     // [HttpApiAuthorizer]
     // ---------------------------------------------------------------------------
@@ -348,5 +413,30 @@ public sealed partial class AuthFunction
         Assert.Contains("Authorize_Handler", handlerSource, StringComparison.Ordinal);
         Assert.Contains("AuthorizerResult", handlerSource, StringComparison.Ordinal);
         Assert.Contains(".Serialize(", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AuthorizerHandler_WithCustomAuthorizerRequest_UsesRouteArn()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using Amazon.Lambda.APIGatewayEvents;
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class AuthFunction
+{
+    [HttpApiAuthorizer(EnableSimpleResponses = false)]
+    public IAuthorizerResult Authorize(APIGatewayCustomAuthorizerV2Request request)
+        => AuthorizerResults.Allow();
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Authorize_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("APIGatewayCustomAuthorizerV2Request", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("RouteArn = request.RouteArn", handlerSource, StringComparison.Ordinal);
     }
 }

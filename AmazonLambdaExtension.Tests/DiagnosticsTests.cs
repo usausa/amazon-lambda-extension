@@ -63,6 +63,23 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0003", ids);
     }
 
+    [Fact]
+    public void ALE0004_WhenMultipleBindingAttributes_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Handle([FromQuery][FromRoute] string id) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0004", ids);
+    }
+
     // ALE0005: [Event] ハンドラへの [FromBody]
     [Fact]
     public void ALE0005_WhenFromBodyOnEventHandler_ReportsDiagnostic()
@@ -95,6 +112,57 @@ public sealed class DiagnosticsTests
             }
             """);
         Assert.Contains("ALE0007", ids);
+    }
+
+    [Fact]
+    public void ALE0006_WhenAuthorizerMethodMissing_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a", Authorizer = nameof(Authorize))]
+                public IHttpResult Handle() => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0006", ids);
+    }
+
+    [Fact]
+    public void ALE0008_WhenFromCustomAuthorizerOutsideHttpApi_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public string Handle([FromCustomAuthorizer("role")] string role) => role;
+            }
+            """);
+        Assert.Contains("ALE0008", ids);
+    }
+
+    [Fact]
+    public void ALE0009_WhenUnsupportedBindingType_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            public sealed class Input { public string? Name { get; set; } }
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Handle([FromQuery] Input input) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0009", ids);
     }
 
     // ALE0010: コンストラクタ引数ありだが [ServiceResolver] なし
@@ -154,5 +222,38 @@ public sealed class DiagnosticsTests
             }
             """);
         Assert.Contains("ALE0012", ids);
+    }
+
+    [Fact]
+    public void ALE0013_WhenInvalidBindingOnEventHandler_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle([FromQuery] int value) { }
+            }
+            """);
+        Assert.Contains("ALE0013", ids);
+    }
+
+    [Fact]
+    public void ALE0014_WhenFromServicesWithoutServiceResolver_ReportsDiagnostic()
+    {
+        var ids = GetDiagnosticIds("""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            public interface IService { }
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle([FromServices] IService service) { }
+            }
+            """);
+        Assert.Contains("ALE0014", ids);
     }
 }

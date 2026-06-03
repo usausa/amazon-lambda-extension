@@ -27,7 +27,9 @@ public sealed class LambdaGenerator : IIncrementalGenerator
         context.RegisterImplementationSourceOutput(provider, static (ctx, results) => Execute(ctx, results));
     }
 
-    private static void Execute(SourceProductionContext context, System.Collections.Immutable.ImmutableArray<Result<LambdaModel>> results)
+    private static void Execute(
+        SourceProductionContext context,
+        System.Collections.Immutable.ImmutableArray<Result<LambdaModel>> results)
     {
         foreach (var diagnostic in results.SelectError())
         {

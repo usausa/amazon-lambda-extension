@@ -8,6 +8,7 @@ using SourceGenerateHelper;
 internal static class WrapperBuilder
 {
     private const string V2RequestType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest";
+    private const string V2AuthorizerRequestType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";
     private const string V2ResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse";
     private const string LambdaContextType = "global::Amazon.Lambda.Core.ILambdaContext";
     private const string InvocationContextType = "global::AmazonLambdaExtension.Filters.LambdaInvocationContext";
@@ -20,7 +21,10 @@ internal static class WrapperBuilder
     private const string AuthorizerResultOptionsType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions";
     private const string AuthorizerFormatType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions.AuthorizerFormat";
     private const string StringConverterType = "global::AmazonLambdaExtension.Binders.StringConverter";
+    private const string BodySerializerType = "global::AmazonLambdaExtension.Serialization.IBodySerializer";
+    private const string DefaultBodySerializerType = "global::AmazonLambdaExtension.Serialization.JsonBodySerializer";
     private const string RequestValidatorType = "global::AmazonLambdaExtension.Validation.IRequestValidator";
+    private const string DefaultRequestValidatorType = "global::AmazonLambdaExtension.Validation.DataAnnotationsRequestValidator";
     private const string ApiExceptionType = "global::AmazonLambdaExtension.ApiException";
     private const string StreamType = "global::System.IO.Stream";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
@@ -137,8 +141,14 @@ internal static class WrapperBuilder
             // DIから IBodySerializer を解決
             // Resolve IBodySerializer from DI container
             builder.NewLine();
-            builder.AppendLine($"private static readonly global::AmazonLambdaExtension.Serialization.IBodySerializer __bodySerializer__ =");
-            builder.AppendLine($"    {GetRequiredService}<global::AmazonLambdaExtension.Serialization.IBodySerializer>(__provider__);");
+            builder.AppendLine($"private static readonly {BodySerializerType} __bodySerializer__ =");
+            builder.AppendLine($"    {GetRequiredService}<{BodySerializerType}>(__provider__);");
+        }
+        else if (hasBodyParam)
+        {
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {BodySerializerType} __bodySerializer__ =");
+            builder.AppendLine($"    {DefaultBodySerializerType}.Default;");
         }
 
         if (hasValidation && model.ServiceResolver != null)
@@ -148,6 +158,12 @@ internal static class WrapperBuilder
             builder.NewLine();
             builder.AppendLine($"private static readonly {RequestValidatorType} __requestValidator__ =");
             builder.AppendLine($"    {GetRequiredService}<{RequestValidatorType}>(__provider__);");
+        }
+        else if (hasValidation)
+        {
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {RequestValidatorType} __requestValidator__ =");
+            builder.AppendLine($"    new {DefaultRequestValidatorType}();");
         }
 
         foreach (var filter in model.Filters)
@@ -182,7 +198,7 @@ internal static class WrapperBuilder
         {
             // HTTPリクエストをコンテキストから取り出してローカル変数に割り当て
             // Extract HTTP request from context and assign to local variable
-            builder.AppendLine($"var request = ({V2RequestType})ctx.Request;");
+            builder.AppendLine($"var request = ({GetEntryRequestType(handler)})ctx.Request;");
             builder.NewLine();
         }
         else
@@ -283,7 +299,7 @@ internal static class WrapperBuilder
         }
         else
         {
-            builder.AppendLine($"    {V2RequestType} request,");
+            builder.AppendLine($"    {GetEntryRequestType(handler)} request,");
             builder.AppendLine($"    {LambdaContextType} context)");
         }
 
@@ -348,7 +364,7 @@ internal static class WrapperBuilder
             builder.AppendLine($"    .Serialize(new {AuthorizerResultOptionsType}");
             builder.BeginBlock();
             builder.AppendLine($"Format = {format},");
-            builder.AppendLine("RouteArn = null");
+            builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: true)}");
             builder.EndBlock(semicolon: false);
             builder.AppendLine(");");
             builder.EndBlock();
@@ -417,7 +433,7 @@ internal static class WrapperBuilder
             builder.AppendLine($"    .Serialize(new {AuthorizerResultOptionsType}");
             builder.BeginBlock();
             builder.AppendLine($"Format = {format},");
-            builder.AppendLine("RouteArn = null");
+            builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: false)}");
             builder.EndBlock(semicolon: false);
             builder.AppendLine(");");
             builder.EndBlock();
@@ -458,7 +474,8 @@ internal static class WrapperBuilder
         builder.AppendLine("try");
         builder.BeginBlock();
 
-        BuildHandlerInvocationDirect(builder, handler);
+        BuildParameterBindings(builder, handler, hasFilter: false);
+        BuildHandlerInvocation(builder, handler, hasFilter: false);
 
         builder.EndBlock();
         builder.AppendLine("catch (global::System.Exception ex)");
@@ -484,7 +501,7 @@ internal static class WrapperBuilder
     {
         var pVar = $"p{index}";
         var pRaw = $"p{index}raw";
-        var requestVar = hasFilter ? "request" : "request";
+        var requestVar = handler.Kind == HandlerKind.Event ? "ev" : "request";
         var typeName = param.Type.FullName;
         var key = param.Key;
 
@@ -805,50 +822,18 @@ internal static class WrapperBuilder
         }
     }
 
-    private static void BuildHandlerInvocationDirect(SourceBuilder builder, HandlerModel handler)
-    {
-        // フィルターなしのイベントハンドラー向け: 引数を直接指定してターゲットメソッドを呼び出す
-        // For Event handler without filter: invoke target method with directly specified arguments
-        // For Event handler without filter
-        var awaitPrefix = handler.IsAsync ? "await " : string.Empty;
-        var parameters = handler.Parameters;
-        var argParts = new List<string>();
-
-        for (var i = 0; i < parameters.Count; i++)
-        {
-            var p = parameters[i];
-            switch (p.BindingKind)
-            {
-                case ParameterBindingKind.Request:
-                    argParts.Add("ev");
-                    break;
-                case ParameterBindingKind.Context:
-                    argParts.Add("context");
-                    break;
-                case ParameterBindingKind.FromServices:
-                    argParts.Add($"p{i}");
-                    break;
-                default:
-                    argParts.Add($"p{i}");
-                    break;
-            }
-        }
-
-        if (handler.ResultType != null)
-        {
-            builder.AppendLine($"var __result__ = {awaitPrefix}__target__.{handler.MethodName}({String.Join(", ", argParts)});");
-        }
-        else
-        {
-            builder.AppendLine($"{awaitPrefix}__target__.{handler.MethodName}({String.Join(", ", argParts)});");
-        }
-    }
-
     private static void BuildResultExtraction(SourceBuilder builder, HandlerModel handler, bool hasFilter)
     {
         // ハンドラー種別に応じて結果をシリアライズまたは変換して返値を生成
         // Serialize or convert the result according to handler kind and generate the return statement
-        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if (handler.Kind == HandlerKind.Event)
+        {
+            if (handler.ResultType != null && hasFilter)
+            {
+                builder.AppendLine($"return ({handler.ResultType.FullName})ctx.Result!;");
+            }
+        }
+        else if (handler.Kind == HandlerKind.HttpApiAuthorizer)
         {
             var format = handler.Authorizer?.EnableSimpleResponses == false
                 ? $"{AuthorizerFormatType}.HttpApiIamPolicy"
@@ -860,7 +845,7 @@ internal static class WrapperBuilder
                 builder.AppendLine($"return result.Serialize(new {AuthorizerResultOptionsType}");
                 builder.BeginBlock();
                 builder.AppendLine($"Format = {format},");
-                builder.AppendLine("RouteArn = null");
+                builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: true)}");
                 builder.EndBlock(semicolon: false);
                 builder.AppendLine(");");
             }
@@ -869,7 +854,7 @@ internal static class WrapperBuilder
                 builder.AppendLine($"return __result__.Serialize(new {AuthorizerResultOptionsType}");
                 builder.BeginBlock();
                 builder.AppendLine($"Format = {format},");
-                builder.AppendLine("RouteArn = null");
+                builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: false)}");
                 builder.EndBlock(semicolon: false);
                 builder.AppendLine(");");
             }
@@ -952,6 +937,28 @@ internal static class WrapperBuilder
             }
         }
         return null;
+    }
+
+    private static string GetEntryRequestType(HandlerModel handler)
+    {
+        if (handler.Kind == HandlerKind.Event)
+        {
+            return GetRequestParam(handler)?.Type.FullName ?? V2RequestType;
+        }
+
+        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        {
+            return GetRequestParam(handler)?.Type.FullName ?? V2AuthorizerRequestType;
+        }
+
+        return V2RequestType;
+    }
+
+    private static string GetAuthorizerRouteArnExpression(HandlerModel handler, bool hasFilter)
+    {
+        return GetEntryRequestType(handler) == V2AuthorizerRequestType
+            ? hasFilter ? $"(({V2AuthorizerRequestType})ctx.Request).RouteArn" : "request.RouteArn"
+            : "null";
     }
 
     private static string GetBaseTypeName(TypeRefModel type)

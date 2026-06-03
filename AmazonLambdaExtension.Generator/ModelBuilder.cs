@@ -29,30 +29,35 @@ internal static class ModelBuilder
     private const string IAuthorizerResultFullName = "AmazonLambdaExtension.APIGateway.IAuthorizerResult";
     private const string ILambdaFilterFullName = "AmazonLambdaExtension.Filters.ILambdaFilter";
     private const string IServiceCollectionFullName = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
+    private const string HttpApiRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest";
+    private const string HttpApiAuthorizerRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";
+    private const string LambdaContextFullName = "Amazon.Lambda.Core.ILambdaContext";
 
     public static Result<LambdaModel> BuildLambdaModel(GeneratorAttributeSyntaxContext context)
     {
-        // シンタックスノードとシンボルを取得 / Retrieve syntax node and symbol from context
+        // フェーズ1: 対象クラスと診断バッファを初期化
+        // Phase 1: Initialize the target class context and the diagnostic buffer
         var syntax = (ClassDeclarationSyntax)context.TargetNode;
         var symbol = (INamedTypeSymbol)context.TargetSymbol;
+        var diagnostics = new List<DiagnosticInfo>();
 
-        // ALE0001: must be partial
+        // フェーズ2: ジェネレーターが差し込める partial クラスかを最初に検証
+        // Phase 2: Validate that the target is a partial class that can receive generated members
         var isPartial = syntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
         if (!isPartial)
         {
-            return Results.Error<LambdaModel>(new DiagnosticInfo(
-                Diagnostics.NotPartialClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.NotPartialClass, syntax.GetLocation(), symbol.Name));
+            return Results.Errors<LambdaModel>(diagnostics.ToArray());
         }
 
-        // 名前空間とクラスの型参照を構築 / Build namespace and type reference for the class
+        // フェーズ3: 名前空間、型参照、コンストラクタ依存など基礎メタデータを抽出
+        // Phase 3: Extract core metadata such as namespace, type references, and constructor dependencies
         var ns = string.IsNullOrEmpty(symbol.ContainingNamespace.Name)
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
 
         var functionType = MakeTypeRef(symbol);
 
-        // 最もパラメータ数の多い public コンストラクタを選択し、引数型一覧を取得
-        // Select the public constructor with the most parameters and collect its parameter types
         var ctor = symbol.InstanceConstructors
             .Where(static c => c.DeclaredAccessibility == Accessibility.Public)
             .OrderByDescending(static c => c.Parameters.Length)
@@ -60,76 +65,71 @@ internal static class ModelBuilder
 
         var ctorParams = ctor?.Parameters.Select(static p => MakeTypeRef(p.Type)).ToArray() ?? [];
 
-        // [ServiceResolver] 属性を検索し、DIコンテナのセットアップ情報を構築
-        // Find [ServiceResolver] attribute and build DI container setup info (ALE0010/ALE0011)
+        // フェーズ4: [ServiceResolver] と ConfigureServices() 契約を検証
+        // Phase 4: Validate [ServiceResolver] usage and the ConfigureServices() contract
         ServiceResolverModel? serviceResolver = null;
         var serviceResolverAttr = symbol.GetAttributes()
             .FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == ServiceResolverAttributeName);
-        if (serviceResolverAttr != null)
+        if (serviceResolverAttr != null &&
+            serviceResolverAttr.ConstructorArguments.Length > 0 &&
+            serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType)
         {
-            if (serviceResolverAttr.ConstructorArguments.Length > 0 &&
-                serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType)
+            var configureMethod = resolverType.GetMembers("ConfigureServices")
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(static m => m.IsStatic && m.DeclaredAccessibility == Accessibility.Public
+                    && m.Parameters.Length == 0
+                    && m.ReturnType.ToDisplayString() == IServiceCollectionFullName);
+
+            if (configureMethod == null)
             {
-                // ALE0011: must have public static IServiceCollection ConfigureServices()
-                var configureMethod = resolverType.GetMembers("ConfigureServices")
-                    .OfType<IMethodSymbol>()
-                    .FirstOrDefault(static m => m.IsStatic && m.DeclaredAccessibility == Accessibility.Public
-                        && m.Parameters.Length == 0
-                        && m.ReturnType.ToDisplayString() == IServiceCollectionFullName);
-
-                if (configureMethod == null)
-                {
-                    return Results.Error<LambdaModel>(new DiagnosticInfo(
-                        Diagnostics.InvalidServiceResolverType, syntax.GetLocation(), resolverType.ToDisplayString()));
-                }
-
+                diagnostics.Add(new DiagnosticInfo(
+                    Diagnostics.InvalidServiceResolverType,
+                    syntax.GetLocation(),
+                    resolverType.ToDisplayString()));
+            }
+            else
+            {
                 serviceResolver = new ServiceResolverModel(MakeTypeRef(resolverType));
             }
         }
         else if (ctorParams.Length > 0)
         {
-            return Results.Error<LambdaModel>(new DiagnosticInfo(
-                Diagnostics.MissingServiceResolver, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.MissingServiceResolver,
+                syntax.GetLocation(),
+                symbol.Name));
         }
 
-        // [Filter<T>] 属性を収集し、Order → 宣言順でソートしてフィルターリストを構築
-        // Collect [Filter<T>] attributes and sort by Order then declaration index to build filter list
-        var filterAttrs = symbol.GetAttributes()
-            .Select(static (a, i) => (Attr: a, Index: i))
-            .Where(static x => IsFilterAttribute(x.Attr))
+        // フェーズ5: クラスレベルの [Filter<T>] を順序付きで収集し、型契約を検証
+        // Phase 5: Collect ordered class-level [Filter<T>] declarations and validate their type contract
+        var sortedFilters = symbol.GetAttributes()
+            .Select(static (a, i) => (Attribute: a, AttributeIndex: i))
+            .Where(static x => IsFilterAttribute(x.Attribute))
+            .OrderBy(static x => GetFilterOrder(x.Attribute))
+            .ThenBy(static x => x.AttributeIndex)
+            .Select(static (x, i) => (
+                x.Attribute,
+                Descriptor: new FilterDescriptorModel(
+                    i,
+                    MakeTypeRef(x.Attribute.AttributeClass!.TypeArguments[0]),
+                    GetFilterOrder(x.Attribute))))
             .ToArray();
 
-        var sortedFilters = filterAttrs
-            .OrderBy(static x => GetFilterOrder(x.Attr))
-            .ThenBy(static x => x.Index)
-            .Select((x, idx) =>
-            {
-                var filterType = x.Attr.AttributeClass!.TypeArguments[0];
-                return new FilterDescriptorModel(idx, MakeTypeRef(filterType), GetFilterOrder(x.Attr));
-            })
-            .ToArray();
-
-        // 各フィルターが ILambdaFilter を実装しているか検証 (ALE0012)
-        // Validate that each filter implements ILambdaFilter (ALE0012)
-        var diagnostics = new List<DiagnosticInfo>();
-        foreach (var fd in sortedFilters)
+        foreach (var filter in sortedFilters)
         {
-            var filterAttr = filterAttrs.First(x => GetFilterOrder(x.Attr) == fd.Order);
-            var filterTypeArg = filterAttr.Attr.AttributeClass!.TypeArguments[0];
-            if (filterTypeArg is INamedTypeSymbol filterTypeSym && !ImplementsInterface(filterTypeSym, ILambdaFilterFullName))
+            var filterTypeArg = filter.Attribute.AttributeClass!.TypeArguments[0];
+            if (filterTypeArg is INamedTypeSymbol filterTypeSym &&
+                !ImplementsInterface(filterTypeSym, ILambdaFilterFullName))
             {
                 diagnostics.Add(new DiagnosticInfo(
-                    Diagnostics.FilterNotImplementILambdaFilter, syntax.GetLocation(), fd.FilterType.FullName));
+                    Diagnostics.FilterNotImplementILambdaFilter,
+                    syntax.GetLocation(),
+                    filter.Descriptor.FilterType.FullName));
             }
         }
 
-        if (diagnostics.Count > 0)
-        {
-            return Results.Error<LambdaModel>(diagnostics[0]);
-        }
-
-        // クラスの全メンバーを走査してハンドラーメソッドモデルを収集
-        // Scan all members of the class and collect handler method models
+        // フェーズ6: メソッドごとにハンドラーモデルを構築し、個別診断を集約
+        // Phase 6: Build handler models method by method and aggregate their diagnostics
         var handlers = new List<HandlerModel>();
         foreach (var member in symbol.GetMembers().OfType<IMethodSymbol>())
         {
@@ -138,67 +138,58 @@ internal static class ModelBuilder
                 continue;
             }
 
-            var handlerResult = BuildHandlerModel(member, diagnostics);
-            if (handlerResult == null)
+            var (handlerModel, handlerDiagnostics) = BuildHandlerModel(symbol, member);
+            diagnostics.AddRange(handlerDiagnostics);
+            if (handlerModel != null)
             {
-                if (diagnostics.Count > 0)
-                {
-                    return Results.Error<LambdaModel>(diagnostics[0]);
-                }
-                continue;
+                handlers.Add(handlerModel);
             }
-
-            handlers.Add(handlerResult);
         }
 
-        return Results.Success(new LambdaModel(
+        // フェーズ7: 収集済みハンドラー一覧に基づくクラス単位の後続制約を検証
+        // Phase 7: Run follow-up class-level validation based on the collected handlers
+        if (serviceResolver == null &&
+            handlers.Any(static h => h.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices)))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.MissingServiceResolverForFromServices,
+                syntax.GetLocation(),
+                symbol.Name));
+        }
+
+        // フェーズ8: エラーがなければ LambdaModel を組み立て、warning を添えて返す
+        // Phase 8: Build the LambdaModel when no errors remain and return it with warnings
+        if (HasErrors(diagnostics))
+        {
+            return Results.Errors<LambdaModel>(diagnostics.ToArray());
+        }
+
+        var model = new LambdaModel(
             ns,
             symbol.Name,
             symbol.IsValueType,
             functionType,
             new EquatableArray<TypeRefModel>(ctorParams),
             serviceResolver,
-            new EquatableArray<FilterDescriptorModel>(sortedFilters),
-            new EquatableArray<HandlerModel>(handlers.ToArray())));
+            new EquatableArray<FilterDescriptorModel>(sortedFilters.Select(static x => x.Descriptor).ToArray()),
+            new EquatableArray<HandlerModel>(handlers.ToArray()));
+
+        return new Result<LambdaModel>(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
     }
 
-    private static bool IsFilterAttribute(AttributeData attr)
+    private static (HandlerModel? Model, IReadOnlyList<DiagnosticInfo> Diagnostics) BuildHandlerModel(
+        INamedTypeSymbol containingType,
+        IMethodSymbol method)
     {
-        var attrClass = attr.AttributeClass;
-        if (attrClass == null)
-        {
-            return false;
-        }
-        if (attrClass.IsGenericType)
-        {
-            var original = attrClass.OriginalDefinition;
-            var ns = original.ContainingNamespace?.ToDisplayString() ?? string.Empty;
-            return ns + "." + original.MetadataName == FilterAttributeName;
-        }
-        return false;
-    }
+        // フェーズ1: ハンドラー単位の診断収集を開始
+        // Phase 1: Start collecting diagnostics for a single handler method
+        var diagnostics = new List<DiagnosticInfo>();
 
-    private static int GetFilterOrder(AttributeData attr)
-    {
-        var namedArg = attr.NamedArguments.FirstOrDefault(static a => a.Key == "Order");
-        if (namedArg.Value.Value is int order)
-        {
-            return order;
-        }
-        return 0;
-    }
-
-    private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceFullName)
-    {
-        return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceFullName);
-    }
-
-    private static HandlerModel? BuildHandlerModel(IMethodSymbol method, List<DiagnosticInfo> diagnostics)
-    {
-        // ハンドラー種別属性([HttpApi]/[FunctionUrl]/[HttpApiAuthorizer]/[Event])を検出
-        // Detect handler kind attribute ([HttpApi]/[FunctionUrl]/[HttpApiAuthorizer]/[Event])
+        // フェーズ2: ハンドラー属性を走査して種別と付随設定を決定
+        // Phase 2: Scan handler attributes to determine its kind and options
         HandlerKind? kind = null;
         AuthorizerHandlerOptions? authorizerOptions = null;
+        string? authorizerMethodName = null;
         var handlerAttrCount = 0;
 
         foreach (var attr in method.GetAttributes())
@@ -208,6 +199,7 @@ internal static class ModelBuilder
             {
                 handlerAttrCount++;
                 kind = HandlerKind.HttpApi;
+                authorizerMethodName = GetNamedStringArgument(attr, "Authorizer");
             }
             else if (attrName == FunctionUrlAttributeName)
             {
@@ -231,36 +223,49 @@ internal static class ModelBuilder
 
         if (kind == null)
         {
-            return null;
+            if (method.DeclaredAccessibility == Accessibility.Public)
+            {
+                diagnostics.Add(new DiagnosticInfo(
+                    Diagnostics.NoHandlerAttribute,
+                    GetLocation(method),
+                    method.Name));
+            }
+
+            return (null, diagnostics);
         }
 
-        // ALE0003: 複数のハンドラー属性
+        // フェーズ3: ハンドラー属性の競合と authorizer 参照を検証
+        // Phase 3: Validate duplicate handler attributes and authorizer references
         if (handlerAttrCount > 1)
         {
-            var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.MultipleHandlerAttributes, loc, method.Name));
-            return null;
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.MultipleHandlerAttributes, GetLocation(method), method.Name));
         }
 
-        // メソッドの各パラメーターをバインディングモデルに変換
-        // Convert each method parameter into a binding model
+        if (kind == HandlerKind.HttpApi &&
+            !string.IsNullOrWhiteSpace(authorizerMethodName) &&
+            !HasAuthorizerMethod(containingType, authorizerMethodName!))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.AuthorizerMethodNotFound,
+                GetLocation(method),
+                authorizerMethodName!));
+        }
+
+        // フェーズ4: パラメータごとの binding モデルと診断を構築
+        // Phase 4: Build parameter binding models and aggregate their diagnostics
         var parameters = new List<ParameterModel>();
         foreach (var param in method.Parameters)
         {
-            // ALE0005: [Event] ハンドラに [FromBody] は使用不可
-            if (kind == HandlerKind.Event && param.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == FromBodyAttributeName))
+            var (parameterModel, parameterDiagnostics) = BuildParameterModel(method, param, kind.Value);
+            diagnostics.AddRange(parameterDiagnostics);
+            if (parameterModel != null)
             {
-                var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
-                diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOnEventHandler, loc, method.Name));
-                return null;
+                parameters.Add(parameterModel);
             }
-
-            var paramModel = BuildParameterModel(param, kind.Value);
-            parameters.Add(paramModel);
         }
 
-        // 戻り値型を解析し、Task<T>/ValueTask<T>/void などを展開して実際の結果型を取得
-        // Analyze return type and unwrap Task<T>/ValueTask<T>/void to get the actual result type
+        // フェーズ5: 戻り値型から async 性と実際の結果型を正規化
+        // Phase 5: Normalize async behavior and the effective result type from the return type
         var returnType = method.ReturnType;
         TypeRefModel? resultType;
         var isAsync = false;
@@ -271,8 +276,7 @@ internal static class ModelBuilder
                 namedReturn.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>")
             {
                 isAsync = true;
-                var inner = namedReturn.TypeArguments[0];
-                resultType = MakeTypeRef(inner);
+                resultType = MakeTypeRef(namedReturn.TypeArguments[0]);
             }
             else if (namedReturn.ToDisplayString() == "System.Threading.Tasks.Task" ||
                      namedReturn.ToDisplayString() == "System.Threading.Tasks.ValueTask")
@@ -296,134 +300,123 @@ internal static class ModelBuilder
 
         var returnsHttpResult = resultType != null && IsImplementing(method.ReturnType, IHttpResultFullName);
 
-        // ALE0007: [HttpApiAuthorizer] の戻り値型が IAuthorizerResult でない
+        // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
+        // Phase 6: Validate return-type constraints that depend on the handler kind
         if (kind == HandlerKind.HttpApiAuthorizer &&
             !(resultType != null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
         {
-            var loc = method.Locations.Length > 0 ? method.Locations[0] : null;
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, loc, method.Name));
-            return null;
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, GetLocation(method), method.Name));
         }
 
-        return new HandlerModel(
-            method.Name,
-            kind.Value,
-            isAsync,
-            resultType,
-            returnsHttpResult,
-            new EquatableArray<ParameterModel>(parameters.ToArray()),
-            authorizerOptions);
-    }
-
-    private static bool IsImplementing(ITypeSymbol type, string interfaceName)
-    {
-        if (type is INamedTypeSymbol named)
+        if (HasErrors(diagnostics))
         {
-            if (named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>" ||
-                named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>")
-            {
-                return IsImplementing(named.TypeArguments[0], interfaceName);
-            }
-            return named.ToDisplayString() == interfaceName ||
-                   named.AllInterfaces.Any(i => i.ToDisplayString() == interfaceName);
+            return (null, diagnostics);
         }
-        return false;
+
+        // フェーズ7: 検証済みメタデータから HandlerModel を構築
+        // Phase 7: Build the HandlerModel from the validated metadata
+        return (
+            new HandlerModel(
+                method.Name,
+                kind.Value,
+                isAsync,
+                resultType,
+                returnsHttpResult,
+                new EquatableArray<ParameterModel>(parameters.ToArray()),
+                authorizerOptions),
+            diagnostics);
     }
 
-    private static ParameterModel BuildParameterModel(IParameterSymbol param, HandlerKind handlerKind)
+    private static (ParameterModel? Model, IReadOnlyList<DiagnosticInfo> Diagnostics) BuildParameterModel(
+        IMethodSymbol method,
+        IParameterSymbol param,
+        HandlerKind handlerKind)
     {
-        // デフォルトのバインディング種別を QueryString に設定し、変換メソッドを決定
-        // Default binding kind to QueryString and determine string converter method
-        var paramType = param.Type;
+        // フェーズ1: binding 属性を収集し、パラメータ単位の診断を開始
+        // Phase 1: Collect binding attributes and start parameter-level diagnostics
+        var diagnostics = new List<DiagnosticInfo>();
+        var bindingAttributes = param.GetAttributes().Where(HasBindingAttribute).ToArray();
+
+        if (bindingAttributes.Length > 1)
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.MultipleBindingAttributes,
+                GetLocation(param),
+                method.Name,
+                param.Name));
+        }
+
+        // フェーズ2: 明示属性または暗黙ルールから binding 種別を決定
+        // Phase 2: Determine the binding kind from explicit attributes or implicit conventions
+        var explicitBinding = bindingAttributes.FirstOrDefault();
         var bindingKind = ParameterBindingKind.FromQuery;
         var key = param.Name;
-        var converterMethod = GetConverterMethod(paramType);
+        var converterMethod = GetConverterMethod(param.Type);
 
-        // Check for explicit binding attributes
-        foreach (var attr in param.GetAttributes())
+        if (explicitBinding != null)
         {
-            var attrName = attr.AttributeClass?.ToDisplayString();
-            if (attrName == FromBodyAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromBody;
-                break;
-            }
-            if (attrName == FromQueryAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromQuery;
-                var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
-                if (!string.IsNullOrEmpty(nameArg))
-                {
-                    key = nameArg!;
-                }
-
-                break;
-            }
-            if (attrName == FromHeaderAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromHeader;
-                var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
-                if (!string.IsNullOrEmpty(nameArg))
-                {
-                    key = nameArg!;
-                }
-
-                break;
-            }
-            if (attrName == FromRouteAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromRoute;
-                var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
-                if (!string.IsNullOrEmpty(nameArg))
-                {
-                    key = nameArg!;
-                }
-
-                break;
-            }
-            if (attrName == FromServicesAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromServices;
-                break;
-            }
-            if (attrName == FromCustomAuthorizerAttributeName)
-            {
-                bindingKind = ParameterBindingKind.FromCustomAuthorizer;
-                var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
-                if (!string.IsNullOrEmpty(nameArg))
-                {
-                    key = nameArg!;
-                }
-
-                break;
-            }
+            ApplyExplicitBinding(explicitBinding, ref bindingKind, ref key);
         }
-
-        // バインディング属性がない場合は型名で Request / Context / Event ペイロードを自動判定
-        // When no binding attribute is present, auto-detect Request, Context, or Event payload by type name
-        if (!param.GetAttributes().Any(HasBindingAttribute))
+        else
         {
-            var typeName = paramType.ToDisplayString();
-            if (typeName == "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest")
+            var typeName = param.Type.ToDisplayString();
+            if ((typeName == HttpApiRequestFullName) || (typeName == HttpApiAuthorizerRequestFullName))
             {
                 bindingKind = ParameterBindingKind.Request;
                 converterMethod = string.Empty;
             }
-            else if (typeName == "Amazon.Lambda.Core.ILambdaContext")
+            else if (typeName == LambdaContextFullName)
             {
                 bindingKind = ParameterBindingKind.Context;
                 converterMethod = string.Empty;
             }
             else if (handlerKind == HandlerKind.Event)
             {
-                // For Event handlers, non-context parameters without explicit binding are the event payload
                 bindingKind = ParameterBindingKind.Request;
                 converterMethod = string.Empty;
             }
         }
 
-        // [FromBody] の SkipValidate フラグを取得してバリデーションをスキップするか決定
-        // Read SkipValidate flag from [FromBody] attribute to determine whether to skip validation
+        // フェーズ3: ハンドラー種別ごとの binding 制約を検証
+        // Phase 3: Validate binding restrictions that depend on the handler kind
+        if (handlerKind == HandlerKind.Event && explicitBinding != null)
+        {
+            var explicitBindingName = explicitBinding.AttributeClass?.ToDisplayString();
+            if (explicitBindingName == FromBodyAttributeName)
+            {
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOnEventHandler, GetLocation(method), method.Name));
+            }
+            else if (bindingKind != ParameterBindingKind.FromServices)
+            {
+                diagnostics.Add(new DiagnosticInfo(
+                    Diagnostics.InvalidEventBinding,
+                    GetLocation(param),
+                    method.Name,
+                    $"[{GetAttributeDisplayName(explicitBinding)}]",
+                    param.Name));
+            }
+        }
+
+        if (bindingKind == ParameterBindingKind.FromCustomAuthorizer &&
+            handlerKind != HandlerKind.HttpApi)
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.FromCustomAuthorizerOutsideHttpApi,
+                GetLocation(param),
+                method.Name));
+        }
+
+        if (RequiresScalarBindingValidation(bindingKind) &&
+            !IsSupportedBindingType(param.Type))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.UnsupportedBindingType,
+                GetLocation(param),
+                param.Type.ToDisplayString()));
+        }
+
+        // フェーズ4: [FromBody] の SkipValidate 指定を抽出
+        // Phase 4: Extract the SkipValidate option from [FromBody]
         var skipValidation = false;
         var fromBodyAttr = param.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == FromBodyAttributeName);
         if (fromBodyAttr != null)
@@ -432,17 +425,225 @@ internal static class ModelBuilder
             skipValidation = skipArg is true;
         }
 
-        return new ParameterModel(
-            param.Name,
-            MakeTypeRef(paramType),
-            bindingKind,
-            key,
-            converterMethod,
-            skipValidation);
+        if (HasErrors(diagnostics))
+        {
+            return (null, diagnostics);
+        }
+
+        // フェーズ5: 検証済み binding 情報から ParameterModel を構築
+        // Phase 5: Build the ParameterModel from the validated binding metadata
+        return (
+            new ParameterModel(
+                param.Name,
+                MakeTypeRef(param.Type),
+                bindingKind,
+                key,
+                converterMethod,
+                skipValidation),
+            diagnostics);
+    }
+
+    private static void ApplyExplicitBinding(AttributeData attr, ref ParameterBindingKind bindingKind, ref string key)
+    {
+        // 明示的な binding 属性を ParameterBindingKind とキー名へ正規化
+        // Normalize an explicit binding attribute into a ParameterBindingKind and key name
+        var attrName = attr.AttributeClass?.ToDisplayString();
+        if (attrName == FromBodyAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromBody;
+            return;
+        }
+
+        if (attrName == FromQueryAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromQuery;
+            ApplyKeyOverride(attr, ref key);
+            return;
+        }
+
+        if (attrName == FromHeaderAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromHeader;
+            ApplyKeyOverride(attr, ref key);
+            return;
+        }
+
+        if (attrName == FromRouteAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromRoute;
+            ApplyKeyOverride(attr, ref key);
+            return;
+        }
+
+        if (attrName == FromServicesAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromServices;
+            return;
+        }
+
+        if (attrName == FromCustomAuthorizerAttributeName)
+        {
+            bindingKind = ParameterBindingKind.FromCustomAuthorizer;
+            ApplyKeyOverride(attr, ref key);
+        }
+    }
+
+    private static void ApplyKeyOverride(AttributeData attr, ref string key)
+    {
+        // [FromQuery("name")] のような属性引数からキー名の上書きを取り出す
+        // Read a key override such as [FromQuery("name")] from the attribute constructor argument
+        var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
+        if (!string.IsNullOrEmpty(nameArg))
+        {
+            key = nameArg!;
+        }
+    }
+
+    private static bool HasAuthorizerMethod(INamedTypeSymbol containingType, string authorizerMethodName)
+    {
+        // HttpApiAttribute.Authorizer で指定された名前に対応する [HttpApiAuthorizer] メソッドを探す
+        // Locate the [HttpApiAuthorizer] method referenced by HttpApiAttribute.Authorizer
+        return containingType.GetMembers(authorizerMethodName)
+            .OfType<IMethodSymbol>()
+            .Any(static m => m.MethodKind == MethodKind.Ordinary &&
+                             !m.IsStatic &&
+                             m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == HttpApiAuthorizerAttributeName));
+    }
+
+    private static bool RequiresScalarBindingValidation(ParameterBindingKind bindingKind)
+    {
+        // 文字列入力から scalar 変換を行う binding 種別だけ型サポート検証の対象にする
+        // Limit type-support validation to binding kinds that convert from scalar string inputs
+        return bindingKind == ParameterBindingKind.FromQuery ||
+               bindingKind == ParameterBindingKind.FromHeader ||
+               bindingKind == ParameterBindingKind.FromRoute ||
+               bindingKind == ParameterBindingKind.FromCustomAuthorizer;
+    }
+
+    private static bool IsSupportedBindingType(ITypeSymbol type)
+    {
+        // 配列 / Nullable<T> をほどきながら、scalar binding で扱える型かを判定
+        // Unwrap arrays / Nullable<T> and determine whether scalar binding supports the type
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            return IsSupportedBindingType(arrayType.ElementType);
+        }
+
+        if (type is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
+        {
+            return IsSupportedBindingType(namedType.TypeArguments[0]);
+        }
+
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            return true;
+        }
+
+        var fullName = type.ToDisplayString();
+        if ((fullName == "string") || (fullName == "System.String"))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrEmpty(GetConverterMethod(type));
+    }
+
+    private static bool HasErrors(IEnumerable<DiagnosticInfo> diagnostics)
+    {
+        // 収集済み診断の中に Error があるかだけを判定する
+        // Check whether the collected diagnostics contain any errors
+        return diagnostics.Any(static d => d.Descriptor.DefaultSeverity == DiagnosticSeverity.Error);
+    }
+
+    private static string? GetNamedStringArgument(AttributeData attr, string name)
+    {
+        // 属性の named argument から string 値を取り出す共通ヘルパー
+        // Shared helper to read a string value from a named attribute argument
+        var value = attr.NamedArguments.FirstOrDefault(a => a.Key == name).Value.Value;
+        return value as string;
+    }
+
+    private static Location? GetLocation(ISymbol symbol)
+    {
+        // 診断位置は先頭 Location を優先して使う
+        // Prefer the first symbol location when reporting diagnostics
+        return symbol.Locations.Length > 0 ? symbol.Locations[0] : null;
+    }
+
+    private static string GetAttributeDisplayName(AttributeData attr)
+    {
+        // 診断メッセージ向けに Attribute 接尾辞を外した表示名を返す
+        // Return a display name without the Attribute suffix for diagnostics
+        var name = attr.AttributeClass?.Name ?? "Attribute";
+        return name.EndsWith("Attribute", StringComparison.Ordinal)
+            ? name.Substring(0, name.Length - "Attribute".Length)
+            : name;
+    }
+
+    private static bool IsFilterAttribute(AttributeData attr)
+    {
+        // generic な [Filter<T>] だけをクラス属性の列挙から見分ける
+        // Identify only generic [Filter<T>] attributes among class attributes
+        var attrClass = attr.AttributeClass;
+        if (attrClass == null)
+        {
+            return false;
+        }
+
+        if (attrClass.IsGenericType)
+        {
+            var original = attrClass.OriginalDefinition;
+            var ns = original.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            return ns + "." + original.MetadataName == FilterAttributeName;
+        }
+
+        return false;
+    }
+
+    private static int GetFilterOrder(AttributeData attr)
+    {
+        // FilterAttribute.Order を読み取り、未指定時は 0 扱いにする
+        // Read FilterAttribute.Order and default to 0 when it is omitted
+        var namedArg = attr.NamedArguments.FirstOrDefault(static a => a.Key == "Order");
+        if (namedArg.Value.Value is int order)
+        {
+            return order;
+        }
+
+        return 0;
+    }
+
+    private static bool ImplementsInterface(INamedTypeSymbol type, string interfaceFullName)
+    {
+        // フィルター検証用に指定インターフェイス実装の有無を調べる
+        // Check whether the type implements the specified interface for filter validation
+        return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceFullName);
+    }
+
+    private static bool IsImplementing(ITypeSymbol type, string interfaceName)
+    {
+        // Task<T>/ValueTask<T> をほどきつつ、最終的な型が指定インターフェイスを実装するか判定
+        // Unwrap Task<T>/ValueTask<T> and determine whether the effective type implements the interface
+        if (type is INamedTypeSymbol named)
+        {
+            if (named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>" ||
+                named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>")
+            {
+                return IsImplementing(named.TypeArguments[0], interfaceName);
+            }
+
+            return named.ToDisplayString() == interfaceName ||
+                   named.AllInterfaces.Any(i => i.ToDisplayString() == interfaceName);
+        }
+
+        return false;
     }
 
     private static bool HasBindingAttribute(AttributeData attr)
     {
+        // パラメータ binding として扱う属性群かどうかをまとめて判定
+        // Determine whether the attribute belongs to the supported parameter-binding set
         var name = attr.AttributeClass?.ToDisplayString();
         return name == FromBodyAttributeName || name == FromQueryAttributeName ||
                name == FromHeaderAttributeName || name == FromRouteAttributeName ||
@@ -451,15 +652,13 @@ internal static class ModelBuilder
 
     private static string GetConverterMethod(ITypeSymbol type)
     {
-        // 配列・Nullable<T> をアンラップしてから型名に対応する変換メソッド名を返す
-        // Unwrap array and Nullable<T>, then return the converter method name for the type
-        // Array type
+        // 配列 / Nullable<T> をほどいた最終型に対して StringConverter のメソッド名を決める
+        // Resolve the StringConverter method name for the final type after unwrapping arrays / Nullable<T>
         if (type is IArrayTypeSymbol arr)
         {
             return GetConverterMethod(arr.ElementType);
         }
 
-        // Nullable<T>
         if (type is INamedTypeSymbol named && named.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
         {
             return GetConverterMethod(named.TypeArguments[0]);
@@ -487,7 +686,7 @@ internal static class ModelBuilder
             "System.TimeOnly" => "TryToTimeOnly",
             "System.TimeSpan" => "TryToTimeSpan",
             "System.Guid" => "TryToGuid",
-            "string" or "System.String" => string.Empty,  // no conversion needed
+            "string" or "System.String" => string.Empty,
             _ when type.TypeKind == TypeKind.Enum => "TryToEnum",
             _ => string.Empty
         };
@@ -495,8 +694,8 @@ internal static class ModelBuilder
 
     internal static TypeRefModel MakeTypeRef(ITypeSymbol type)
     {
-        // Nullable<T>/配列型を判定しながら TypeRefModel を再帰的に構築
-        // Recursively build TypeRefModel, detecting Nullable<T> and array types
+        // Nullable<T> / 配列を再帰的に表現できる TypeRefModel へ正規化する
+        // Normalize the Roslyn type into a recursive TypeRefModel that can represent Nullable<T> and arrays
         var isNullable = false;
         TypeRefModel? underlyingType = null;
 

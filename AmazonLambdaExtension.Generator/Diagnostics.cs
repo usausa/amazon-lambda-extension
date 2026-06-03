@@ -99,4 +99,20 @@ internal static class Diagnostics
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor InvalidEventBinding { get; } = new(
+        id: "ALE0013",
+        title: "[Event] handler uses unsupported binding attribute",
+        messageFormat: "[Event] handler '{0}' cannot use {1} on parameter '{2}'",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor MissingServiceResolverForFromServices { get; } = new(
+        id: "ALE0014",
+        title: "[FromServices] requires [ServiceResolver]",
+        messageFormat: "[Lambda] class '{0}' uses [FromServices] but has no [ServiceResolver]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }
