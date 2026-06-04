@@ -180,12 +180,14 @@ public sealed class Resolver
         var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
-        // パイプライン構造を持つ
-        Assert.Contains("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        // パイプライン構造を持つ（invocation ごとにインライン構築）
+        Assert.Contains("__pipeline__", handlerSource, StringComparison.Ordinal);
         Assert.Contains("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
-        Assert.Contains("BuildHandlePipeline()", handlerSource, StringComparison.Ordinal);
-        // フィルタは DI から解決される
+        // invocation ごとに DI scope を作成
+        Assert.Contains("CreateAsyncScope(__provider__)", handlerSource, StringComparison.Ordinal);
+        // フィルタは scope から解決される
         Assert.Contains("__filter0__", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("GetRequiredService<global::Test.LoggingFilter>(__sp__)", handlerSource, StringComparison.Ordinal);
         // Inner では ctx.Result にセット
         Assert.Contains("ctx.Result", handlerSource, StringComparison.Ordinal);
     }
@@ -227,6 +229,44 @@ public sealed class Resolver
         Assert.Contains("__provider__", sharedSource, StringComparison.Ordinal);
         Assert.Contains("__target__", sharedSource, StringComparison.Ordinal);
         Assert.Contains("BuildServiceProvider(", sharedSource, StringComparison.Ordinal);
+        // provider は BuildProvider() 経由で、Debug ビルドのみ scope 検証を有効化
+        Assert.Contains("BuildProvider()", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("ValidateScopes", sharedSource, StringComparison.Ordinal);
+    }
+
+    // ---------------------------------------------------------------------------
+    // DI でもフィルタ・[FromServices] が無ければ scope を生成しない
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void DiHandler_NoFilterNoFromServices_DoesNotCreateScope()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+[ServiceResolver(typeof(Resolver))]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromQuery] int page)
+        => HttpResults.Ok(new { });
+}
+
+public sealed class Resolver
+{
+    public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+        => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        // フィルタも [FromServices] も無い DI ハンドラは invocation scope を作らない（本体は singleton）
+        Assert.DoesNotContain("CreateAsyncScope", handlerSource, StringComparison.Ordinal);
     }
 
     // ---------------------------------------------------------------------------
@@ -375,7 +415,8 @@ public sealed class Resolver
         var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
-        Assert.Contains("GetRequiredService<global::Test.IProcessor>(__provider__)", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("CreateAsyncScope(__provider__)", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("GetRequiredService<global::Test.IProcessor>(__sp__)", handlerSource, StringComparison.Ordinal);
         Assert.Contains("__target__.Handle(ev, p1!)", handlerSource, StringComparison.Ordinal);
     }
 

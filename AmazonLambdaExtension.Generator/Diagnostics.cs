@@ -86,8 +86,8 @@ internal static class Diagnostics
 
     public static DiagnosticDescriptor InvalidServiceResolverType { get; } = new(
         id: "ALE0011",
-        title: "ServiceResolver type does not have ConfigureServices method",
-        messageFormat: "ServiceResolver type '{0}' does not have a public static IServiceCollection ConfigureServices() method",
+        title: "ServiceResolver type does not have an accessible ConfigureServices method",
+        messageFormat: "ServiceResolver type '{0}' does not have an accessible static IServiceCollection ConfigureServices() method",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -112,6 +112,86 @@ internal static class Diagnostics
         id: "ALE0014",
         title: "[FromServices] requires [ServiceResolver]",
         messageFormat: "[Lambda] class '{0}' uses [FromServices] but has no [ServiceResolver]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor EventHandlerMissingPayload { get; } = new(
+        id: "ALE0015",
+        title: "[Event] handler must declare exactly one event payload parameter",
+        messageFormat: "[Event] handler '{0}' must declare exactly one event payload parameter",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor EventHandlerMultiplePayloads { get; } = new(
+        id: "ALE0016",
+        title: "[Event] handler has multiple event payload parameters",
+        messageFormat: "[Event] handler '{0}' has multiple event payload parameters",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor OverloadedHandler { get; } = new(
+        id: "ALE0017",
+        title: "Handler is overloaded",
+        messageFormat: "Handler '{0}' is overloaded; Lambda handler names must be unique",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor GenericLambdaClass { get; } = new(
+        id: "ALE0018",
+        title: "[Lambda] class must not be generic",
+        messageFormat: "[Lambda] class '{0}' must not be generic",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor NestedLambdaClass { get; } = new(
+        id: "ALE0019",
+        title: "[Lambda] class must be a top-level type",
+        messageFormat: "[Lambda] class '{0}' must be a top-level type",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor RecordLambdaClass { get; } = new(
+        id: "ALE0020",
+        title: "[Lambda] record is not supported",
+        messageFormat: "[Lambda] record '{0}' is not supported",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor LambdaClassNoParameterlessCtor { get; } = new(
+        id: "ALE0021",
+        title: "[Lambda] class requires a parameterless constructor when [ServiceResolver] is not specified",
+        messageFormat: "[Lambda] class '{0}' must declare a parameterless constructor when [ServiceResolver] is not specified",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor FilterNoParameterlessCtor { get; } = new(
+        id: "ALE0022",
+        title: "Filter requires an accessible parameterless constructor when [ServiceResolver] is not specified",
+        messageFormat: "Filter '{0}' must declare an accessible parameterless constructor when [ServiceResolver] is not specified",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor AbstractLambdaClass { get; } = new(
+        id: "ALE0023",
+        title: "[Lambda] class must not be abstract",
+        messageFormat: "[Lambda] class '{0}' must not be abstract",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static DiagnosticDescriptor AbstractFilter { get; } = new(
+        id: "ALE0024",
+        title: "Filter must not be abstract when [ServiceResolver] is not specified",
+        messageFormat: "Filter '{0}' must not be abstract when [ServiceResolver] is not specified",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

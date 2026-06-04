@@ -21,6 +21,8 @@ public sealed class LambdaInvocationContext
 
     public ILambdaContext LambdaContext { get; init; } = default!;
 
+    public IServiceProvider ServiceProvider { get; init; } = default!;
+
     public CancellationToken CancellationToken { get; init; }
 
     public object? Result { get; set; }

@@ -5,7 +5,6 @@ using SourceGenerateHelper;
 internal sealed record LambdaModel(
     string Namespace,
     string ClassName,
-    bool IsValueType,
     TypeRefModel FunctionType,
     EquatableArray<TypeRefModel> ConstructorParameters,
     ServiceResolverModel? ServiceResolver,

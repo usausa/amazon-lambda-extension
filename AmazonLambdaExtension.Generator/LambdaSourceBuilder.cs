@@ -29,6 +29,8 @@ internal static class LambdaSourceBuilder
     private const string StreamType = "global::System.IO.Stream";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
+    private const string CreateAsyncScope = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.CreateAsyncScope";
+    private const string ServiceProviderOptionsType = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderOptions";
 
     public static void BuildShared(SourceBuilder builder, LambdaModel model)
     {
@@ -44,8 +46,7 @@ internal static class LambdaSourceBuilder
             builder.NewLine();
         }
 
-        var classKeyword = model.IsValueType ? "struct" : "class";
-        builder.AppendLine($"partial {classKeyword} {model.ClassName}");
+        builder.AppendLine($"partial class {model.ClassName}");
         builder.BeginBlock();
 
         BuildStaticFields(builder, model);
@@ -67,15 +68,12 @@ internal static class LambdaSourceBuilder
             builder.NewLine();
         }
 
-        var classKeyword = model.IsValueType ? "struct" : "class";
-        builder.AppendLine($"partial {classKeyword} {model.ClassName}");
+        builder.AppendLine($"partial class {model.ClassName}");
         builder.BeginBlock();
 
         if (model.Filters.Count > 0)
         {
             BuildInnerMethod(builder, handler);
-            builder.NewLine();
-            BuildPipeline(builder, model, handler);
             builder.NewLine();
         }
 
@@ -100,13 +98,25 @@ internal static class LambdaSourceBuilder
 
         if (model.ServiceResolver != null)
         {
-            // DIコンテナを構築し、コンストラクタ DI でターゲットインスタンスを生成
-            // Build DI container and create target instance via constructor injection
-            builder.AppendLine("private static readonly global::System.IServiceProvider __provider__ =");
-            builder.AppendLine($"    {BuildServiceProvider}({model.ServiceResolver.Type.FullName}.ConfigureServices());");
+            // DIコンテナを構築（Debug ビルドのみ scope 検証を有効化）し、コンストラクタ DI でターゲットを生成
+            // Build DI container (scope validation only in Debug builds) and create target via constructor injection
+            builder.AppendLine("private static readonly global::System.IServiceProvider __provider__ = BuildProvider();");
+            builder.NewLine();
+            builder.AppendLine("private static global::System.IServiceProvider BuildProvider()");
+            builder.BeginBlock();
+            builder.AppendLine($"var services = {model.ServiceResolver.Type.FullName}.ConfigureServices();");
+            builder.AppendLine($"return {BuildServiceProvider}(services, new {ServiceProviderOptionsType}");
+            builder.BeginBlock();
+            builder.AppendLine("#if DEBUG");
+            builder.AppendLine("ValidateScopes = true,");
+            builder.AppendLine("#endif");
+            builder.EndBlock(semicolon: false);
+            builder.AppendLine(");");
+            builder.EndBlock();
             builder.NewLine();
 
-            // target
+            // target（本体は singleton。コンストラクタ引数のみ DI から解決＝Controller 的な特別扱い）
+            // target (singleton; only constructor arguments come from DI, like ASP.NET Core controllers)
             var ctorArgs = String.Join(", ", model.ConstructorParameters.Select(static (p, _) => $"{GetRequiredService}<{p.FullName}>(__provider__)"));
             builder.AppendLine($"private static readonly {model.FunctionType.FullName} __target__ = new {model.FunctionType.FullName}({ctorArgs});");
         }
@@ -165,24 +175,6 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"private static readonly {RequestValidatorType} __requestValidator__ =");
             builder.AppendLine($"    new {DefaultRequestValidatorType}();");
         }
-
-        foreach (var filter in model.Filters)
-        {
-            builder.NewLine();
-            if (model.ServiceResolver != null)
-            {
-                // DIからフィルターインスタンスを解決
-                // Resolve filter instance from DI container
-                builder.AppendLine($"private static readonly {filter.FilterType.FullName} __filter{filter.Index}__ =");
-                builder.AppendLine($"    {GetRequiredService}<{filter.FilterType.FullName}>(__provider__);");
-            }
-            else
-            {
-                // DIなしの場合はデフォルトコンストラクタでフィルターインスタンスを生成
-                // Instantiate filter with default constructor (no DI)
-                builder.AppendLine($"private static readonly {filter.FilterType.FullName} __filter{filter.Index}__ = new {filter.FilterType.FullName}();");
-            }
-        }
     }
 
     private static void BuildInnerMethod(SourceBuilder builder, HandlerModel handler)
@@ -219,37 +211,47 @@ internal static class LambdaSourceBuilder
         builder.EndBlock();
     }
 
-    private static void BuildPipeline(SourceBuilder builder, LambdaModel model, HandlerModel handler)
+    private static bool UsesScope(LambdaModel model, HandlerModel handler)
     {
-        // フィルターを逆順にラップしてパイプラインデリゲートを構築し、静的フィールドに保持
-        // Build the pipeline delegate by wrapping filters in reverse order and store as a static field
+        // DI 利用時で、フィルターか [FromServices] がある場合のみ invocation scope が必要
+        // A per-invocation scope is needed only with DI when filters or [FromServices] are present
+        return model.ServiceResolver != null &&
+            (model.Filters.Count > 0 ||
+             handler.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices));
+    }
+
+    private static void BuildInlinePipeline(SourceBuilder builder, LambdaModel model, HandlerModel handler)
+    {
+        // フィルターを invocation ごとに解決し、逆順にラップしてパイプラインデリゲートをローカルに構築
+        // Resolve filters per invocation and build the pipeline delegate locally by wrapping in reverse order
         var methodName = handler.MethodName;
-        var pascal = ToPascalCase(methodName);
-        builder.AppendLine($"private static readonly {FilterDelegateType} __{methodName}_Pipeline__ = Build{pascal}Pipeline();");
-        builder.NewLine();
-        builder.AppendLine($"private static {FilterDelegateType} Build{pascal}Pipeline()");
-        builder.BeginBlock();
-
         var filters = model.Filters;
-        // 最内部デリゲートから开始して外側に向かってフィルターを順次ラップ
-        // Start from the innermost delegate and wrap each filter outward
-        builder.AppendLine($"{FilterDelegateType} p = __{methodName}_Inner__;");
-        builder.NewLine();
 
-        for (var i = filters.Count - 1; i >= 0; i--)
+        foreach (var filter in filters)
         {
-            var idx = filters[i].Index;
-            builder.AppendLine($"var inner{i} = p;");
-            builder.AppendLine($"p = ctx => __filter{idx}__.InvokeAsync(ctx, inner{i});");
-            if (i > 0)
+            if (model.ServiceResolver != null)
             {
-                builder.NewLine();
+                // DIから（scope 経由で）フィルターインスタンスを解決
+                // Resolve filter instance from DI (via the scope)
+                builder.AppendLine($"var __filter{filter.Index}__ = {GetRequiredService}<{filter.FilterType.FullName}>(__sp__);");
+            }
+            else
+            {
+                // DIなしの場合はデフォルトコンストラクタでフィルターインスタンスを生成
+                // Instantiate filter with default constructor (no DI)
+                builder.AppendLine($"var __filter{filter.Index}__ = new {filter.FilterType.FullName}();");
             }
         }
 
-        builder.NewLine();
-        builder.AppendLine("return p;");
-        builder.EndBlock();
+        // 最内部デリゲートから始めて外側に向かってフィルターを順次ラップ
+        // Start from the innermost delegate and wrap each filter outward
+        builder.AppendLine($"{FilterDelegateType} __pipeline__ = __{methodName}_Inner__;");
+        for (var i = filters.Count - 1; i >= 0; i--)
+        {
+            var idx = filters[i].Index;
+            builder.AppendLine($"var __chain{i}__ = __pipeline__;");
+            builder.AppendLine($"__pipeline__ = c => __filter{idx}__.InvokeAsync(c, __chain{i}__);");
+        }
     }
 
     private static void BuildHandlerMethod(SourceBuilder builder, LambdaModel model, HandlerModel handler)
@@ -305,6 +307,15 @@ internal static class LambdaSourceBuilder
 
         builder.BeginBlock();
 
+        if (UsesScope(model, handler))
+        {
+            // invocation ごとに DI scope を作成（Scoped/Transient 依存をこの単位で解決し、終了時に破棄）
+            // Create a DI scope per invocation (scoped/transient dependencies resolve here and dispose at the end)
+            builder.AppendLine($"await using var __scope__ = {CreateAsyncScope}(__provider__);");
+            builder.AppendLine("var __sp__ = __scope__.ServiceProvider;");
+            builder.NewLine();
+        }
+
         if (hasFilters)
         {
             // フィルターあり: InvocationContext を作成しパイプラインを実行、結果を抽出
@@ -323,7 +334,14 @@ internal static class LambdaSourceBuilder
 
             builder.AppendLine("LambdaContext = context,");
             builder.AppendLine("CancellationToken = default,");
+            if (model.ServiceResolver != null)
+            {
+                builder.AppendLine("ServiceProvider = __sp__,");
+            }
             builder.EndBlock(semicolon: true);
+            builder.NewLine();
+
+            BuildInlinePipeline(builder, model, handler);
             builder.NewLine();
 
             BuildTryCatchWithFilter(builder, handler);
@@ -349,7 +367,7 @@ internal static class LambdaSourceBuilder
     {
         builder.AppendLine("try");
         builder.BeginBlock();
-        builder.AppendLine($"await __{handler.MethodName}_Pipeline__(ctx);");
+        builder.AppendLine("await __pipeline__(ctx);");
         builder.EndBlock();
 
         if (handler.Kind == HandlerKind.HttpApiAuthorizer)
@@ -529,9 +547,9 @@ internal static class LambdaSourceBuilder
                 return;
 
             case ParameterBindingKind.FromServices:
-                // DIコンテナからサービスを解決
-                // Resolve service from DI container
-                builder.AppendLine($"var {pVar} = {GetRequiredService}<{typeName}>(__provider__);");
+                // invocation scope からサービスを解決（フィルター内は ctx.ServiceProvider 経由）
+                // Resolve service from the invocation scope (via ctx.ServiceProvider inside filters)
+                builder.AppendLine($"var {pVar} = {GetRequiredService}<{typeName}>({(hasFilter ? "ctx.ServiceProvider" : "__sp__")});");
                 builder.NewLine();
                 return;
 
@@ -969,16 +987,6 @@ internal static class LambdaSourceBuilder
         }
 
         return type.FullName;
-    }
-
-    private static string ToPascalCase(string name)
-    {
-        if (String.IsNullOrEmpty(name))
-        {
-            return name;
-        }
-
-        return char.ToUpperInvariant(name[0]) + name.Substring(1);
     }
 }
 

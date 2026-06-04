@@ -20,7 +20,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
         var provider = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 LambdaAttributeFullName,
-                static (syntax, _) => syntax is ClassDeclarationSyntax,
+                static (syntax, _) => syntax is ClassDeclarationSyntax or RecordDeclarationSyntax,
                 static (ctx, _) => LambdaModelBuilder.BuildLambdaModel(ctx))
             .Collect();
 

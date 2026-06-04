@@ -37,16 +37,51 @@ internal static class LambdaModelBuilder
     {
         // フェーズ1: 対象クラスと診断バッファを初期化
         // Phase 1: Initialize the target class context and the diagnostic buffer
-        var syntax = (ClassDeclarationSyntax)context.TargetNode;
+        var syntax = (TypeDeclarationSyntax)context.TargetNode;
         var symbol = (INamedTypeSymbol)context.TargetSymbol;
+        var compilation = context.SemanticModel.Compilation;
         var diagnostics = new List<DiagnosticInfo>();
 
-        // フェーズ2: ジェネレーターが差し込める partial クラスかを最初に検証
-        // Phase 2: Validate that the target is a partial class that can receive generated members
+        // フェーズ2: ジェネレーターが差し込める構造（partial・非ジェネリック・トップレベル）かを最初に検証
+        // Phase 2: Validate that the target is a structure (partial, non-generic, top-level) that can receive generated members
         var isPartial = syntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
         if (!isPartial)
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.NotPartialClass, syntax.GetLocation(), symbol.Name));
+        }
+
+        // ジェネリック型は型パラメータを生成側で再現できないため未対応
+        // Generic types are unsupported because the generator cannot reproduce their type parameters
+        if (symbol.TypeParameters.Length > 0)
+        {
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.GenericLambdaClass, syntax.GetLocation(), symbol.Name));
+        }
+
+        // ネストされた型は外側型の入れ子構造を生成側で再現できないため未対応
+        // Nested types are unsupported because the generator cannot reproduce the enclosing type nesting
+        if (symbol.ContainingType != null)
+        {
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.NestedLambdaClass, syntax.GetLocation(), symbol.Name));
+        }
+
+        // record（record class）は宣言形を生成側で再現できないため未対応
+        // （struct / record struct は [Lambda] の AttributeTargets.Class によりコンパイラが弾くため到達しない）
+        // Records (record class) are unsupported because the generator cannot reproduce their declaration form
+        // (struct / record struct never reach here because [Lambda] is restricted to AttributeTargets.Class)
+        if (symbol.IsRecord)
+        {
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.RecordLambdaClass, syntax.GetLocation(), symbol.Name));
+        }
+
+        // abstract クラスは new FunctionType(...) でインスタンス化できない（本体は DI 有無に関わらず常に new 生成）ため未対応
+        // An abstract class cannot be instantiated via new FunctionType(...) (the target is always new'd regardless of DI), so it is unsupported
+        if (symbol.IsAbstract)
+        {
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.AbstractLambdaClass, syntax.GetLocation(), symbol.Name));
+        }
+
+        if (HasErrors(diagnostics))
+        {
             return Results.Errors<LambdaModel>(diagnostics.ToArray());
         }
 
@@ -74,11 +109,16 @@ internal static class LambdaModelBuilder
             serviceResolverAttr.ConstructorArguments.Length > 0 &&
             serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType)
         {
+            // ConfigureServices は Lambda クラス内（BuildProvider）から呼ぶため、public 固定ではなく
+            // Lambda クラスから到達可能な static メソッドであればよい（同一アセンブリ internal 等）
+            // ConfigureServices is called from inside the Lambda class (BuildProvider), so it need not be public;
+            // a static method accessible from the Lambda class is sufficient (e.g. same-assembly internal)
             var configureMethod = resolverType.GetMembers("ConfigureServices")
                 .OfType<IMethodSymbol>()
-                .FirstOrDefault(static m => m.IsStatic && m.DeclaredAccessibility == Accessibility.Public
+                .FirstOrDefault(m => m.IsStatic
                     && m.Parameters.Length == 0
-                    && m.ReturnType.ToDisplayString() == IServiceCollectionFullName);
+                    && m.ReturnType.ToDisplayString() == IServiceCollectionFullName
+                    && compilation.IsSymbolAccessibleWithin(m, symbol));
 
             if (configureMethod == null)
             {
@@ -96,6 +136,22 @@ internal static class LambdaModelBuilder
         {
             diagnostics.Add(new DiagnosticInfo(
                 Diagnostics.MissingServiceResolver,
+                syntax.GetLocation(),
+                symbol.Name));
+        }
+
+        // [ServiceResolver] が無い場合、生成コードは（同一 partial クラス内で）new FunctionType() を出力するため
+        // Lambda クラスから到達可能な parameterless ctor が必須（in-class 生成なので private でも可）。
+        // ctor 引数ありは ALE0010 で扱うため ctorParams.Length == 0 に限定して二重診断を避ける。
+        // Without [ServiceResolver] the generated code emits new FunctionType() (inside the same partial class),
+        // so a parameterless constructor accessible from the Lambda class is required (private is fine in-class).
+        // Limited to ctorParams.Length == 0 so ALE0010 covers the public-ctor-with-parameters case without duplication.
+        if (serviceResolverAttr == null &&
+            ctorParams.Length == 0 &&
+            !HasAccessibleParameterlessConstructor(symbol, symbol, compilation))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.LambdaClassNoParameterlessCtor,
                 syntax.GetLocation(),
                 symbol.Name));
         }
@@ -118,19 +174,48 @@ internal static class LambdaModelBuilder
         foreach (var filter in sortedFilters)
         {
             var filterTypeArg = filter.Attribute.AttributeClass!.TypeArguments[0];
-            if (filterTypeArg is INamedTypeSymbol filterTypeSym &&
-                !ImplementsInterface(filterTypeSym, ILambdaFilterFullName))
+            if (filterTypeArg is not INamedTypeSymbol filterTypeSym)
+            {
+                continue;
+            }
+
+            if (!ImplementsInterface(filterTypeSym, ILambdaFilterFullName))
             {
                 diagnostics.Add(new DiagnosticInfo(
                     Diagnostics.FilterNotImplementILambdaFilter,
                     syntax.GetLocation(),
                     filter.Descriptor.FilterType.FullName));
             }
+
+            // [ServiceResolver] が無い場合、生成コードは Lambda クラス内で new FilterType() を出力する
+            // Without [ServiceResolver] the generated code emits new FilterType() inside the Lambda class
+            if (serviceResolverAttr == null)
+            {
+                if (filterTypeSym.IsAbstract)
+                {
+                    // abstract は public ctor があっても new できない（CS0144）ため別途診断
+                    // An abstract type cannot be new'd (CS0144) even with a public ctor, so diagnose separately
+                    diagnostics.Add(new DiagnosticInfo(
+                        Diagnostics.AbstractFilter,
+                        syntax.GetLocation(),
+                        filter.Descriptor.FilterType.FullName));
+                }
+                else if (!HasAccessibleParameterlessConstructor(filterTypeSym, symbol, compilation))
+                {
+                    // Lambda クラスから到達可能な parameterless ctor が必須（public / 同一アセンブリ internal / nested 等）
+                    // A parameterless constructor accessible from the Lambda class is required
+                    diagnostics.Add(new DiagnosticInfo(
+                        Diagnostics.FilterNoParameterlessCtor,
+                        syntax.GetLocation(),
+                        filter.Descriptor.FilterType.FullName));
+                }
+            }
         }
 
         // フェーズ6: メソッドごとにハンドラーモデルを構築し、個別診断を集約
         // Phase 6: Build handler models method by method and aggregate their diagnostics
         var handlers = new List<HandlerModel>();
+        var handlerMethods = new List<IMethodSymbol>();
         foreach (var member in symbol.GetMembers().OfType<IMethodSymbol>())
         {
             if (member.MethodKind != MethodKind.Ordinary || member.IsStatic)
@@ -143,6 +228,7 @@ internal static class LambdaModelBuilder
             if (handlerModel != null)
             {
                 handlers.Add(handlerModel);
+                handlerMethods.Add(member);
             }
         }
 
@@ -157,6 +243,19 @@ internal static class LambdaModelBuilder
                 symbol.Name));
         }
 
+        // 同名ハンドラー（オーバーロード）は生成名・hint name が衝突するため診断で停止する
+        // Overloaded handlers collide in generated method names and hint names, so stop with a diagnostic
+        foreach (var overloadGroup in handlerMethods.GroupBy(static m => m.Name).Where(static g => g.Count() > 1))
+        {
+            foreach (var overload in overloadGroup)
+            {
+                diagnostics.Add(new DiagnosticInfo(
+                    Diagnostics.OverloadedHandler,
+                    GetLocation(overload),
+                    overload.Name));
+            }
+        }
+
         // フェーズ8: エラーがなければ LambdaModel を組み立て、warning を添えて返す
         // Phase 8: Build the LambdaModel when no errors remain and return it with warnings
         if (HasErrors(diagnostics))
@@ -167,7 +266,6 @@ internal static class LambdaModelBuilder
         var model = new LambdaModel(
             ns,
             symbol.Name,
-            symbol.IsValueType,
             functionType,
             new EquatableArray<TypeRefModel>(ctorParams),
             serviceResolver,
@@ -261,6 +359,23 @@ internal static class LambdaModelBuilder
             if (parameterModel != null)
             {
                 parameters.Add(parameterModel);
+            }
+        }
+
+        // フェーズ4b: Event ハンドラーは payload（Request 扱いの引数）をちょうど 1 件に制限する
+        // Phase 4b: Event handlers must declare exactly one event payload (Request-bound) parameter
+        // パラメータ単位の診断が出ているときはエラーの連鎖を避けるため検証しない
+        // Skip this check when parameter-level diagnostics already exist to avoid cascading errors
+        if (kind == HandlerKind.Event && !HasErrors(diagnostics))
+        {
+            var payloadCount = parameters.Count(static p => p.BindingKind == ParameterBindingKind.Request);
+            if (payloadCount == 0)
+            {
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.EventHandlerMissingPayload, GetLocation(method), method.Name));
+            }
+            else if (payloadCount > 1)
+            {
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.EventHandlerMultiplePayloads, GetLocation(method), method.Name));
             }
         }
 
@@ -619,6 +734,16 @@ internal static class LambdaModelBuilder
         // フィルター検証用に指定インターフェイス実装の有無を調べる
         // Check whether the type implements the specified interface for filter validation
         return type.AllInterfaces.Any(i => i.ToDisplayString() == interfaceFullName);
+    }
+
+    private static bool HasAccessibleParameterlessConstructor(INamedTypeSymbol type, INamedTypeSymbol within, Compilation compilation)
+    {
+        // 生成箇所（within = Lambda クラス）から呼べる引数なしコンストラクタがあるかを判定
+        // public 固定ではなく、実際に new できるか（同一アセンブリ internal や in-class private 等）で見る
+        // Determine whether a parameterless constructor callable from the generation site (within = Lambda class) exists
+        // Judged by actual constructability (same-assembly internal, in-class private, etc.), not a fixed public rule
+        return type.InstanceConstructors.Any(c =>
+            c.Parameters.Length == 0 && compilation.IsSymbolAccessibleWithin(c, within));
     }
 
     private static bool IsImplementing(ITypeSymbol type, string interfaceName)

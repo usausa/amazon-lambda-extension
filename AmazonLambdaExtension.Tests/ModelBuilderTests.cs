@@ -20,11 +20,13 @@ namespace Test;
 
 using AmazonLambdaExtension.Annotations;
 
+public sealed class MyEvent { }
+
 [Lambda]
 public sealed partial class Function
 {
     [Event]
-    public void Handle()
+    public void Handle(MyEvent ev)
     {
     }
 }
@@ -44,11 +46,13 @@ namespace Test;
 
 using AmazonLambdaExtension.Annotations;
 
+public sealed class MyEvent { }
+
 [Lambda]
 public sealed partial class QueueFunction
 {
     [Event]
-    public void Handle()
+    public void Handle(MyEvent ev)
     {
     }
 }
@@ -254,7 +258,7 @@ public sealed class Resolver
 ");
         var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.Contains("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("__pipeline__", handlerSource, StringComparison.Ordinal);
         Assert.Contains("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
     }
 
@@ -277,7 +281,7 @@ public sealed partial class SimpleFunctions
 ");
         var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         Assert.NotNull(handlerSource);
-        Assert.DoesNotContain("__Handle_Pipeline__", handlerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("__pipeline__", handlerSource, StringComparison.Ordinal);
         Assert.DoesNotContain("__Handle_Inner__", handlerSource, StringComparison.Ordinal);
     }
 
