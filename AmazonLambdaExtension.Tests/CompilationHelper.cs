@@ -82,7 +82,7 @@ public static class CompilationHelper
 
         // System 関連アセンブリ（AppContext.GetData で信頼できるパスから取得）
         var trustedPlatformAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
-        if (trustedPlatformAssemblies != null)
+        if (trustedPlatformAssemblies is not null)
         {
             var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {

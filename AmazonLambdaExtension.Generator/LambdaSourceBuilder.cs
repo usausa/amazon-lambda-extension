@@ -96,7 +96,7 @@ internal static class LambdaSourceBuilder
         var hasValidation = handlers.Any(static h =>
             h.Parameters.Any(static p => (p.BindingKind == ParameterBindingKind.FromBody) && !p.SkipValidation));
 
-        if (model.ServiceResolver != null)
+        if (model.ServiceResolver is not null)
         {
             // DIコンテナを構築（Debug ビルドのみ scope 検証を有効化）し、コンストラクタ DI でターゲットを生成
             // Build DI container (scope validation only in Debug builds) and create target via constructor injection
@@ -130,7 +130,7 @@ internal static class LambdaSourceBuilder
         if (hasHttpHandler)
         {
             builder.NewLine();
-            if (model.ServiceResolver != null)
+            if (model.ServiceResolver is not null)
             {
                 // DIから ILambdaSerializer を解決
                 // Resolve ILambdaSerializer from DI container
@@ -146,7 +146,7 @@ internal static class LambdaSourceBuilder
             }
         }
 
-        if (hasBodyParam && model.ServiceResolver != null)
+        if (hasBodyParam && model.ServiceResolver is not null)
         {
             // DIから IBodySerializer を解決
             // Resolve IBodySerializer from DI container
@@ -161,7 +161,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"    {DefaultBodySerializerType}.Default;");
         }
 
-        if (hasValidation && model.ServiceResolver != null)
+        if (hasValidation && model.ServiceResolver is not null)
         {
             // DIからリクエストバリデーターを解決
             // Resolve IRequestValidator from DI container
@@ -197,7 +197,7 @@ internal static class LambdaSourceBuilder
         {
             // Get event type
             var eventParam = GetRequestParam(handler);
-            if (eventParam != null)
+            if (eventParam is not null)
             {
                 builder.AppendLine($"var ev = ({eventParam.Type.FullName})ctx.Request;");
                 builder.NewLine();
@@ -215,7 +215,7 @@ internal static class LambdaSourceBuilder
     {
         // DI 利用時で、フィルターか [FromServices] がある場合のみ invocation scope が必要
         // A per-invocation scope is needed only with DI when filters or [FromServices] are present
-        return model.ServiceResolver != null &&
+        return model.ServiceResolver is not null &&
             (model.Filters.Count > 0 ||
              handler.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices));
     }
@@ -229,7 +229,7 @@ internal static class LambdaSourceBuilder
 
         foreach (var filter in filters)
         {
-            if (model.ServiceResolver != null)
+            if (model.ServiceResolver is not null)
             {
                 // DIから（scope 経由で）フィルターインスタンスを解決
                 // Resolve filter instance from DI (via the scope)
@@ -279,7 +279,7 @@ internal static class LambdaSourceBuilder
         }
         else
         {
-            if (handler.ResultType != null)
+            if (handler.ResultType is not null)
             {
                 returnType = $"global::System.Threading.Tasks.Task<{handler.ResultType.FullName}>";
             }
@@ -334,7 +334,7 @@ internal static class LambdaSourceBuilder
 
             builder.AppendLine("LambdaContext = context,");
             builder.AppendLine("CancellationToken = default,");
-            if (model.ServiceResolver != null)
+            if (model.ServiceResolver is not null)
             {
                 builder.AppendLine("ServiceProvider = __sp__,");
             }
@@ -668,7 +668,7 @@ internal static class LambdaSourceBuilder
             return $"return new {V2ResponseType} {{ StatusCode = 400, Body = $\"Invalid parameter: {key}\" }};";
         }
 
-        if (param.Type.IsArray && param.Type.ElementType != null)
+        if (param.Type.IsArray && param.Type.ElementType is not null)
         {
             // カンマ分割で複数値を配列に変換、各要素を型変換
             // Split comma-separated values into array and convert each element
@@ -710,7 +710,7 @@ internal static class LambdaSourceBuilder
             builder.EndBlock();
             builder.NewLine();
         }
-        else if (param.Type.IsNullable && param.Type.UnderlyingType != null)
+        else if (param.Type.IsNullable && param.Type.UnderlyingType is not null)
         {
             // Nullable<T>: 値が存在する場合のみ型変換を実施
             // Nullable<T>: perform type conversion only when the value is present
@@ -802,7 +802,7 @@ internal static class LambdaSourceBuilder
 
         if (handler.Kind == HandlerKind.Event)
         {
-            if (handler.ResultType != null)
+            if (handler.ResultType is not null)
             {
                 builder.AppendLine($"var __result__ = {awaitPrefix}__target__.{handler.MethodName}({args});");
                 if (hasFilter)
@@ -840,7 +840,7 @@ internal static class LambdaSourceBuilder
         // Serialize or convert the result according to handler kind and generate the return statement
         if (handler.Kind == HandlerKind.Event)
         {
-            if (handler.ResultType != null && hasFilter)
+            if (handler.ResultType is not null && hasFilter)
             {
                 builder.AppendLine($"return ({handler.ResultType.FullName})ctx.Result!;");
             }
@@ -976,12 +976,12 @@ internal static class LambdaSourceBuilder
 
     private static string GetBaseTypeName(TypeRefModel type)
     {
-        if (type.IsNullable && type.UnderlyingType != null)
+        if (type.IsNullable && type.UnderlyingType is not null)
         {
             return type.UnderlyingType.FullName;
         }
 
-        if (type.IsArray && type.ElementType != null)
+        if (type.IsArray && type.ElementType is not null)
         {
             return type.ElementType.FullName;
         }

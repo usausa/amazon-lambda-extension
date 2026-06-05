@@ -59,7 +59,7 @@ internal static class LambdaModelBuilder
 
         // ネストされた型は外側型の入れ子構造を生成側で再現できないため未対応
         // Nested types are unsupported because the generator cannot reproduce the enclosing type nesting
-        if (symbol.ContainingType != null)
+        if (symbol.ContainingType is not null)
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.NestedLambdaClass, syntax.GetLocation(), symbol.Name));
         }
@@ -105,7 +105,7 @@ internal static class LambdaModelBuilder
         ServiceResolverModel? serviceResolver = null;
         var serviceResolverAttr = symbol.GetAttributes()
             .FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == ServiceResolverAttributeName);
-        if (serviceResolverAttr != null &&
+        if (serviceResolverAttr is not null &&
             serviceResolverAttr.ConstructorArguments.Length > 0 &&
             serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType)
         {
@@ -120,7 +120,7 @@ internal static class LambdaModelBuilder
                     && m.ReturnType.ToDisplayString() == IServiceCollectionFullName
                     && compilation.IsSymbolAccessibleWithin(m, symbol));
 
-            if (configureMethod == null)
+            if (configureMethod is null)
             {
                 diagnostics.Add(new DiagnosticInfo(
                     Diagnostics.InvalidServiceResolverType,
@@ -146,7 +146,7 @@ internal static class LambdaModelBuilder
         // Without [ServiceResolver] the generated code emits new FunctionType() (inside the same partial class),
         // so a parameterless constructor accessible from the Lambda class is required (private is fine in-class).
         // Limited to ctorParams.Length == 0 so ALE0010 covers the public-ctor-with-parameters case without duplication.
-        if (serviceResolverAttr == null &&
+        if (serviceResolverAttr is null &&
             ctorParams.Length == 0 &&
             !HasAccessibleParameterlessConstructor(symbol, symbol, compilation))
         {
@@ -189,7 +189,7 @@ internal static class LambdaModelBuilder
 
             // [ServiceResolver] が無い場合、生成コードは Lambda クラス内で new FilterType() を出力する
             // Without [ServiceResolver] the generated code emits new FilterType() inside the Lambda class
-            if (serviceResolverAttr == null)
+            if (serviceResolverAttr is null)
             {
                 if (filterTypeSym.IsAbstract)
                 {
@@ -225,7 +225,7 @@ internal static class LambdaModelBuilder
 
             var (handlerModel, handlerDiagnostics) = BuildHandlerModel(symbol, member);
             diagnostics.AddRange(handlerDiagnostics);
-            if (handlerModel != null)
+            if (handlerModel is not null)
             {
                 handlers.Add(handlerModel);
                 handlerMethods.Add(member);
@@ -234,7 +234,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ7: 収集済みハンドラー一覧に基づくクラス単位の後続制約を検証
         // Phase 7: Run follow-up class-level validation based on the collected handlers
-        if (serviceResolver == null &&
+        if (serviceResolver is null &&
             handlers.Any(static h => h.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices)))
         {
             diagnostics.Add(new DiagnosticInfo(
@@ -319,7 +319,7 @@ internal static class LambdaModelBuilder
             }
         }
 
-        if (kind == null)
+        if (kind is null)
         {
             if (method.DeclaredAccessibility == Accessibility.Public)
             {
@@ -356,7 +356,7 @@ internal static class LambdaModelBuilder
         {
             var (parameterModel, parameterDiagnostics) = BuildParameterModel(method, param, kind.Value);
             diagnostics.AddRange(parameterDiagnostics);
-            if (parameterModel != null)
+            if (parameterModel is not null)
             {
                 parameters.Add(parameterModel);
             }
@@ -413,12 +413,12 @@ internal static class LambdaModelBuilder
             resultType = MakeTypeRef(returnType);
         }
 
-        var returnsHttpResult = resultType != null && IsImplementing(method.ReturnType, IHttpResultFullName);
+        var returnsHttpResult = resultType is not null && IsImplementing(method.ReturnType, IHttpResultFullName);
 
         // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
         // Phase 6: Validate return-type constraints that depend on the handler kind
         if (kind == HandlerKind.HttpApiAuthorizer &&
-            !(resultType != null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
+            !(resultType is not null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, GetLocation(method), method.Name));
         }
@@ -468,7 +468,7 @@ internal static class LambdaModelBuilder
         var key = param.Name;
         var converterMethod = GetConverterMethod(param.Type);
 
-        if (explicitBinding != null)
+        if (explicitBinding is not null)
         {
             ApplyExplicitBinding(explicitBinding, ref bindingKind, ref key);
         }
@@ -494,7 +494,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ3: ハンドラー種別ごとの binding 制約を検証
         // Phase 3: Validate binding restrictions that depend on the handler kind
-        if (handlerKind == HandlerKind.Event && explicitBinding != null)
+        if (handlerKind == HandlerKind.Event && explicitBinding is not null)
         {
             var explicitBindingName = explicitBinding.AttributeClass?.ToDisplayString();
             if (explicitBindingName == FromBodyAttributeName)
@@ -534,7 +534,7 @@ internal static class LambdaModelBuilder
         // Phase 4: Extract the SkipValidate option from [FromBody]
         var skipValidation = false;
         var fromBodyAttr = param.GetAttributes().FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == FromBodyAttributeName);
-        if (fromBodyAttr != null)
+        if (fromBodyAttr is not null)
         {
             var skipArg = fromBodyAttr.NamedArguments.FirstOrDefault(static a => a.Key == "SkipValidate").Value.Value;
             skipValidation = skipArg is true;
@@ -701,7 +701,7 @@ internal static class LambdaModelBuilder
         // generic な [Filter<T>] だけをクラス属性の列挙から見分ける
         // Identify only generic [Filter<T>] attributes among class attributes
         var attrClass = attr.AttributeClass;
-        if (attrClass == null)
+        if (attrClass is null)
         {
             return false;
         }
