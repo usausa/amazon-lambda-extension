@@ -58,10 +58,10 @@ public static class HttpResults
     {
         var statusCode = (permanent, preserveMethod) switch
         {
-            (true, true) => System.Net.HttpStatusCode.PermanentRedirect,
-            (true, false) => System.Net.HttpStatusCode.MovedPermanently,
-            (false, true) => System.Net.HttpStatusCode.TemporaryRedirect,
-            _ => System.Net.HttpStatusCode.Found
+            (true, true) => HttpStatusCode.PermanentRedirect,
+            (true, false) => HttpStatusCode.MovedPermanently,
+            (false, true) => HttpStatusCode.TemporaryRedirect,
+            _ => HttpStatusCode.Found
         };
         var result = new HttpResult(statusCode);
         result.AddHeader("location", uri);

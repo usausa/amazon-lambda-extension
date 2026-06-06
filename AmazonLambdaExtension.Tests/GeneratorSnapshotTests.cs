@@ -1,7 +1,6 @@
 namespace AmazonLambdaExtension;
 
 using Xunit;
-using Xunit.Sdk;
 
 // LambdaGenerator が想定どおりのコードを生成することを確認するスナップショットテスト。
 // 生成コードのシグネチャ・構造を検証する。

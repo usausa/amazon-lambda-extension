@@ -236,7 +236,7 @@ public sealed class StringConverterTests
     {
         Red,
         Green,
-        Blue,
+        Blue
     }
 
     [Theory]

@@ -12,18 +12,13 @@ using AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// テスト用のコンパイルヘルパー。
-/// ソースコードを Roslyn でコンパイルし、LambdaGenerator を使って生成コードを取得する。
-/// </summary>
+// テスト用のコンパイルヘルパー。
+// ソースコードを Roslyn でコンパイルし、LambdaGenerator を使って生成コードを取得する。
 public static class CompilationHelper
 {
-    /// <summary>
-    /// ソースコードから LambdaGenerator を実行し、生成されたソースファイルを返す。
-    /// キー: ヒント名（ファイル名）、値: 生成されたソースコード。
-    /// </summary>
+    // ソースコードから LambdaGenerator を実行し、生成されたソースファイルを返す。
+    // キー: ヒント名（ファイル名）、値: 生成されたソースコード。
     public static IReadOnlyDictionary<string, string> RunGenerator(string source)
     {
         var compilation = CreateCompilation(source);
@@ -35,13 +30,11 @@ public static class CompilationHelper
         var result = driver.GetRunResult();
         return result.GeneratedTrees
             .ToDictionary(
-                t => System.IO.Path.GetFileName(t.FilePath),
+                t => Path.GetFileName(t.FilePath),
                 t => t.GetText().ToString());
     }
 
-    /// <summary>
-    /// ソースコードから Compilation を生成する（診断テスト用）。
-    /// </summary>
+    // ソースコードから Compilation を生成する（診断テスト用）。
     public static (Compilation Compilation, IReadOnlyList<Diagnostic> Diagnostics) RunGeneratorWithDiagnostics(string source)
     {
         var compilation = CreateCompilation(source);
@@ -99,9 +92,9 @@ public static class CompilationHelper
                 "mscorlib.dll"
             };
 
-            foreach (var path in trustedPlatformAssemblies.Split(System.IO.Path.PathSeparator))
+            foreach (var path in trustedPlatformAssemblies.Split(Path.PathSeparator))
             {
-                var fileName = System.IO.Path.GetFileName(path);
+                var fileName = Path.GetFileName(path);
                 if (needed.Contains(fileName) || fileName.StartsWith("System.Private.", StringComparison.Ordinal))
                 {
                     yield return MetadataReference.CreateFromFile(path);
@@ -111,11 +104,11 @@ public static class CompilationHelper
         else
         {
             // フォールバック: ランタイムディレクトリから取得
-            var runtimeDir = System.IO.Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+            var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
             foreach (var name in new[] { "System.Runtime.dll", "System.Collections.dll", "System.Threading.Tasks.dll", "netstandard.dll", "System.Linq.dll" })
             {
-                var path = System.IO.Path.Combine(runtimeDir, name);
-                if (System.IO.File.Exists(path))
+                var path = Path.Combine(runtimeDir, name);
+                if (File.Exists(path))
                 {
                     yield return MetadataReference.CreateFromFile(path);
                 }

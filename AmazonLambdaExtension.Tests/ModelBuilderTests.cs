@@ -1,7 +1,5 @@
 namespace AmazonLambdaExtension;
 
-using AmazonLambdaExtension.Generator.Models;
-
 using Xunit;
 
 // LambdaGenerator が生成するモデルの構造を検証するテスト。
