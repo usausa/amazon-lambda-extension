@@ -44,9 +44,9 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0001", ids);
     }
 
-    // ALE0003: 同一メソッドに複数のハンドラ属性
+    // ALE0013: 同一メソッドに複数のハンドラ属性
     [Fact]
-    public void ALE0003_WhenMultipleHandlerAttributes_ReportsDiagnostic()
+    public void ALE0013_WhenMultipleHandlerAttributes_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -60,11 +60,11 @@ public sealed class DiagnosticsTests
                 public void Handle() { }
             }
             """);
-        Assert.Contains("ALE0003", ids);
+        Assert.Contains("ALE0013", ids);
     }
 
     [Fact]
-    public void ALE0004_WhenMultipleBindingAttributes_ReportsDiagnostic()
+    public void ALE0015_WhenMultipleBindingAttributes_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -77,12 +77,12 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle([FromQuery][FromRoute] string id) => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0004", ids);
+        Assert.Contains("ALE0015", ids);
     }
 
-    // ALE0005: [Event] ハンドラへの [FromBody]
+    // ALE0016: [Event] ハンドラへの [FromBody]
     [Fact]
-    public void ALE0005_WhenFromBodyOnEventHandler_ReportsDiagnostic()
+    public void ALE0016_WhenFromBodyOnEventHandler_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -94,12 +94,12 @@ public sealed class DiagnosticsTests
                 public void Handle([FromBody] string body) { }
             }
             """);
-        Assert.Contains("ALE0005", ids);
+        Assert.Contains("ALE0016", ids);
     }
 
-    // ALE0007: [HttpApiAuthorizer] の戻り値型が IAuthorizerResult でない
+    // ALE0022: [HttpApiAuthorizer] の戻り値型が IAuthorizerResult でない
     [Fact]
-    public void ALE0007_WhenAuthorizerInvalidReturnType_ReportsDiagnostic()
+    public void ALE0022_WhenAuthorizerInvalidReturnType_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -111,11 +111,11 @@ public sealed class DiagnosticsTests
                 public void Authorize() { }
             }
             """);
-        Assert.Contains("ALE0007", ids);
+        Assert.Contains("ALE0022", ids);
     }
 
     [Fact]
-    public void ALE0006_WhenAuthorizerMethodMissing_ReportsDiagnostic()
+    public void ALE0014_WhenAuthorizerMethodMissing_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -128,11 +128,11 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0006", ids);
+        Assert.Contains("ALE0014", ids);
     }
 
     [Fact]
-    public void ALE0008_WhenFromCustomAuthorizerOutsideHttpApi_ReportsDiagnostic()
+    public void ALE0018_WhenFromCustomAuthorizerOutsideHttpApi_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -144,11 +144,11 @@ public sealed class DiagnosticsTests
                 public string Handle([FromCustomAuthorizer("role")] string role) => role;
             }
             """);
-        Assert.Contains("ALE0008", ids);
+        Assert.Contains("ALE0018", ids);
     }
 
     [Fact]
-    public void ALE0009_WhenUnsupportedBindingType_ReportsDiagnostic()
+    public void ALE0019_WhenUnsupportedBindingType_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -162,12 +162,12 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle([FromQuery] Input input) => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0009", ids);
+        Assert.Contains("ALE0019", ids);
     }
 
-    // ALE0010: コンストラクタ引数ありだが [ServiceResolver] なし
+    // ALE0007: コンストラクタ引数ありだが [ServiceResolver] なし
     [Fact]
-    public void ALE0010_WhenCtorParamsButNoServiceResolver_ReportsDiagnostic()
+    public void ALE0007_WhenCtorParamsButNoServiceResolver_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -182,12 +182,12 @@ public sealed class DiagnosticsTests
                 public void Handle() { }
             }
             """);
-        Assert.Contains("ALE0010", ids);
+        Assert.Contains("ALE0007", ids);
     }
 
-    // ALE0011: ServiceResolver に ConfigureServices() がない
+    // ALE0006: ServiceResolver に ConfigureServices() がない
     [Fact]
-    public void ALE0011_WhenServiceResolverMissingConfigureServices_ReportsDiagnostic()
+    public void ALE0006_WhenServiceResolverMissingConfigureServices_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -201,12 +201,12 @@ public sealed class DiagnosticsTests
             }
             public sealed class BadResolver { }
             """);
-        Assert.Contains("ALE0011", ids);
+        Assert.Contains("ALE0006", ids);
     }
 
-    // ALE0012: [Filter<T>] で T が ILambdaFilter を実装していない
+    // ALE0009: [Filter<T>] で T が ILambdaFilter を実装していない
     [Fact]
-    public void ALE0012_WhenFilterTypeNotImplementILambdaFilter_ReportsDiagnostic()
+    public void ALE0009_WhenFilterTypeNotImplementILambdaFilter_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -221,11 +221,11 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok(new { });
             }
             """);
-        Assert.Contains("ALE0012", ids);
+        Assert.Contains("ALE0009", ids);
     }
 
     [Fact]
-    public void ALE0013_WhenInvalidBindingOnEventHandler_ReportsDiagnostic()
+    public void ALE0017_WhenInvalidBindingOnEventHandler_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -237,11 +237,11 @@ public sealed class DiagnosticsTests
                 public void Handle([FromQuery] int value) { }
             }
             """);
-        Assert.Contains("ALE0013", ids);
+        Assert.Contains("ALE0017", ids);
     }
 
     [Fact]
-    public void ALE0014_WhenFromServicesWithoutServiceResolver_ReportsDiagnostic()
+    public void ALE0023_WhenFromServicesWithoutServiceResolver_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -255,12 +255,12 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev, [FromServices] IService service) { }
             }
             """);
-        Assert.Contains("ALE0014", ids);
+        Assert.Contains("ALE0023", ids);
     }
 
-    // ALE0015: [Event] ハンドラに payload 引数が無い
+    // ALE0020: [Event] ハンドラに payload 引数が無い
     [Fact]
-    public void ALE0015_WhenEventHandlerHasNoPayload_ReportsDiagnostic()
+    public void ALE0020_WhenEventHandlerHasNoPayload_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -273,12 +273,12 @@ public sealed class DiagnosticsTests
                 public void Handle(ILambdaContext context) { }
             }
             """);
-        Assert.Contains("ALE0015", ids);
+        Assert.Contains("ALE0020", ids);
     }
 
-    // ALE0016: [Event] ハンドラに payload 引数が複数ある
+    // ALE0021: [Event] ハンドラに payload 引数が複数ある
     [Fact]
-    public void ALE0016_WhenEventHandlerHasMultiplePayloads_ReportsDiagnostic()
+    public void ALE0021_WhenEventHandlerHasMultiplePayloads_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -292,12 +292,12 @@ public sealed class DiagnosticsTests
                 public void Handle(EventA a, EventB b) { }
             }
             """);
-        Assert.Contains("ALE0016", ids);
+        Assert.Contains("ALE0021", ids);
     }
 
-    // payload がちょうど 1 件なら ALE0015 / ALE0016 は発生しない
+    // payload がちょうど 1 件なら ALE0020 / ALE0021 は発生しない
     [Fact]
-    public void ALE0015_0016_WhenEventHandlerHasSinglePayload_NoDiagnostic()
+    public void ALE0020_0021_WhenEventHandlerHasSinglePayload_NoDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -311,13 +311,13 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev, ILambdaContext context) { }
             }
             """);
-        Assert.DoesNotContain("ALE0015", ids);
-        Assert.DoesNotContain("ALE0016", ids);
+        Assert.DoesNotContain("ALE0020", ids);
+        Assert.DoesNotContain("ALE0021", ids);
     }
 
-    // ALE0017: 同名ハンドラーのオーバーロード
+    // ALE0024: 同名ハンドラーのオーバーロード
     [Fact]
-    public void ALE0017_WhenHandlerIsOverloaded_ReportsDiagnostic()
+    public void ALE0024_WhenHandlerIsOverloaded_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -333,12 +333,12 @@ public sealed class DiagnosticsTests
                 public IHttpResult Get(string id) => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0017", ids);
+        Assert.Contains("ALE0024", ids);
     }
 
-    // ALE0018: [Lambda] クラスがジェネリック
+    // ALE0002: [Lambda] クラスがジェネリック
     [Fact]
-    public void ALE0018_WhenLambdaClassIsGeneric_ReportsDiagnostic()
+    public void ALE0002_WhenLambdaClassIsGeneric_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -350,12 +350,12 @@ public sealed class DiagnosticsTests
                 public void Handle() { }
             }
             """);
-        Assert.Contains("ALE0018", ids);
+        Assert.Contains("ALE0002", ids);
     }
 
-    // ALE0019: [Lambda] クラスがネストされた型
+    // ALE0003: [Lambda] クラスがネストされた型
     [Fact]
-    public void ALE0019_WhenLambdaClassIsNested_ReportsDiagnostic()
+    public void ALE0003_WhenLambdaClassIsNested_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -370,12 +370,12 @@ public sealed class DiagnosticsTests
                 }
             }
             """);
-        Assert.Contains("ALE0019", ids);
+        Assert.Contains("ALE0003", ids);
     }
 
-    // トップレベルの非ジェネリッククラスでは ALE0018 / ALE0019 は発生しない
+    // トップレベルの非ジェネリッククラスでは ALE0002 / ALE0003 / ALE0004 は発生しない
     [Fact]
-    public void ALE0018_0019_WhenTopLevelNonGeneric_NoDiagnostic()
+    public void ALE0002_0003_0004_WhenTopLevelNonGeneric_NoDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -388,14 +388,14 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev) { }
             }
             """);
-        Assert.DoesNotContain("ALE0018", ids);
-        Assert.DoesNotContain("ALE0019", ids);
-        Assert.DoesNotContain("ALE0020", ids);
+        Assert.DoesNotContain("ALE0002", ids);
+        Assert.DoesNotContain("ALE0003", ids);
+        Assert.DoesNotContain("ALE0004", ids);
     }
 
-    // ALE0020: [Lambda] が record（record class）
+    // ALE0004: [Lambda] が record（record class）
     [Fact]
-    public void ALE0020_WhenLambdaClassIsRecord_ReportsDiagnostic()
+    public void ALE0004_WhenLambdaClassIsRecord_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -408,12 +408,12 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev) { }
             }
             """);
-        Assert.Contains("ALE0020", ids);
+        Assert.Contains("ALE0004", ids);
     }
 
-    // ALE0021: [ServiceResolver] 無しで Lambda クラスに parameterless ctor が無い
+    // ALE0008: [ServiceResolver] 無しで Lambda クラスに parameterless ctor が無い
     [Fact]
-    public void ALE0021_WhenNoParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
+    public void ALE0008_WhenNoParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -427,12 +427,12 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev) { }
             }
             """);
-        Assert.Contains("ALE0021", ids);
+        Assert.Contains("ALE0008", ids);
     }
 
-    // ALE0022: [ServiceResolver] 無しで Filter に public parameterless ctor が無い
+    // ALE0011: [ServiceResolver] 無しで Filter に public parameterless ctor が無い
     [Fact]
-    public void ALE0022_WhenFilterHasNoPublicParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
+    public void ALE0011_WhenFilterHasNoPublicParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -453,12 +453,12 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0022", ids);
+        Assert.Contains("ALE0011", ids);
     }
 
-    // [ServiceResolver] 無しでも parameterless ctor があれば ALE0021 / ALE0022 は出ない
+    // [ServiceResolver] 無しでも parameterless ctor があれば ALE0008 / ALE0011 は出ない
     [Fact]
-    public void ALE0021_0022_WhenParameterlessCtorsWithoutServiceResolver_NoDiagnostic()
+    public void ALE0008_0011_WhenParameterlessCtorsWithoutServiceResolver_NoDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -478,13 +478,13 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.DoesNotContain("ALE0021", ids);
-        Assert.DoesNotContain("ALE0022", ids);
+        Assert.DoesNotContain("ALE0008", ids);
+        Assert.DoesNotContain("ALE0011", ids);
     }
 
-    // ALE0022: 同一アセンブリの internal filter は Lambda クラスから到達可能なので診断されない
+    // ALE0011: 同一アセンブリの internal filter は Lambda クラスから到達可能なので診断されない
     [Fact]
-    public void ALE0022_WhenInternalFilterWithAccessibleCtor_NoDiagnostic()
+    public void ALE0011_WhenInternalFilterWithAccessibleCtor_NoDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -504,12 +504,12 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.DoesNotContain("ALE0022", ids);
+        Assert.DoesNotContain("ALE0011", ids);
     }
 
-    // ALE0011: 同一アセンブリの internal resolver + internal static ConfigureServices() は到達可能なので診断されない
+    // ALE0006: 同一アセンブリの internal resolver + internal static ConfigureServices() は到達可能なので診断されない
     [Fact]
-    public void ALE0011_WhenInternalResolverWithAccessibleConfigureServices_NoDiagnostic()
+    public void ALE0006_WhenInternalResolverWithAccessibleConfigureServices_NoDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -528,12 +528,12 @@ public sealed class DiagnosticsTests
                 internal static IServiceCollection ConfigureServices() => new ServiceCollection();
             }
             """);
-        Assert.DoesNotContain("ALE0011", ids);
+        Assert.DoesNotContain("ALE0006", ids);
     }
 
-    // ALE0023: abstract な [Lambda] クラス
+    // ALE0005: abstract な [Lambda] クラス
     [Fact]
-    public void ALE0023_WhenLambdaClassIsAbstract_ReportsDiagnostic()
+    public void ALE0005_WhenLambdaClassIsAbstract_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -546,12 +546,12 @@ public sealed class DiagnosticsTests
                 public void Handle(MyEvent ev) { }
             }
             """);
-        Assert.Contains("ALE0023", ids);
+        Assert.Contains("ALE0005", ids);
     }
 
-    // ALE0024: [ServiceResolver] 無しで abstract な filter
+    // ALE0010: [ServiceResolver] 無しで abstract な filter
     [Fact]
-    public void ALE0024_WhenAbstractFilterWithoutServiceResolver_ReportsDiagnostic()
+    public void ALE0010_WhenAbstractFilterWithoutServiceResolver_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds("""
             namespace Test;
@@ -571,6 +571,6 @@ public sealed class DiagnosticsTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0024", ids);
+        Assert.Contains("ALE0010", ids);
     }
 }

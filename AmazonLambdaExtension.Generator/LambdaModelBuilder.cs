@@ -144,10 +144,10 @@ internal static class LambdaModelBuilder
 
         // [ServiceResolver] が無い場合、生成コードは（同一 partial クラス内で）new FunctionType() を出力するため
         // Lambda クラスから到達可能な parameterless ctor が必須（in-class 生成なので private でも可）。
-        // ctor 引数ありは ALE0010 で扱うため ctorParams.Length == 0 に限定して二重診断を避ける。
+        // ctor 引数ありは ALE0007 で扱うため ctorParams.Length == 0 に限定して二重診断を避ける。
         // Without [ServiceResolver] the generated code emits new FunctionType() (inside the same partial class),
         // so a parameterless constructor accessible from the Lambda class is required (private is fine in-class).
-        // Limited to ctorParams.Length == 0 so ALE0010 covers the public-ctor-with-parameters case without duplication.
+        // Limited to ctorParams.Length == 0 so ALE0007 covers the public-ctor-with-parameters case without duplication.
         if (serviceResolverAttr is null &&
             ctorParams.Length == 0 &&
             !HasAccessibleParameterlessConstructor(symbol, symbol, compilation))
