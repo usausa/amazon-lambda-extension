@@ -10,7 +10,7 @@ using Xunit;
 public class QueueProcessorHandlerTests
 {
     [Fact]
-    public async Task Handle_Handler_ProcessesRecords_WithoutException()
+    public Task Handle_Handler_ProcessesRecords_WithoutException()
     {
         var ev = new SQSEvent
         {
@@ -22,6 +22,6 @@ public class QueueProcessorHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        await QueueProcessor.Handle_Handler(ev, ctx);
+        return QueueProcessor.Handle_Handler(ev, ctx);
     }
 }

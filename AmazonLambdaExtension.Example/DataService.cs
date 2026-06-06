@@ -1,6 +1,7 @@
 namespace AmazonLambdaExtension.Example;
 
 using System.Globalization;
+
 // ReSharper disable MemberCanBeMadeStatic.Global
 #pragma warning disable CA1822
 public sealed class DataService

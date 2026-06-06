@@ -5,7 +5,7 @@ using System.Text.Json;
 
 internal sealed class AuthorizerResult : IAuthorizerResult
 {
-    public bool IsAuthorized { get; private set; }
+    public bool IsAuthorized { get; }
 
     public string? PrincipalId { get; private set; }
 

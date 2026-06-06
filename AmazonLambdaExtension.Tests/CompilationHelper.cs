@@ -49,10 +49,8 @@ public static class CompilationHelper
             .ToList();
     }
 
-    /// <summary>
-    /// ソースコードから Compilation を生成する。
-    /// </summary>
-    public static CSharpCompilation CreateCompilation(string source)
+    // ソースコードから Compilation を生成する。
+    private static CSharpCompilation CreateCompilation(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
         return CSharpCompilation.Create(

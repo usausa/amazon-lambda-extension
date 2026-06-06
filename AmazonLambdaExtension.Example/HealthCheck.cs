@@ -8,7 +8,7 @@ using AmazonLambdaExtension.APIGateway;
 public partial class HealthCheck
 {
     [FunctionUrl(
-        AuthType = FunctionUrlAuthType.NONE,
+        AuthType = FunctionUrlAuthType.None,
         AllowOrigins = ["*"],
         AllowMethods = ["GET"],
         AllowHeaders = ["Content-Type"],
