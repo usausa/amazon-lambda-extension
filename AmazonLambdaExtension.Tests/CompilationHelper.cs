@@ -34,8 +34,8 @@ public static class CompilationHelper
                 t => t.GetText().ToString());
     }
 
-    // ソースコードから Compilation を生成する（診断テスト用）。
-    public static (Compilation Compilation, IReadOnlyList<Diagnostic> Diagnostics) RunGeneratorWithDiagnostics(string source)
+    // ソースコードに対して LambdaGenerator を実行し、生成時の診断のみを返す（診断テスト用）。
+    public static IReadOnlyList<Diagnostic> RunGeneratorWithDiagnostics(string source)
     {
         var compilation = CreateCompilation(source);
         var generator = new LambdaGenerator();
@@ -44,11 +44,9 @@ public static class CompilationHelper
             .RunGenerators(compilation);
 
         var result = driver.GetRunResult();
-        var diagnostics = result.Results
+        return result.Results
             .SelectMany(static r => r.Diagnostics)
             .ToList();
-
-        return (compilation, diagnostics);
     }
 
     /// <summary>

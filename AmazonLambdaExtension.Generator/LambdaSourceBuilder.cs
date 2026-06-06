@@ -227,30 +227,22 @@ internal static class LambdaSourceBuilder
         var methodName = handler.MethodName;
         var filters = model.Filters;
 
-        foreach (var filter in filters)
-        {
-            if (model.ServiceResolver is not null)
-            {
-                // DIから（scope 経由で）フィルターインスタンスを解決
-                // Resolve filter instance from DI (via the scope)
-                builder.AppendLine($"var __filter{filter.Index}__ = {GetRequiredService}<{filter.FilterType.FullName}>(__sp__);");
-            }
-            else
-            {
-                // DIなしの場合はデフォルトコンストラクタでフィルターインスタンスを生成
-                // Instantiate filter with default constructor (no DI)
-                builder.AppendLine($"var __filter{filter.Index}__ = new {filter.FilterType.FullName}();");
-            }
-        }
-
-        // 最内部デリゲートから始めて外側に向かってフィルターを順次ラップ
-        // Start from the innermost delegate and wrap each filter outward
+        // 最内部デリゲートから始めて外側に向かってフィルターを順次ラップ（解決と連結を同一ループで実施）
+        // Start from the innermost delegate and wrap each filter outward (resolve and chain in one loop)
         builder.AppendLine($"{FilterDelegateType} __pipeline__ = __{methodName}_Inner__;");
         for (var i = filters.Count - 1; i >= 0; i--)
         {
-            var idx = filters[i].Index;
+            var filterType = filters[i].FullName;
+            builder.AppendLine(model.ServiceResolver is not null
+                // DIから（scope 経由で）フィルターインスタンスを解決
+                // Resolve filter instance from DI (via the scope)
+                ? $"var __filter{i}__ = {GetRequiredService}<{filterType}>(__sp__);"
+                // DIなしの場合はデフォルトコンストラクタでフィルターインスタンスを生成
+                // Instantiate filter with default constructor (no DI)
+                : $"var __filter{i}__ = new {filterType}();");
+
             builder.AppendLine($"var __chain{i}__ = __pipeline__;");
-            builder.AppendLine($"__pipeline__ = c => __filter{idx}__.InvokeAsync(c, __chain{i}__);");
+            builder.AppendLine($"__pipeline__ = c => __filter{i}__.InvokeAsync(c, __chain{i}__);");
         }
     }
 
@@ -268,25 +260,15 @@ internal static class LambdaSourceBuilder
         if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl) ||
             (handler.Kind == HandlerKind.HttpApiAuthorizer))
         {
-            if (handler.ReturnsHttpResult || handler.Kind == HandlerKind.HttpApiAuthorizer)
-            {
-                returnType = $"global::System.Threading.Tasks.Task<{StreamType}>";
-            }
-            else
-            {
-                returnType = $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
-            }
+            returnType = handler.ReturnsHttpResult || handler.Kind == HandlerKind.HttpApiAuthorizer
+                ? $"global::System.Threading.Tasks.Task<{StreamType}>"
+                : $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
         }
         else
         {
-            if (handler.ResultType is not null)
-            {
-                returnType = $"global::System.Threading.Tasks.Task<{handler.ResultType.FullName}>";
-            }
-            else
-            {
-                returnType = "global::System.Threading.Tasks.Task";
-            }
+            returnType = handler.ResultType is not null ?
+                $"global::System.Threading.Tasks.Task<{handler.ResultType.FullName}>"
+                : "global::System.Threading.Tasks.Task";
         }
 
         builder.AppendLine($"public static async {returnType} {methodName}_Handler(");
@@ -323,14 +305,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"var ctx = new {InvocationContextType}");
             builder.BeginBlock();
 
-            if (handler.Kind == HandlerKind.Event)
-            {
-                builder.AppendLine("Request = ev,");
-            }
-            else
-            {
-                builder.AppendLine("Request = request,");
-            }
+            builder.AppendLine(handler.Kind == HandlerKind.Event ? "Request = ev," : "Request = request,");
 
             builder.AppendLine("LambdaContext = context,");
             builder.AppendLine("CancellationToken = default,");
@@ -805,14 +780,7 @@ internal static class LambdaSourceBuilder
             if (handler.ResultType is not null)
             {
                 builder.AppendLine($"var __result__ = {awaitPrefix}__target__.{handler.MethodName}({args});");
-                if (hasFilter)
-                {
-                    builder.AppendLine("ctx.Result = __result__;");
-                }
-                else
-                {
-                    builder.AppendLine("return __result__;");
-                }
+                builder.AppendLine(hasFilter ? "ctx.Result = __result__;" : "return __result__;");
             }
             else
             {
@@ -892,14 +860,7 @@ internal static class LambdaSourceBuilder
             }
             else
             {
-                if (hasFilter)
-                {
-                    builder.AppendLine($"return ({V2ResponseType})ctx.Result!;");
-                }
-                else
-                {
-                    builder.AppendLine("return __result__;");
-                }
+                builder.AppendLine(hasFilter ? $"return ({V2ResponseType})ctx.Result!;" : "return __result__;");
             }
         }
     }
@@ -924,8 +885,10 @@ internal static class LambdaSourceBuilder
                     }
                     else
                     {
-                        // TODO 判定の意味がないのが、元の意図を再確認
-                        argParts.Add(hasFilter ? "request" : "request");
+                        // フィルター有無に関わらず request 変数は同名でスコープに存在する
+                        // (フィルター時は __Inner__ のローカル、非フィルター時はハンドラー引数)
+                        // 'request' is in scope either way: a local in __Inner__ (filter) or the handler parameter (no filter)
+                        argParts.Add("request");
                     }
                     break;
                 case ParameterBindingKind.Context:
@@ -942,6 +905,7 @@ internal static class LambdaSourceBuilder
 
     private static ParameterModel? GetRequestParam(HandlerModel handler)
     {
+        // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var p in handler.Parameters)
         {
             if (p.BindingKind == ParameterBindingKind.Request)

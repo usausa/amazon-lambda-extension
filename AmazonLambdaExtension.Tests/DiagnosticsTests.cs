@@ -7,7 +7,7 @@ public sealed class DiagnosticsTests
 {
     private static List<string> GetDiagnosticIds(string source)
     {
-        var (_, diagnostics) = CompilationHelper.RunGeneratorWithDiagnostics(source);
+        var diagnostics = CompilationHelper.RunGeneratorWithDiagnostics(source);
         return diagnostics.Select(d => d.Id).ToList();
     }
 

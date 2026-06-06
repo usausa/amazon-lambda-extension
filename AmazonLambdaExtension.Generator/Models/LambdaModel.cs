@@ -8,7 +8,7 @@ internal sealed record LambdaModel(
     TypeRefModel FunctionType,
     EquatableArray<TypeRefModel> ConstructorParameters,
     ServiceResolverModel? ServiceResolver,
-    EquatableArray<FilterDescriptorModel> Filters,
+    EquatableArray<TypeRefModel> Filters,
     EquatableArray<HandlerModel> Handlers);
 
 internal sealed record HandlerModel(
@@ -57,11 +57,6 @@ internal sealed record TypeRefModel(
     TypeRefModel? UnderlyingType,
     bool IsArray,
     TypeRefModel? ElementType);
-
-internal sealed record FilterDescriptorModel(
-    int Index,
-    TypeRefModel FilterType,
-    int Order);
 
 internal sealed record ServiceResolverModel(
     TypeRefModel Type);

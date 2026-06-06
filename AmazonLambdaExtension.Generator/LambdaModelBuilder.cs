@@ -11,6 +11,7 @@ using SourceGenerateHelper;
 
 internal static class LambdaModelBuilder
 {
+    // ReSharper disable InconsistentNaming
     private const string ServiceResolverAttributeName = "AmazonLambdaExtension.Annotations.ServiceResolverAttribute";
     private const string FilterAttributeName = "AmazonLambdaExtension.Annotations.FilterAttribute`1";
     private const string HttpApiAttributeName = "AmazonLambdaExtension.Annotations.HttpApiAttribute";
@@ -32,6 +33,7 @@ internal static class LambdaModelBuilder
     private const string HttpApiRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest";
     private const string HttpApiAuthorizerRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";
     private const string LambdaContextFullName = "Amazon.Lambda.Core.ILambdaContext";
+    // ReSharper restore InconsistentNaming
 
     public static Result<LambdaModel> BuildLambdaModel(GeneratorAttributeSyntaxContext context)
     {
@@ -163,12 +165,9 @@ internal static class LambdaModelBuilder
             .Where(static x => IsFilterAttribute(x.Attribute))
             .OrderBy(static x => GetFilterOrder(x.Attribute))
             .ThenBy(static x => x.AttributeIndex)
-            .Select(static (x, i) => (
+            .Select(static x => (
                 x.Attribute,
-                Descriptor: new FilterDescriptorModel(
-                    i,
-                    MakeTypeRef(x.Attribute.AttributeClass!.TypeArguments[0]),
-                    GetFilterOrder(x.Attribute))))
+                FilterType: MakeTypeRef(x.Attribute.AttributeClass!.TypeArguments[0])))
             .ToArray();
 
         foreach (var filter in sortedFilters)
@@ -184,7 +183,7 @@ internal static class LambdaModelBuilder
                 diagnostics.Add(new DiagnosticInfo(
                     Diagnostics.FilterNotImplementILambdaFilter,
                     syntax.GetLocation(),
-                    filter.Descriptor.FilterType.FullName));
+                    filter.FilterType.FullName));
             }
 
             // [ServiceResolver] が無い場合、生成コードは Lambda クラス内で new FilterType() を出力する
@@ -198,7 +197,7 @@ internal static class LambdaModelBuilder
                     diagnostics.Add(new DiagnosticInfo(
                         Diagnostics.AbstractFilter,
                         syntax.GetLocation(),
-                        filter.Descriptor.FilterType.FullName));
+                        filter.FilterType.FullName));
                 }
                 else if (!HasAccessibleParameterlessConstructor(filterTypeSym, symbol, compilation))
                 {
@@ -207,7 +206,7 @@ internal static class LambdaModelBuilder
                     diagnostics.Add(new DiagnosticInfo(
                         Diagnostics.FilterNoParameterlessCtor,
                         syntax.GetLocation(),
-                        filter.Descriptor.FilterType.FullName));
+                        filter.FilterType.FullName));
                 }
             }
         }
@@ -245,16 +244,15 @@ internal static class LambdaModelBuilder
 
         // 同名ハンドラー（オーバーロード）は生成名・hint name が衝突するため診断で停止する
         // Overloaded handlers collide in generated method names and hint names, so stop with a diagnostic
+        // ReSharper disable LoopCanBeConvertedToQuery
         foreach (var overloadGroup in handlerMethods.GroupBy(static m => m.Name).Where(static g => g.Count() > 1))
         {
             foreach (var overload in overloadGroup)
             {
-                diagnostics.Add(new DiagnosticInfo(
-                    Diagnostics.OverloadedHandler,
-                    GetLocation(overload),
-                    overload.Name));
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.OverloadedHandler, GetLocation(overload), overload.Name));
             }
         }
+        // ReSharper restore LoopCanBeConvertedToQuery
 
         // フェーズ8: エラーがなければ LambdaModel を組み立て、warning を添えて返す
         // Phase 8: Build the LambdaModel when no errors remain and return it with warnings
@@ -269,7 +267,7 @@ internal static class LambdaModelBuilder
             functionType,
             new EquatableArray<TypeRefModel>(ctorParams),
             serviceResolver,
-            new EquatableArray<FilterDescriptorModel>(sortedFilters.Select(static x => x.Descriptor).ToArray()),
+            new EquatableArray<TypeRefModel>(sortedFilters.Select(static x => x.FilterType).ToArray()),
             new EquatableArray<HandlerModel>(handlers.ToArray()));
 
         return new Result<LambdaModel>(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
@@ -817,7 +815,7 @@ internal static class LambdaModelBuilder
         };
     }
 
-    internal static TypeRefModel MakeTypeRef(ITypeSymbol type)
+    private static TypeRefModel MakeTypeRef(ITypeSymbol type)
     {
         // Nullable<T> / 配列を再帰的に表現できる TypeRefModel へ正規化する
         // Normalize the Roslyn type into a recursive TypeRefModel that can represent Nullable<T> and arrays
