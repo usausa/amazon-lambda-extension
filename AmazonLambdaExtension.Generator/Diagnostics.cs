@@ -2,13 +2,8 @@ namespace AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
 
-// 診断 ID は LambdaModelBuilder の処理フェーズ順に採番している。
-// Diagnostic IDs are numbered to follow the processing phases in LambdaModelBuilder.
 internal static class Diagnostics
 {
-    // ===== フェーズ2: [Lambda] クラス構造の検証 =====
-    // Phase 2: [Lambda] class structure validation
-
     public static DiagnosticDescriptor NotPartialClass { get; } = new(
         id: "ALE0001",
         title: "[Lambda] class must be partial",
@@ -49,9 +44,6 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // ===== フェーズ4: DI / インスタンス生成 ([ServiceResolver] とコンストラクタ) =====
-    // Phase 4: DI / instantiation ([ServiceResolver] and constructors)
-
     public static DiagnosticDescriptor InvalidServiceResolverType { get; } = new(
         id: "ALE0006",
         title: "ServiceResolver type does not have an accessible ConfigureServices method",
@@ -76,9 +68,6 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    // ===== フェーズ5: フィルター型の検証 =====
-    // Phase 5: Filter type contract validation
-
     public static DiagnosticDescriptor FilterNotImplementILambdaFilter { get; } = new(
         id: "ALE0009",
         title: "Filter type does not implement ILambdaFilter",
@@ -102,9 +91,6 @@ internal static class Diagnostics
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-
-    // ===== フェーズ6: ハンドラー / パラメータの検証 =====
-    // Phase 6: Handler / parameter validation
 
     public static DiagnosticDescriptor NoHandlerAttribute { get; } = new(
         id: "ALE0012",
@@ -193,9 +179,6 @@ internal static class Diagnostics
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-
-    // ===== フェーズ7: ハンドラー収集後のクラス単位検証 =====
-    // Phase 7: Class-level follow-up validation after handlers are collected
 
     public static DiagnosticDescriptor MissingServiceResolverForFromServices { get; } = new(
         id: "ALE0023",
