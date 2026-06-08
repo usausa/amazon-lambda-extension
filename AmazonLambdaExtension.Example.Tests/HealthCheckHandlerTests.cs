@@ -3,8 +3,6 @@ namespace AmazonLambdaExtension.Example.Tests;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 
-using AmazonLambdaExtension.Example.Functions;
-
 public class HealthCheckHandlerTests
 {
     [Fact]
@@ -19,7 +17,7 @@ public class HealthCheckHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await HealthCheck.Ping_Handler(req, ctx);
+        var response = await HealthCheckFunction.Ping_Handler(req, ctx);
 
         Assert.Equal(200, response.StatusCode);
     }

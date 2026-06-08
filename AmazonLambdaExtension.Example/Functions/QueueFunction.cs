@@ -8,11 +8,11 @@ using AmazonLambdaExtension.Example.Services;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-public partial class QueueProcessor
+public partial class QueueFunction
 {
     private readonly IProcessor processor;
 
-    public QueueProcessor(IProcessor processor)
+    public QueueFunction(IProcessor processor)
     {
         this.processor = processor;
     }

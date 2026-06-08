@@ -10,11 +10,11 @@ using AmazonLambdaExtension.Example.Services;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
-public partial class CrudFunctions
+public partial class CrudFunction
 {
     private readonly DataService data;
 
-    public CrudFunctions(DataService data)
+    public CrudFunction(DataService data)
     {
         this.data = data;
     }

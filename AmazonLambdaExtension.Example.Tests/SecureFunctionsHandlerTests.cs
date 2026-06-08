@@ -3,8 +3,6 @@ namespace AmazonLambdaExtension.Example.Tests;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 
-using AmazonLambdaExtension.Example.Functions;
-
 public class SecureFunctionsHandlerTests
 {
     private static APIGatewayHttpApiV2ProxyRequest MakeRequest(Dictionary<string, string>? headers = null)
@@ -26,7 +24,7 @@ public class SecureFunctionsHandlerTests
         var req = MakeRequest(new Dictionary<string, string> { ["x-api-key"] = "expected" });
         var ctx = new TestLambdaContext();
 
-        var response = await SecureFunctions.GetItem_Handler(req, ctx);
+        var response = await SecureFunction.GetItem_Handler(req, ctx);
 
         Assert.Equal(200, response.StatusCode);
     }
@@ -37,7 +35,7 @@ public class SecureFunctionsHandlerTests
         var req = MakeRequest();
         var ctx = new TestLambdaContext();
 
-        var response = await SecureFunctions.GetItem_Handler(req, ctx);
+        var response = await SecureFunction.GetItem_Handler(req, ctx);
 
         Assert.Equal(401, response.StatusCode);
     }

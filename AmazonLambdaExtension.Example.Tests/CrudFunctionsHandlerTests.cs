@@ -5,8 +5,6 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 
-using AmazonLambdaExtension.Example.Functions;
-
 public class CrudFunctionsHandlerTests
 {
     private static APIGatewayHttpApiV2ProxyRequest MakeRequest(
@@ -40,7 +38,7 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "1" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunction.GetItem_Handler(req, ctx);
 
         Assert.Equal(200, response.StatusCode);
     }
@@ -53,7 +51,7 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "0" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunction.GetItem_Handler(req, ctx);
 
         Assert.Equal(404, response.StatusCode);
     }
@@ -66,7 +64,7 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "notanumber" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunction.GetItem_Handler(req, ctx);
 
         Assert.Equal(400, response.StatusCode);
     }
@@ -79,7 +77,7 @@ public class CrudFunctionsHandlerTests
             headers: new Dictionary<string, string> { ["x-tenant-id"] = "tenant-a" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.ListItems_Handler(req, ctx);
+        var response = await CrudFunction.ListItems_Handler(req, ctx);
 
         Assert.Equal(200, response.StatusCode);
     }
@@ -102,7 +100,7 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunction.CreateItem_Handler(req, ctx);
 
         Assert.Equal(201, response.StatusCode);
     }
@@ -121,7 +119,7 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunction.CreateItem_Handler(req, ctx);
 
         Assert.Equal(400, response.StatusCode);
     }
@@ -141,7 +139,7 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunction.CreateItem_Handler(req, ctx);
 
         Assert.Equal(403, response.StatusCode);
     }
@@ -161,7 +159,7 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunction.CreateItem_Handler(req, ctx);
 
         Assert.Equal(400, response.StatusCode);
     }
@@ -181,7 +179,7 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunction.CreateItem_Handler(req, ctx);
 
         Assert.Equal(400, response.StatusCode);
     }
@@ -192,7 +190,7 @@ public class CrudFunctionsHandlerTests
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "valid-token" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.Authorize_Handler(req, ctx);
+        var response = await CrudFunction.Authorize_Handler(req, ctx);
 
         Assert.True(response.IsAuthorized);
     }
@@ -203,7 +201,7 @@ public class CrudFunctionsHandlerTests
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "bad-token" });
         var ctx = new TestLambdaContext();
 
-        var response = await CrudFunctions.Authorize_Handler(req, ctx);
+        var response = await CrudFunction.Authorize_Handler(req, ctx);
 
         Assert.False(response.IsAuthorized);
     }

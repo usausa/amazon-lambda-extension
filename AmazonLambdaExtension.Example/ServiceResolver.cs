@@ -18,11 +18,8 @@ public static class ServiceResolver
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<ILambdaSerializer>(
-            new SourceGeneratorLambdaJsonSerializer<AppJsonContext>());
-
+        services.AddSingleton<ILambdaSerializer>(new SourceGeneratorLambdaJsonSerializer<AppJsonContext>());
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
-
         services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
 
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
