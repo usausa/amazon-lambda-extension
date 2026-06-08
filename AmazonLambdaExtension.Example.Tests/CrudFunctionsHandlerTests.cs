@@ -7,8 +7,6 @@ using Amazon.Lambda.TestUtilities;
 
 using AmazonLambdaExtension.Example;
 
-using Xunit;
-
 public class CrudFunctionsHandlerTests
 {
     private static APIGatewayHttpApiV2ProxyRequest MakeRequest(

@@ -5,10 +5,6 @@ using Amazon.Lambda.TestUtilities;
 
 using AmazonLambdaExtension.Example;
 
-using Xunit;
-
-// フィルター付きハンドラ（LoggingFilter + ApiKeyFilter）の結合テスト。
-// 生成ハンドラを実行し、フィルターパイプラインが実際に効くことを検証する。
 public class SecureFunctionsHandlerTests
 {
     private static APIGatewayHttpApiV2ProxyRequest MakeRequest(Dictionary<string, string>? headers = null)

@@ -1,7 +1,5 @@
 namespace AmazonLambdaExtension;
 
-using Xunit;
-
 // LambdaGenerator の診断（ALE0001〜ALE0024）の発生条件を、対象 ID 順に検証するテスト。
 public sealed class DiagnosticsTests
 {
@@ -12,7 +10,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenNotPartial_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -28,7 +27,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenPartial_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -45,7 +45,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenLambdaClassIsGeneric_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -62,7 +63,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenTopLevelNonGeneric_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public sealed class MyEvent { }
@@ -82,7 +84,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenLambdaClassIsNested_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public partial class Outer
@@ -102,7 +105,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenLambdaClassIsRecord_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public sealed class MyEvent { }
@@ -120,7 +124,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenLambdaClassIsAbstract_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public sealed class MyEvent { }
@@ -138,7 +143,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenServiceResolverMissingConfigureServices_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -156,7 +162,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenInternalResolverWithAccessibleConfigureServices_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using Microsoft.Extensions.DependencyInjection;
@@ -180,7 +187,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenCtorParamsButNoServiceResolver_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public interface IService { }
@@ -200,7 +208,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenNoParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public sealed class MyEvent { }
@@ -219,7 +228,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenParameterlessCtorsWithoutServiceResolver_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using System.Threading.Tasks;
             using AmazonLambdaExtension.Annotations;
@@ -245,7 +255,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenFilterTypeNotImplementILambdaFilter_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -265,7 +276,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenAbstractFilterWithoutServiceResolver_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using System.Threading.Tasks;
             using AmazonLambdaExtension.Annotations;
@@ -290,7 +302,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenFilterHasNoPublicParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using System.Threading.Tasks;
             using AmazonLambdaExtension.Annotations;
@@ -315,7 +328,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenInternalFilterWithAccessibleCtor_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using System.Threading.Tasks;
             using AmazonLambdaExtension.Annotations;
@@ -340,7 +354,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenMultipleHandlerAttributes_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -359,7 +374,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenAuthorizerMethodMissing_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -377,7 +393,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenMultipleBindingAttributes_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -395,7 +412,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenFromBodyOnEventHandler_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -412,7 +430,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenInvalidBindingOnEventHandler_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -429,7 +448,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenFromAuthorizerOutsideHttpApi_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -446,7 +466,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenUnsupportedBindingType_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -465,7 +486,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenEventHandlerHasNoPayload_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using Amazon.Lambda.Core;
@@ -483,7 +505,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenEventHandlerHasMultiplePayloads_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public sealed class EventA { }
@@ -502,7 +525,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenEventHandlerHasSinglePayload_NoDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using Amazon.Lambda.Core;
@@ -522,7 +546,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenAuthorizerInvalidReturnType_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             [Lambda]
@@ -539,7 +564,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenFromServicesWithoutServiceResolver_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             public interface IService { }
@@ -558,7 +584,8 @@ public sealed class DiagnosticsTests
     [Fact]
     public void WhenHandlerIsOverloaded_ReportsDiagnostic()
     {
-        var ids = GetDiagnosticIds("""
+        var ids = GetDiagnosticIds(
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;

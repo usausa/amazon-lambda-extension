@@ -5,8 +5,6 @@ using Amazon.Lambda.TestUtilities;
 
 using AmazonLambdaExtension.Example;
 
-using Xunit;
-
 public class HealthCheckHandlerTests
 {
     [Fact]

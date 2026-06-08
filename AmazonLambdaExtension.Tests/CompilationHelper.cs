@@ -14,8 +14,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyInjection;
 
-using Xunit;
-
 internal static class CompilationHelper
 {
     private const string GlobalUsings =

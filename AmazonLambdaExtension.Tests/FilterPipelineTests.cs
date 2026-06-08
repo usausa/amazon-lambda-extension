@@ -3,8 +3,6 @@ namespace AmazonLambdaExtension;
 
 using AmazonLambdaExtension.Filters;
 
-using Xunit;
-
 public sealed class FilterPipelineTests
 {
     [Fact]

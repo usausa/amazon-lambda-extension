@@ -1,9 +1,5 @@
 namespace AmazonLambdaExtension;
 
-using Xunit;
-
-// LambdaGenerator が生成するコードを機能ごとに検証するテスト。
-// 生成コードがコンパイル可能であること（AssertNoGeneratorErrors）も合わせて確認する。
 public sealed class GeneratorTests(ITestOutputHelper output)
 {
     // ---------------------------------------------------------------------------
@@ -13,7 +9,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenNoServiceResolver_ServiceResolverIsNull()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -36,7 +33,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void SharedFields_GeneratesStaticReadonlyProvider()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -72,7 +70,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void DiHandler_NoFilterNoFromServices_DoesNotCreateScope()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -107,7 +106,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenEventHandler_GeneratesHandlerMethod()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -130,7 +130,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void EventHandler_NoFilter_GeneratesCorrectStructure()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using Amazon.Lambda.SQSEvents;
@@ -160,7 +161,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void EventHandler_WithFromServices_NoFilter_GeneratesServiceBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -204,7 +206,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenHttpApiHandler_GeneratesHandlerMethod()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -225,7 +228,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFunctionUrlHandler_GeneratesHandlerMethod()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -250,7 +254,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_IHttpResultReturn_NoFilter_GeneratesResponseReturn()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -276,7 +281,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_PocoReturn_NoFilter_WrapsWithHttpResultsOk()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -306,7 +312,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_ProxyResponseReturn_NoFilter_ReturnsDirectly()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using Amazon.Lambda.APIGatewayEvents;
@@ -336,7 +343,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromQuery_GeneratesQueryStringBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -358,7 +366,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromRoute_GeneratesPathParameterBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -380,7 +389,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromHeader_GeneratesHeaderBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -402,7 +412,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromQueryArray_GeneratesArrayBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -425,7 +436,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenIntParameter_GeneratesStringConverterCall()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -447,7 +459,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_FromRouteAndQuery_GeneratesCorrectBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -476,7 +489,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_FromQueryArray_GeneratesArrayBinding()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -505,7 +519,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_NullableQueryDefault_BindsDefaultValue()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -530,7 +545,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_EnumQueryDefault_BindsDefaultValue()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -556,7 +572,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_StringQueryDefault_BindsDefaultValue()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -580,7 +597,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_NumericQueryDefault_UsesInvariantCulture()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -609,7 +627,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromServices_GeneratesServiceProviderResolution()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -638,7 +657,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFromServicesWithKey_GeneratesKeyedServiceResolution()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -672,7 +692,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void FromBody_WithValidation_GeneratesRequestValidatorField()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -712,7 +733,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void FromBody_SkipValidate_DoesNotGenerateRequestValidatorField()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -745,7 +767,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void FromBody_WithoutServiceResolver_GeneratesDefaultSerializerAndValidator()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -772,7 +795,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_FromBodyNonNullable_GeneratesRequiredAndInvalidChecks()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -804,7 +828,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenFilterSpecified_GeneratesPipelineCode()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using System.Threading.Tasks;
@@ -843,7 +868,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void WhenNoFilter_DoesNotGeneratePipelineCode()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using AmazonLambdaExtension.Annotations;
@@ -866,7 +892,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void HttpApiHandler_WithFilter_GeneratesPipelineStructure()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using System.Threading.Tasks;
@@ -915,7 +942,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void AuthorizerHandler_GeneratesCorrectStructure()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using System.Threading.Tasks;
@@ -948,7 +976,8 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     [Fact]
     public void AuthorizerHandler_WithCustomAuthorizerRequest_UsesRouteArn()
     {
-        var result = CompilationHelper.RunGenerator("""
+        var result = CompilationHelper.RunGenerator(
+            """
             namespace Test;
 
             using Amazon.Lambda.APIGatewayEvents;
