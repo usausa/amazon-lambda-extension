@@ -1,10 +1,12 @@
-namespace AmazonLambdaExtension.Example;
+namespace AmazonLambdaExtension.Example.Functions;
 
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 
 using AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.APIGateway;
+using AmazonLambdaExtension.Example.Models;
+using AmazonLambdaExtension.Example.Services;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]
@@ -39,7 +41,7 @@ public partial class CrudFunctions
 
     [HttpApi(LambdaHttpMethod.Post, "/items", Authorizer = nameof(Authorize))]
     public async ValueTask<IHttpResult> CreateItem(
-        [FromBody] CreateItemInput input,
+        [FromBody] CreateItemRequest input,
         [FromAuthorizer("role")] string role)
     {
         if (role != "admin")

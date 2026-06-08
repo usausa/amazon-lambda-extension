@@ -1,9 +1,10 @@
-namespace AmazonLambdaExtension.Example;
+namespace AmazonLambdaExtension.Example.Functions;
 
 using Amazon.Lambda.Core;
 using Amazon.Lambda.SQSEvents;
 
 using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.Example.Services;
 
 [Lambda]
 [ServiceResolver(typeof(ServiceResolver))]

@@ -1,4 +1,4 @@
-namespace AmazonLambdaExtension.Example;
+namespace AmazonLambdaExtension.Example.Functions;
 
 using AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.APIGateway;

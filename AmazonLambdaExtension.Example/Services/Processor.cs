@@ -1,11 +1,11 @@
-namespace AmazonLambdaExtension.Example;
+namespace AmazonLambdaExtension.Example.Services;
 
 public interface IProcessor
 {
     ValueTask HandleAsync(string body);
 }
 
-public sealed class MockProcessor : IProcessor
+public sealed class Processor : IProcessor
 {
     public ValueTask HandleAsync(string body)
     {

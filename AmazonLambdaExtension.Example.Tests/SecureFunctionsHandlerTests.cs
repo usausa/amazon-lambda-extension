@@ -3,7 +3,7 @@ namespace AmazonLambdaExtension.Example.Tests;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 
-using AmazonLambdaExtension.Example;
+using AmazonLambdaExtension.Example.Functions;
 
 public class SecureFunctionsHandlerTests
 {

@@ -1,11 +1,10 @@
 namespace AmazonLambdaExtension.Example;
 
-using System.Text.Json.Serialization;
-
-using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
+using AmazonLambdaExtension.Example.Filters;
+using AmazonLambdaExtension.Example.Services;
 using AmazonLambdaExtension.Serialization;
 using AmazonLambdaExtension.Validation;
 
@@ -29,7 +28,7 @@ public static class ServiceResolver
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         services.AddSingleton<DataService>();
-        services.AddSingleton<IProcessor, MockProcessor>();
+        services.AddSingleton<IProcessor, Processor>();
 
         services.AddSingleton<LoggingFilter>();
         services.AddSingleton<ApiKeyFilter>();
@@ -37,10 +36,3 @@ public static class ServiceResolver
         return services;
     }
 }
-
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-[JsonSerializable(typeof(CreateItemInput))]
-[JsonSerializable(typeof(Item))]
-[JsonSerializable(typeof(Item[]))]
-[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
-internal sealed partial class AppJsonContext : JsonSerializerContext;

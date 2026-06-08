@@ -1,7 +1,9 @@
-namespace AmazonLambdaExtension.Example;
+namespace AmazonLambdaExtension.Example.Functions;
 
 using AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.APIGateway;
+using AmazonLambdaExtension.Example.Filters;
+using AmazonLambdaExtension.Example.Models;
 
 #pragma warning disable CA1822
 [Lambda]
@@ -12,6 +14,6 @@ public partial class SecureFunctions
 {
     [HttpApi(LambdaHttpMethod.Get, "/secure/items/{id}")]
     public ValueTask<HttpResult> GetItem([FromRoute] string id)
-        => ValueTask.FromResult(HttpResults.Ok(new Item { Id = id }));
+        => ValueTask.FromResult(HttpResults.Ok(new ItemResponse { Id = id }));
 }
 #pragma warning restore CA1822
