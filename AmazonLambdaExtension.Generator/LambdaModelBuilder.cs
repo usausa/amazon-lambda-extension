@@ -505,7 +505,7 @@ internal static class LambdaModelBuilder
                     Diagnostics.InvalidEventBinding,
                     GetLocation(param),
                     method.Name,
-                    $"[{GetAttributeDisplayName(explicitBinding)}]",
+                    GetAttributeDisplayName(explicitBinding),
                     param.Name));
             }
         }
