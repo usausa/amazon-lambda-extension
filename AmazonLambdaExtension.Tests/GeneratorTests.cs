@@ -2,9 +2,9 @@ namespace AmazonLambdaExtension;
 
 public sealed class GeneratorTests(ITestOutputHelper output)
 {
-    // ---------------------------------------------------------------------------
-    // 共有フィールド / DI スコープ
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // ServiceResolver
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenNoServiceResolver_ServiceResolverIsNull()
@@ -99,9 +99,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.DoesNotContain("CreateAsyncScope", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // [Event] ハンドラ
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // Event handler
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenEventHandler_GeneratesHandlerMethod()
@@ -199,9 +199,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Contains("__target__.Handle(ev, p1!)", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // [HttpApi] / [FunctionUrl] ハンドラ
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // HttpApi / FunctionUrl handler
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenHttpApiHandler_GeneratesHandlerMethod()
@@ -247,9 +247,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Single(result.Sources.Values, s => s.Contains("Ping_Handler", StringComparison.Ordinal));
     }
 
-    // ---------------------------------------------------------------------------
-    // [HttpApi] 戻り値の種別（IHttpResult / POCO / ProxyResponse）
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // HttpApi result
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void HttpApiHandler_IHttpResultReturn_NoFilter_GeneratesResponseReturn()
@@ -336,9 +336,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.DoesNotContain(".ToResponse(", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // パラメータバインド（FromRoute / FromQuery / FromHeader / 配列 / 変換）
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // Parameter binding
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenFromQuery_GeneratesQueryStringBinding()
@@ -512,9 +512,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Contains("new int[", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // 既定値バインド（省略可能パラメータ）
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // Default value binding
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void HttpApiHandler_NullableQueryDefault_BindsDefaultValue()
@@ -620,9 +620,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.DoesNotContain("1,5", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // [FromServices]
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // FromServices
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenFromServices_GeneratesServiceProviderResolution()
@@ -685,9 +685,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Contains("\"primary\"", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // [FromBody]（バリデーション / SkipValidate / 既定実装 / 必須・不正JSON）
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // FromBody
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void FromBody_WithValidation_GeneratesRequestValidatorField()
@@ -821,9 +821,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Contains("Request body is required.", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // フィルターパイプライン
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // Filter pipeline
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void WhenFilterSpecified_GeneratesPipelineCode()
@@ -935,9 +935,9 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.Contains("ctx.Result", handlerSource, StringComparison.Ordinal);
     }
 
-    // ---------------------------------------------------------------------------
-    // [HttpApiAuthorizer]
-    // ---------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    // HttpApiAuthorizer
+    //--------------------------------------------------------------------------------
 
     [Fact]
     public void AuthorizerHandler_GeneratesCorrectStructure()
