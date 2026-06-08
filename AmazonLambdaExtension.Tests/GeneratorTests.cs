@@ -3,7 +3,7 @@ namespace AmazonLambdaExtension;
 public sealed class GeneratorTests(ITestOutputHelper output)
 {
     //--------------------------------------------------------------------------------
-    // ServiceResolver
+    // Service resolution
     //--------------------------------------------------------------------------------
 
     [Fact]
