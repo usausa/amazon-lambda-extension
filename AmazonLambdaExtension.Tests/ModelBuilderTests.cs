@@ -325,7 +325,7 @@ using AmazonLambdaExtension.APIGateway;
 [Lambda]
 public sealed partial class HealthCheck
 {
-    [FunctionUrl(AuthType = FunctionUrlAuthType.NONE)]
+    [FunctionUrl]
     public IHttpResult Ping()
         => HttpResults.Ok(new { });
 }

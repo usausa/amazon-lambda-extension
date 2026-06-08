@@ -7,12 +7,7 @@ using AmazonLambdaExtension.APIGateway;
 [Lambda]
 public partial class HealthCheck
 {
-    [FunctionUrl(
-        AuthType = FunctionUrlAuthType.None,
-        AllowOrigins = ["*"],
-        AllowMethods = ["GET"],
-        AllowHeaders = ["Content-Type"],
-        MaxAge = 300)]
+    [FunctionUrl]
     public IHttpResult Ping()
         => HttpResults.Ok(new { status = "ok", timestamp = DateTime.UtcNow });
 }

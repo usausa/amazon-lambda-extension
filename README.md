@@ -238,10 +238,7 @@ public partial class QueueProcessor
 [Lambda]
 public partial class HealthCheck
 {
-    [FunctionUrl(
-        AuthType = FunctionUrlAuthType.NONE,
-        AllowOrigins = new[] { "*" },
-        AllowMethods = new[] { "GET" })]
+    [FunctionUrl]
     public IHttpResult Ping()
         => HttpResults.Ok(new { status = "ok", timestamp = DateTime.UtcNow });
 }
@@ -292,7 +289,7 @@ For AOT, just use the `JsonSerializerContext` constructor in your `ServiceResolv
 This library only generates wrapper code (Source Generator output). The following are intentionally out of scope.
 
 - **API Gateway HTTP API (V2) only** — REST API (V1) / `[RestApi]` / `[RestApiAuthorizer]`, and the HTTP API V1 payload are not supported.
-- **No config file generation** — It does not generate or sync `serverless.template` / CloudFormation / SAM. The CORS settings of `[FunctionUrl]` and `Authorizer = nameof(...)` are used only for holding attribute values and diagnostics, not for emitting infrastructure definitions.
+- **No config file generation** — It does not generate or sync `serverless.template` / CloudFormation / SAM. `[FunctionUrl]` is a marker attribute only (auth/CORS settings such as `AuthType` are configured on the SAM / CDK side), and `Authorizer = nameof(...)` is used only for diagnostics, not for emitting infrastructure definitions.
 - **No method-level infrastructure settings** — Settings such as `Timeout` / `MemorySize` / `Role` / `Policies` / `PackageType` (equivalent to `[LambdaFunction]`) should be configured on the SAM / CDK side.
 
 ## License
