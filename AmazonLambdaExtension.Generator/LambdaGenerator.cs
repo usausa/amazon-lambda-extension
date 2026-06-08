@@ -42,7 +42,6 @@ public sealed class LambdaGenerator : IIncrementalGenerator
         {
             context.CancellationToken.ThrowIfCancellationRequested();
 
-            // Emit shared static fields once per class
             builder.Clear();
             LambdaSourceBuilder.BuildShared(builder, model);
             context.AddSource(
