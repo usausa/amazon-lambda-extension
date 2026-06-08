@@ -15,7 +15,6 @@ internal static class LambdaSourceBuilder
     private const string FilterDelegateType = "global::AmazonLambdaExtension.Filters.LambdaFilterDelegate";
     private const string HttpResultType = "global::AmazonLambdaExtension.APIGateway.IHttpResult";
     private const string HttpResultsType = "global::AmazonLambdaExtension.APIGateway.HttpResults";
-    private const string HttpResultOptionsType = "global::AmazonLambdaExtension.APIGateway.HttpResultSerializationOptions";
     private const string AuthorizerResultType = "global::AmazonLambdaExtension.APIGateway.IAuthorizerResult";
     private const string AuthorizerResultsType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResults";
     private const string AuthorizerSimpleResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2SimpleResponse";
@@ -88,13 +87,13 @@ internal static class LambdaSourceBuilder
         // Pre-check handler usage to determine which static fields are required
         var handlers = model.Handlers;
         var hasHttpHandler = handlers.Any(static h =>
-            (h.Kind == HandlerKind.HttpApi) ||
-            (h.Kind == HandlerKind.FunctionUrl) ||
-            (h.Kind == HandlerKind.HttpApiAuthorizer));
+            (h.Type == HandlerType.HttpApi) ||
+            (h.Type == HandlerType.FunctionUrl) ||
+            (h.Type == HandlerType.HttpApiAuthorizer));
         var hasBodyParam = handlers.Any(static h =>
-            h.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromBody));
+            h.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromBody));
         var hasValidation = handlers.Any(static h =>
-            h.Parameters.Any(static p => (p.BindingKind == ParameterBindingKind.FromBody) && !p.SkipValidation));
+            h.Parameters.Any(static p => (p.BindingType == ParameterBindingType.FromBody) && !p.SkipValidation));
 
         if (model.ServiceResolver is not null)
         {
@@ -104,7 +103,7 @@ internal static class LambdaSourceBuilder
             builder.NewLine();
             builder.AppendLine("private static global::System.IServiceProvider BuildProvider()");
             builder.BeginBlock();
-            builder.AppendLine($"var services = {model.ServiceResolver.Type.FullName}.ConfigureServices();");
+            builder.AppendLine($"var services = {model.ServiceResolver.FullName}.ConfigureServices();");
             builder.AppendLine($"return {BuildServiceProvider}(services, new {ServiceProviderOptionsType}");
             builder.BeginBlock();
             builder.AppendLine("#if DEBUG");
@@ -186,7 +185,7 @@ internal static class LambdaSourceBuilder
         builder.AppendLine($"    {InvocationContextType} ctx)");
         builder.BeginBlock();
 
-        if (handler.Kind != HandlerKind.Event)
+        if (handler.Type != HandlerType.Event)
         {
             // HTTPリクエストをコンテキストから取り出してローカル変数に割り当て
             // Extract HTTP request from context and assign to local variable
@@ -217,7 +216,7 @@ internal static class LambdaSourceBuilder
         // A per-invocation scope is needed only with DI when filters or [FromServices] are present
         return model.ServiceResolver is not null &&
             (model.Filters.Count > 0 ||
-             handler.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices));
+             handler.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromServices));
     }
 
     private static void BuildInlinePipeline(SourceBuilder builder, LambdaModel model, HandlerModel handler)
@@ -257,11 +256,11 @@ internal static class LambdaSourceBuilder
         // ハンドラー種別と戻り値型に応じた戻り値型文字列を決定
         // Determine the return type string based on handler kind and result type
         string returnType;
-        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             returnType = $"global::System.Threading.Tasks.Task<{AuthorizerResponseType(handler)}>";
         }
-        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
+        else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
         {
             returnType = $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
         }
@@ -274,7 +273,7 @@ internal static class LambdaSourceBuilder
 
         builder.AppendLine($"public static async {returnType} {methodName}_Handler(");
 
-        if (handler.Kind == HandlerKind.Event)
+        if (handler.Type == HandlerType.Event)
         {
             // Determine request param type
             var requestParam = GetRequestParam(handler);
@@ -306,7 +305,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"var ctx = new {InvocationContextType}");
             builder.BeginBlock();
 
-            builder.AppendLine(handler.Kind == HandlerKind.Event ? "Request = ev," : "Request = request,");
+            builder.AppendLine(handler.Type == HandlerType.Event ? "Request = ev," : "Request = request,");
 
             builder.AppendLine("LambdaContext = context,");
             builder.AppendLine("CancellationToken = default,");
@@ -326,7 +325,7 @@ internal static class LambdaSourceBuilder
         {
             // フィルターなし: パラメーターバインディングとハンドラー呼び出しを直接実行
             // Without filters: directly execute parameter binding and handler invocation
-            if (handler.Kind == HandlerKind.Event)
+            if (handler.Type == HandlerType.Event)
             {
                 BuildEventTryCatch(builder, handler);
             }
@@ -346,7 +345,7 @@ internal static class LambdaSourceBuilder
         builder.AppendLine("await __pipeline__(ctx);");
         builder.EndBlock();
 
-        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
@@ -354,7 +353,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: true)};");
             builder.EndBlock();
         }
-        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
+        else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
@@ -404,7 +403,7 @@ internal static class LambdaSourceBuilder
 
         builder.EndBlock();
 
-        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
@@ -473,7 +472,7 @@ internal static class LambdaSourceBuilder
     {
         var pVar = $"p{index}";
         var pRaw = $"p{index}raw";
-        var requestVar = handler.Kind == HandlerKind.Event ? "ev" : "request";
+        var requestVar = handler.Type == HandlerType.Event ? "ev" : "request";
         var typeName = param.Type.FullName;
         var key = param.Key;
 
@@ -487,19 +486,19 @@ internal static class LambdaSourceBuilder
                    $"Body = $\"Invalid parameter: {paramName}\" }};";
         }
 
-        switch (param.BindingKind)
+        switch (param.BindingType)
         {
-            case ParameterBindingKind.Request:
+            case ParameterBindingType.Request:
                 // request/ev 変数はメソッド引数にそのまま存在するため何も不要
                 // already in scope as 'request'
                 return;
 
-            case ParameterBindingKind.Context:
+            case ParameterBindingType.Context:
                 // context 変数はメソッド引数にそのまま存在するため何も不要
                 // already in scope as 'context'
                 return;
 
-            case ParameterBindingKind.FromServices:
+            case ParameterBindingType.FromServices:
                 // invocation scope からサービスを解決（フィルター内は ctx.ServiceProvider 経由）
                 // キー指定時は keyed service として解決する
                 // Resolve service from the invocation scope (via ctx.ServiceProvider inside filters)
@@ -514,7 +513,7 @@ internal static class LambdaSourceBuilder
                 builder.NewLine();
                 return;
 
-            case ParameterBindingKind.FromBody:
+            case ParameterBindingType.FromBody:
                 // リクエストボディをデシリアライズし、バリデーションを実行
                 // Deserialize request body and run validation unless skipped
                 builder.AppendLine($"var {pVar} = __bodySerializer__.Deserialize<{typeName}>({requestVar}.Body ?? string.Empty);");
@@ -536,7 +535,7 @@ internal static class LambdaSourceBuilder
                 builder.NewLine();
                 return;
 
-            case ParameterBindingKind.FromCustomAuthorizer:
+            case ParameterBindingType.FromCustomAuthorizer:
                 // Lambda オーソライザーが付与したカスタムコンテキストから値を取り出して変換
                 // Extract and convert value from custom authorizer context injected by Lambda authorizer
                 builder.AppendLine($"var {pVar} = default({typeName});");
@@ -572,7 +571,7 @@ internal static class LambdaSourceBuilder
                 builder.NewLine();
                 return;
 
-            case ParameterBindingKind.FromRoute:
+            case ParameterBindingType.FromRoute:
                 // パスパラメーターディクショナリから値を取得して型変換
                 // Retrieve and convert value from path parameters dictionary
                 BuildScalarOrArrayBinding(
@@ -584,7 +583,7 @@ internal static class LambdaSourceBuilder
                     $"{requestVar}.PathParameters");
                 return;
 
-            case ParameterBindingKind.FromQuery:
+            case ParameterBindingType.FromQuery:
                 // クエリストリングディクショナリから値を取得して型変換
                 // Retrieve and convert value from query string parameters dictionary
                 BuildScalarOrArrayBinding(
@@ -596,7 +595,7 @@ internal static class LambdaSourceBuilder
                     $"{requestVar}.QueryStringParameters");
                 return;
 
-            case ParameterBindingKind.FromHeader:
+            case ParameterBindingType.FromHeader:
                 // リクエストヘッダーディクショナリから値を取得して型変換
                 // Retrieve and convert value from request headers dictionary
                 BuildScalarOrArrayBinding(
@@ -760,7 +759,7 @@ internal static class LambdaSourceBuilder
         var args = BuildCallArgs(handler, hasFilter);
         var awaitPrefix = handler.IsAsync ? "await " : string.Empty;
 
-        if (handler.Kind == HandlerKind.Event)
+        if (handler.Type == HandlerType.Event)
         {
             if (handler.ResultType is not null)
             {
@@ -791,14 +790,14 @@ internal static class LambdaSourceBuilder
     {
         // ハンドラー種別に応じて結果をシリアライズまたは変換して返値を生成
         // Serialize or convert the result according to handler kind and generate the return statement
-        if (handler.Kind == HandlerKind.Event)
+        if (handler.Type == HandlerType.Event)
         {
             if (handler.ResultType is not null && hasFilter)
             {
                 builder.AppendLine($"return ({handler.ResultType.FullName})ctx.Result!;");
             }
         }
-        else if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        else if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             if (hasFilter)
             {
@@ -810,7 +809,7 @@ internal static class LambdaSourceBuilder
                 builder.AppendLine($"return {AuthorizerResponseCall(handler, "__result__", hasFilter: false)};");
             }
         }
-        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
+        else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
         {
             if (handler.ReturnsHttpResult)
             {
@@ -849,14 +848,14 @@ internal static class LambdaSourceBuilder
         // Build the argument string for the handler invocation based on binding kind and filter presence
         var parameters = handler.Parameters;
         var argParts = new List<string>();
-        var isEvent = handler.Kind == HandlerKind.Event;
+        var isEvent = handler.Type == HandlerType.Event;
 
         for (var i = 0; i < parameters.Count; i++)
         {
             var p = parameters[i];
-            switch (p.BindingKind)
+            switch (p.BindingType)
             {
-                case ParameterBindingKind.Request:
+                case ParameterBindingType.Request:
                     if (isEvent)
                     {
                         argParts.Add(hasFilter ? $"({p.Type.FullName})ctx.Request" : "ev");
@@ -869,7 +868,7 @@ internal static class LambdaSourceBuilder
                         argParts.Add("request");
                     }
                     break;
-                case ParameterBindingKind.Context:
+                case ParameterBindingType.Context:
                     argParts.Add(hasFilter ? "ctx.LambdaContext" : "context");
                     break;
                 default:
@@ -886,7 +885,7 @@ internal static class LambdaSourceBuilder
         // ReSharper disable once LoopCanBeConvertedToQuery
         foreach (var p in handler.Parameters)
         {
-            if (p.BindingKind == ParameterBindingKind.Request)
+            if (p.BindingType == ParameterBindingType.Request)
             {
                 return p;
             }
@@ -896,12 +895,12 @@ internal static class LambdaSourceBuilder
 
     private static string GetEntryRequestType(HandlerModel handler)
     {
-        if (handler.Kind == HandlerKind.Event)
+        if (handler.Type == HandlerType.Event)
         {
             return GetRequestParam(handler)?.Type.FullName ?? V2RequestType;
         }
 
-        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             return GetRequestParam(handler)?.Type.FullName ?? V2AuthorizerRequestType;
         }
@@ -913,14 +912,14 @@ internal static class LambdaSourceBuilder
     {
         // IHttpResult.ToResponse は明示的実装のため、IHttpResult へキャストして呼び出す
         // IHttpResult.ToResponse is an explicit implementation, so cast to IHttpResult before calling
-        return $"(({HttpResultType})({expression})).ToResponse(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }})";
+        return $"(({HttpResultType})({expression})).ToResponse(__lambdaSerializer__)";
     }
 
     private static string AuthorizerResponseType(HandlerModel handler)
     {
         // EnableSimpleResponses はコンパイル時に確定するため、応答型を静的に選択する
         // EnableSimpleResponses is known at compile time, so the response type is selected statically
-        return handler.Authorizer?.EnableSimpleResponses == false
+        return !handler.EnableSimpleResponses
             ? AuthorizerIamResponseType
             : AuthorizerSimpleResponseType;
     }
@@ -929,7 +928,7 @@ internal static class LambdaSourceBuilder
     {
         // ToSimpleResponse / ToIamResponse は明示的実装のため、IAuthorizerResult へキャストして呼び出す
         // ToSimpleResponse / ToIamResponse are explicit implementations, so cast to IAuthorizerResult before calling
-        return handler.Authorizer?.EnableSimpleResponses == false
+        return !handler.EnableSimpleResponses
             ? $"(({AuthorizerResultType})({expression})).ToIamResponse({GetAuthorizerRouteArnExpression(handler, hasFilter)})"
             : $"(({AuthorizerResultType})({expression})).ToSimpleResponse()";
     }

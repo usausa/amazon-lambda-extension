@@ -7,57 +7,6 @@ internal sealed record LambdaModel(
     string ClassName,
     TypeRefModel FunctionType,
     EquatableArray<TypeRefModel> ConstructorParameters,
-    ServiceResolverModel? ServiceResolver,
+    TypeRefModel? ServiceResolver,
     EquatableArray<TypeRefModel> Filters,
     EquatableArray<HandlerModel> Handlers);
-
-internal sealed record HandlerModel(
-    string MethodName,
-    HandlerKind Kind,
-    bool IsAsync,
-    TypeRefModel? ResultType,
-    bool ReturnsHttpResult,
-    bool ReturnsProxyResponse,
-    EquatableArray<ParameterModel> Parameters,
-    AuthorizerHandlerOptions? Authorizer);
-
-internal enum HandlerKind
-{
-    Event,
-    HttpApi,
-    FunctionUrl,
-    HttpApiAuthorizer
-}
-
-internal sealed record AuthorizerHandlerOptions(
-    bool EnableSimpleResponses);
-
-internal sealed record ParameterModel(
-    string Name,
-    TypeRefModel Type,
-    ParameterBindingKind BindingKind,
-    string Key,
-    string ConverterMethod,
-    bool SkipValidation);
-
-internal enum ParameterBindingKind
-{
-    Request,
-    Context,
-    FromQuery,
-    FromHeader,
-    FromRoute,
-    FromBody,
-    FromServices,
-    FromCustomAuthorizer
-}
-
-internal sealed record TypeRefModel(
-    string FullName,
-    bool IsNullable,
-    TypeRefModel? UnderlyingType,
-    bool IsArray,
-    TypeRefModel? ElementType);
-
-internal sealed record ServiceResolverModel(
-    TypeRefModel Type);

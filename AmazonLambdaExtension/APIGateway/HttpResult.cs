@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 
 using Amazon.Lambda.APIGatewayEvents;
+using Amazon.Lambda.Core;
 
 public sealed class HttpResult : IHttpResult
 {
@@ -34,7 +35,7 @@ public sealed class HttpResult : IHttpResult
         return this;
     }
 
-    APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(HttpResultSerializationOptions options)
+    APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(ILambdaSerializer serializer)
     {
         if (body is not null)
         {
@@ -69,7 +70,7 @@ public sealed class HttpResult : IHttpResult
                 default:
                     using (MemoryStream buffer = new())
                     {
-                        options.Serializer.Serialize(body, buffer);
+                        serializer.Serialize(body, buffer);
                         response.Body = Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
                     }
                     contentType = "application/json";

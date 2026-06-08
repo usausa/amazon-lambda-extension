@@ -107,7 +107,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ4: [ServiceResolver] と ConfigureServices() 契約を検証
         // Phase 4: Validate [ServiceResolver] usage and the ConfigureServices() contract
-        ServiceResolverModel? serviceResolver = null;
+        TypeRefModel? serviceResolver = null;
         var serviceResolverAttr = symbol.GetAttributes()
             .FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == ServiceResolverAttributeName);
         if (serviceResolverAttr is not null &&
@@ -134,7 +134,7 @@ internal static class LambdaModelBuilder
             }
             else
             {
-                serviceResolver = new ServiceResolverModel(MakeTypeRef(resolverType));
+                serviceResolver = MakeTypeRef(resolverType);
             }
         }
         else if (ctorParams.Length > 0)
@@ -237,7 +237,7 @@ internal static class LambdaModelBuilder
         // フェーズ7: 収集済みハンドラー一覧に基づくクラス単位の後続制約を検証
         // Phase 7: Run follow-up class-level validation based on the collected handlers
         if (serviceResolver is null &&
-            handlers.Any(static h => h.Parameters.Any(static p => p.BindingKind == ParameterBindingKind.FromServices)))
+            handlers.Any(static h => h.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromServices)))
         {
             diagnostics.Add(new DiagnosticInfo(
                 Diagnostics.MissingServiceResolverForFromServices,
@@ -286,8 +286,8 @@ internal static class LambdaModelBuilder
 
         // フェーズ2: ハンドラー属性を走査して種別と付随設定を決定
         // Phase 2: Scan handler attributes to determine its kind and options
-        HandlerKind? kind = null;
-        AuthorizerHandlerOptions? authorizerOptions = null;
+        HandlerType? handlerType = null;
+        var enableSimpleResponses = true;
         string? authorizerMethodName = null;
         var handlerAttrCount = 0;
 
@@ -297,30 +297,29 @@ internal static class LambdaModelBuilder
             if (attrName == HttpApiAttributeName)
             {
                 handlerAttrCount++;
-                kind = HandlerKind.HttpApi;
+                handlerType = HandlerType.HttpApi;
                 authorizerMethodName = GetNamedStringArgument(attr, "Authorizer");
             }
             else if (attrName == FunctionUrlAttributeName)
             {
                 handlerAttrCount++;
-                kind = HandlerKind.FunctionUrl;
+                handlerType = HandlerType.FunctionUrl;
             }
             else if (attrName == HttpApiAuthorizerAttributeName)
             {
                 handlerAttrCount++;
-                kind = HandlerKind.HttpApiAuthorizer;
+                handlerType = HandlerType.HttpApiAuthorizer;
                 var enableSimple = attr.NamedArguments.FirstOrDefault(static a => a.Key == "EnableSimpleResponses").Value.Value;
-                var enableSimpleBool = enableSimple is not false;
-                authorizerOptions = new AuthorizerHandlerOptions(enableSimpleBool);
+                enableSimpleResponses = enableSimple is not false;
             }
             else if (attrName == EventAttributeName)
             {
                 handlerAttrCount++;
-                kind = HandlerKind.Event;
+                handlerType = HandlerType.Event;
             }
         }
 
-        if (kind is null)
+        if (handlerType is null)
         {
             if (method.DeclaredAccessibility == Accessibility.Public)
             {
@@ -340,7 +339,7 @@ internal static class LambdaModelBuilder
             diagnostics.Add(new DiagnosticInfo(Diagnostics.MultipleHandlerAttributes, GetLocation(method), method.Name));
         }
 
-        if (kind == HandlerKind.HttpApi &&
+        if (handlerType == HandlerType.HttpApi &&
             !string.IsNullOrWhiteSpace(authorizerMethodName) &&
             !HasAuthorizerMethod(containingType, authorizerMethodName!))
         {
@@ -355,7 +354,7 @@ internal static class LambdaModelBuilder
         var parameters = new List<ParameterModel>();
         foreach (var param in method.Parameters)
         {
-            var (parameterModel, parameterDiagnostics) = BuildParameterModel(method, param, kind.Value);
+            var (parameterModel, parameterDiagnostics) = BuildParameterModel(method, param, handlerType.Value);
             diagnostics.AddRange(parameterDiagnostics);
             if (parameterModel is not null)
             {
@@ -367,9 +366,9 @@ internal static class LambdaModelBuilder
         // Phase 4b: Event handlers must declare exactly one event payload (Request-bound) parameter
         // パラメータ単位の診断が出ているときはエラーの連鎖を避けるため検証しない
         // Skip this check when parameter-level diagnostics already exist to avoid cascading errors
-        if (kind == HandlerKind.Event && !HasErrors(diagnostics))
+        if (handlerType == HandlerType.Event && !HasErrors(diagnostics))
         {
-            var payloadCount = parameters.Count(static p => p.BindingKind == ParameterBindingKind.Request);
+            var payloadCount = parameters.Count(static p => p.BindingType == ParameterBindingType.Request);
             if (payloadCount == 0)
             {
                 diagnostics.Add(new DiagnosticInfo(Diagnostics.EventHandlerMissingPayload, GetLocation(method), method.Name));
@@ -419,7 +418,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
         // Phase 6: Validate return-type constraints that depend on the handler kind
-        if (kind == HandlerKind.HttpApiAuthorizer &&
+        if (handlerType == HandlerType.HttpApiAuthorizer &&
             !(resultType is not null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, GetLocation(method), method.Name));
@@ -435,20 +434,20 @@ internal static class LambdaModelBuilder
         return (
             new HandlerModel(
                 method.Name,
-                kind.Value,
+                handlerType.Value,
                 isAsync,
                 resultType,
                 returnsHttpResult,
                 returnsProxyResponse,
                 new EquatableArray<ParameterModel>(parameters.ToArray()),
-                authorizerOptions),
+                enableSimpleResponses),
             diagnostics);
     }
 
     private static (ParameterModel? Model, IReadOnlyList<DiagnosticInfo> Diagnostics) BuildParameterModel(
         IMethodSymbol method,
         IParameterSymbol param,
-        HandlerKind handlerKind)
+        HandlerType handlerType)
     {
         // フェーズ1: binding 属性を収集し、パラメータ単位の診断を開始
         // Phase 1: Collect binding attributes and start parameter-level diagnostics
@@ -467,44 +466,44 @@ internal static class LambdaModelBuilder
         // フェーズ2: 明示属性または暗黙ルールから binding 種別を決定
         // Phase 2: Determine the binding kind from explicit attributes or implicit conventions
         var explicitBinding = bindingAttributes.FirstOrDefault();
-        var bindingKind = ParameterBindingKind.FromQuery;
+        var bindingType = ParameterBindingType.FromQuery;
         var key = param.Name;
         var converterMethod = GetConverterMethod(param.Type);
 
         if (explicitBinding is not null)
         {
-            ApplyExplicitBinding(explicitBinding, ref bindingKind, ref key);
+            ApplyExplicitBinding(explicitBinding, ref bindingType, ref key);
         }
         else
         {
             var typeName = param.Type.ToDisplayString();
             if ((typeName == HttpApiRequestFullName) || (typeName == HttpApiAuthorizerRequestFullName))
             {
-                bindingKind = ParameterBindingKind.Request;
+                bindingType = ParameterBindingType.Request;
                 converterMethod = string.Empty;
             }
             else if (typeName == LambdaContextFullName)
             {
-                bindingKind = ParameterBindingKind.Context;
+                bindingType = ParameterBindingType.Context;
                 converterMethod = string.Empty;
             }
-            else if (handlerKind == HandlerKind.Event)
+            else if (handlerType == HandlerType.Event)
             {
-                bindingKind = ParameterBindingKind.Request;
+                bindingType = ParameterBindingType.Request;
                 converterMethod = string.Empty;
             }
         }
 
         // フェーズ3: ハンドラー種別ごとの binding 制約を検証
         // Phase 3: Validate binding restrictions that depend on the handler kind
-        if (handlerKind == HandlerKind.Event && explicitBinding is not null)
+        if (handlerType == HandlerType.Event && explicitBinding is not null)
         {
             var explicitBindingName = explicitBinding.AttributeClass?.ToDisplayString();
             if (explicitBindingName == FromBodyAttributeName)
             {
                 diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOnEventHandler, GetLocation(method), method.Name));
             }
-            else if (bindingKind != ParameterBindingKind.FromServices)
+            else if (bindingType != ParameterBindingType.FromServices)
             {
                 diagnostics.Add(new DiagnosticInfo(
                     Diagnostics.InvalidEventBinding,
@@ -515,8 +514,8 @@ internal static class LambdaModelBuilder
             }
         }
 
-        if (bindingKind == ParameterBindingKind.FromCustomAuthorizer &&
-            handlerKind != HandlerKind.HttpApi)
+        if (bindingType == ParameterBindingType.FromCustomAuthorizer &&
+            handlerType != HandlerType.HttpApi)
         {
             diagnostics.Add(new DiagnosticInfo(
                 Diagnostics.FromCustomAuthorizerOutsideHttpApi,
@@ -524,7 +523,7 @@ internal static class LambdaModelBuilder
                 method.Name));
         }
 
-        if (RequiresScalarBindingValidation(bindingKind) &&
+        if (RequiresScalarBindingValidation(bindingType) &&
             !IsSupportedBindingType(param.Type))
         {
             diagnostics.Add(new DiagnosticInfo(
@@ -554,48 +553,48 @@ internal static class LambdaModelBuilder
             new ParameterModel(
                 param.Name,
                 MakeTypeRef(param.Type),
-                bindingKind,
+                bindingType,
                 key,
                 converterMethod,
                 skipValidation),
             diagnostics);
     }
 
-    private static void ApplyExplicitBinding(AttributeData attr, ref ParameterBindingKind bindingKind, ref string key)
+    private static void ApplyExplicitBinding(AttributeData attr, ref ParameterBindingType bindingType, ref string key)
     {
-        // 明示的な binding 属性を ParameterBindingKind とキー名へ正規化
-        // Normalize an explicit binding attribute into a ParameterBindingKind and key name
+        // 明示的な binding 属性を ParameterBindingType とキー名へ正規化
+        // Normalize an explicit binding attribute into a ParameterBindingType and key name
         var attrName = attr.AttributeClass?.ToDisplayString();
         if (attrName == FromBodyAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromBody;
+            bindingType = ParameterBindingType.FromBody;
             return;
         }
 
         if (attrName == FromQueryAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromQuery;
+            bindingType = ParameterBindingType.FromQuery;
             ApplyKeyOverride(attr, ref key);
             return;
         }
 
         if (attrName == FromHeaderAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromHeader;
+            bindingType = ParameterBindingType.FromHeader;
             ApplyKeyOverride(attr, ref key);
             return;
         }
 
         if (attrName == FromRouteAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromRoute;
+            bindingType = ParameterBindingType.FromRoute;
             ApplyKeyOverride(attr, ref key);
             return;
         }
 
         if (attrName == FromServicesAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromServices;
+            bindingType = ParameterBindingType.FromServices;
             // [FromServices] のキーは未指定時 empty とし、keyed service 解決の有無を区別する
             // For [FromServices] the key defaults to empty so keyed vs. non-keyed resolution can be distinguished
             key = string.Empty;
@@ -605,7 +604,7 @@ internal static class LambdaModelBuilder
 
         if (attrName == FromCustomAuthorizerAttributeName)
         {
-            bindingKind = ParameterBindingKind.FromCustomAuthorizer;
+            bindingType = ParameterBindingType.FromCustomAuthorizer;
             ApplyKeyOverride(attr, ref key);
         }
     }
@@ -632,14 +631,14 @@ internal static class LambdaModelBuilder
                              m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == HttpApiAuthorizerAttributeName));
     }
 
-    private static bool RequiresScalarBindingValidation(ParameterBindingKind bindingKind)
+    private static bool RequiresScalarBindingValidation(ParameterBindingType bindingType)
     {
         // 文字列入力から scalar 変換を行う binding 種別だけ型サポート検証の対象にする
         // Limit type-support validation to binding kinds that convert from scalar string inputs
-        return bindingKind == ParameterBindingKind.FromQuery ||
-               bindingKind == ParameterBindingKind.FromHeader ||
-               bindingKind == ParameterBindingKind.FromRoute ||
-               bindingKind == ParameterBindingKind.FromCustomAuthorizer;
+        return bindingType == ParameterBindingType.FromQuery ||
+               bindingType == ParameterBindingType.FromHeader ||
+               bindingType == ParameterBindingType.FromRoute ||
+               bindingType == ParameterBindingType.FromCustomAuthorizer;
     }
 
     private static bool IsSupportedBindingType(ITypeSymbol type)
