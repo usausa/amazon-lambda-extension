@@ -217,6 +217,36 @@ public sealed class Resolver
         Assert.Contains("GetRequiredService", handlerSource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void WhenFromServicesWithKey_GeneratesKeyedServiceResolution()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+[ServiceResolver(typeof(Resolver))]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromServices(""primary"")] System.IDisposable service)
+        => HttpResults.Ok(new { });
+}
+
+public sealed class Resolver
+{
+    public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+        => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+}
+");
+        var handlerSource = sources.Values.FirstOrDefault(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        Assert.NotNull(handlerSource);
+        Assert.Contains("GetRequiredKeyedService", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("\"primary\"", handlerSource, StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------
     // フィルタパイプライン
     // ---------------------------------------------------------------------------

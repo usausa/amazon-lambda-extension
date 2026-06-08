@@ -28,6 +28,7 @@ internal static class LambdaSourceBuilder
     private const string ApiExceptionType = "global::AmazonLambdaExtension.ApiException";
     private const string StreamType = "global::System.IO.Stream";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
+    private const string GetRequiredKeyedService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderKeyedServiceExtensions.GetRequiredKeyedService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
     private const string CreateAsyncScope = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.CreateAsyncScope";
     private const string ServiceProviderOptionsType = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderOptions";
@@ -523,8 +524,16 @@ internal static class LambdaSourceBuilder
 
             case ParameterBindingKind.FromServices:
                 // invocation scope からサービスを解決（フィルター内は ctx.ServiceProvider 経由）
+                // キー指定時は keyed service として解決する
                 // Resolve service from the invocation scope (via ctx.ServiceProvider inside filters)
-                builder.AppendLine($"var {pVar} = {GetRequiredService}<{typeName}>({(hasFilter ? "ctx.ServiceProvider" : "__sp__")});");
+                // Resolve as a keyed service when a key is specified
+                {
+                    var serviceProvider = hasFilter ? "ctx.ServiceProvider" : "__sp__";
+                    builder.AppendLine(String.IsNullOrEmpty(param.Key)
+                        ? $"var {pVar} = {GetRequiredService}<{typeName}>({serviceProvider});"
+                        : $"var {pVar} = {GetRequiredKeyedService}<{typeName}>({serviceProvider}, \"{param.Key}\");");
+                }
+
                 builder.NewLine();
                 return;
 

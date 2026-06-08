@@ -115,12 +115,13 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 | `[FromQuery]` | クエリ文字列 | ✅ | |
 | `[FromHeader("name")]` | HTTP ヘッダ | ✅ | |
 | `[FromBody]` | リクエストボディ (JSON) | ✅ | |
-| `[FromServices]` | DI コンテナ | ✅ | ✅ |
+| `[FromServices]` / `[FromServices("key")]` | DI コンテナ | ✅ | ✅ |
 | `[FromCustomAuthorizer("key")]` | ラムダオーソライザーコンテキスト | ✅ | |
 
 - `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーション。失敗時は 400 を返します。
 - `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
+- `[FromServices("key")]` は keyed service（`GetRequiredKeyedService`）を解決します。キー未指定時は既定のサービス（`GetRequiredService`）を解決します。
 - **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
