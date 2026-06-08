@@ -17,6 +17,7 @@ internal sealed record HandlerModel(
     bool IsAsync,
     TypeRefModel? ResultType,
     bool ReturnsHttpResult,
+    bool ReturnsProxyResponse,
     EquatableArray<ParameterModel> Parameters,
     AuthorizerHandlerOptions? Authorizer);
 

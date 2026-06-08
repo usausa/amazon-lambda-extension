@@ -66,6 +66,16 @@ public partial class CrudFunctions
 }
 ```
 
+An HTTP handler (`[HttpApi]` / `[FunctionUrl]`) may return any of the following:
+
+| Return value | Behavior |
+|:-----|:-----|
+| `IHttpResult` / `HttpResult` (via `HttpResults.*`) | Converted to `APIGatewayHttpApiV2ProxyResponse` |
+| `APIGatewayHttpApiV2ProxyResponse` | Returned as-is |
+| Any other type (POCO) | Wrapped into a `200 OK` JSON response (equivalent to `HttpResults.Ok(value)`) |
+
+`Task<T>` / `ValueTask<T>` wrappers and synchronous returns are all supported.
+
 ### 2. Implement the ServiceResolver
 
 The Source Generator calls `ServiceResolver.ConfigureServices()` to build the DI container.

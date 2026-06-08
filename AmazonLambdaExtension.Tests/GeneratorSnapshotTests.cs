@@ -73,6 +73,63 @@ public sealed partial class Function
         Assert.Contains("global::AmazonLambdaExtension.ApiException", handlerSource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HttpApiHandler_PocoReturn_NoFilter_WrapsWithHttpResultsOk()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public Item Handle()
+        => new Item();
+}
+
+public sealed class Item
+{
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        // APIGatewayHttpApiV2ProxyResponse を返す
+        Assert.Contains("global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse", handlerSource, StringComparison.Ordinal);
+        // POCO は HttpResults.Ok(...) で包んで ToResponse する
+        Assert.Contains("HttpResults.Ok(__result__)", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(".ToResponse(", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HttpApiHandler_ProxyResponseReturn_NoFilter_ReturnsDirectly()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using Amazon.Lambda.APIGatewayEvents;
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public APIGatewayHttpApiV2ProxyResponse Handle()
+        => new APIGatewayHttpApiV2ProxyResponse { StatusCode = 200 };
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        // そのまま返す（ToResponse / HttpResults.Ok は使わない）
+        Assert.Contains("return __result__;", handlerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain(".ToResponse(", handlerSource, StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------------------
     // [HttpApi] + FromRoute / FromQuery バインド
     // ---------------------------------------------------------------------------

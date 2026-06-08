@@ -828,9 +828,17 @@ internal static class LambdaSourceBuilder
                     builder.AppendLine($"return {ToResponseCall("__result__")};");
                 }
             }
+            else if (handler.ReturnsProxyResponse)
+            {
+                // APIGatewayHttpApiV2ProxyResponse はそのまま返す
+                // Return APIGatewayHttpApiV2ProxyResponse as-is
+                builder.AppendLine(hasFilter ? $"return ({V2ResponseType})ctx.Result!;" : "return __result__;");
+            }
             else
             {
-                builder.AppendLine(hasFilter ? $"return ({V2ResponseType})ctx.Result!;" : "return __result__;");
+                // その他の戻り値は HttpResults.Ok(...) 相当で 200 応答に包む
+                // Wrap any other return value into a 200 response, equivalent to HttpResults.Ok(...)
+                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.Ok({(hasFilter ? "ctx.Result" : "__result__")})")};");
             }
         }
     }

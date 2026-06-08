@@ -32,6 +32,9 @@ internal static class LambdaModelBuilder
     private const string IServiceCollectionFullName = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
     private const string HttpApiRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest";
     private const string HttpApiAuthorizerRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";
+    // resultType.FullName は完全修飾形式（global:: 付き）で生成されるため、それに合わせる
+    // resultType.FullName is produced in fully-qualified form (with global::), so match that form
+    private const string HttpApiResponseFullName = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse";
     private const string LambdaContextFullName = "Amazon.Lambda.Core.ILambdaContext";
     // ReSharper restore InconsistentNaming
 
@@ -412,6 +415,7 @@ internal static class LambdaModelBuilder
         }
 
         var returnsHttpResult = resultType is not null && IsImplementing(method.ReturnType, IHttpResultFullName);
+        var returnsProxyResponse = resultType is not null && resultType.FullName == HttpApiResponseFullName;
 
         // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
         // Phase 6: Validate return-type constraints that depend on the handler kind
@@ -435,6 +439,7 @@ internal static class LambdaModelBuilder
                 isAsync,
                 resultType,
                 returnsHttpResult,
+                returnsProxyResponse,
                 new EquatableArray<ParameterModel>(parameters.ToArray()),
                 authorizerOptions),
             diagnostics);
