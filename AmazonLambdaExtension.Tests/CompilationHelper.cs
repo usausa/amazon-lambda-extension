@@ -1,10 +1,10 @@
 namespace AmazonLambdaExtension;
 
-using System.Collections.Generic;
-using System.Reflection;
+using System.Collections.Immutable;
 
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.SQSEvents;
 
 using AmazonLambdaExtension.Annotations;
@@ -12,103 +12,86 @@ using AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyInjection;
 
-// テスト用のコンパイルヘルパー。
-// ソースコードを Roslyn でコンパイルし、LambdaGenerator を使って生成コードを取得する。
-public static class CompilationHelper
+using Xunit;
+
+internal static class CompilationHelper
 {
-    // ソースコードから LambdaGenerator を実行し、生成されたソースファイルを返す。
-    // キー: ヒント名（ファイル名）、値: 生成されたソースコード。
-    public static IReadOnlyDictionary<string, string> RunGenerator(string source)
-    {
-        var compilation = CreateCompilation(source);
-        var generator = new LambdaGenerator();
-        var driver = CSharpGeneratorDriver
-            .Create(generator.AsSourceGenerator())
-            .RunGenerators(compilation);
+    private const string GlobalUsings =
+        """
+        global using System;
+        global using System.Collections.Generic;
+        global using System.Linq;
+        global using System.Threading;
+        global using System.Threading.Tasks;
+        """;
 
-        var result = driver.GetRunResult();
-        return result.GeneratedTrees
-            .ToDictionary(
-                t => Path.GetFileName(t.FilePath),
-                t => t.GetText().ToString());
+    public static void AssertNoGeneratorErrors(GeneratorResult result)
+    {
+        var errors = result.Diagnostics
+            .Where(static d => d.Severity == DiagnosticSeverity.Error)
+            .ToArray();
+
+        Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors.Select(static d => d.ToString())));
     }
 
-    // ソースコードに対して LambdaGenerator を実行し、生成時の診断のみを返す（診断テスト用）。
-    public static IReadOnlyList<Diagnostic> RunGeneratorWithDiagnostics(string source)
+    public static GeneratorResult RunGenerator(string source)
     {
-        var compilation = CreateCompilation(source);
-        var generator = new LambdaGenerator();
-        var driver = CSharpGeneratorDriver
-            .Create(generator.AsSourceGenerator())
-            .RunGenerators(compilation);
+        var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
 
-        var result = driver.GetRunResult();
-        return result.Results
-            .SelectMany(static r => r.Diagnostics)
-            .ToList();
-    }
-
-    // ソースコードから Compilation を生成する。
-    private static CSharpCompilation CreateCompilation(string source)
-    {
-        var tree = CSharpSyntaxTree.ParseText(source);
-        return CSharpCompilation.Create(
+        var globalUsings = CSharpSyntaxTree.ParseText(GlobalUsings, parseOptions);
+        var compilation = CSharpCompilation.Create(
             "TestAssembly",
-            [tree],
-            GetDefaultReferences(),
+            [syntaxTree, globalUsings],
+            GetMetadataReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            [new LambdaGenerator().AsSourceGenerator()],
+            parseOptions: parseOptions);
+
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var generatorDiagnostics);
+        var runResult = driver.GetRunResult();
+        var diagnostics = outputCompilation.GetDiagnostics()
+            .Concat(generatorDiagnostics)
+            .Concat(runResult.Diagnostics)
+            .Distinct()
+            .ToImmutableArray();
+        var sources = runResult.Results
+            .SelectMany(static r => r.GeneratedSources)
+            .ToDictionary(static s => s.HintName, static s => s.SourceText.ToString());
+        var generatedCode = string.Join(
+            Environment.NewLine + Environment.NewLine,
+            runResult.Results
+                .SelectMany(static r => r.GeneratedSources)
+                .Select(static s => s.SourceText.ToString()));
+
+        return new GeneratorResult(diagnostics, sources, generatedCode);
     }
 
-    private static IEnumerable<MetadataReference> GetDefaultReferences()
+    private static ImmutableArray<MetadataReference> GetMetadataReferences()
     {
-        // ライブラリ参照
-        yield return MetadataReference.CreateFromFile(typeof(LambdaAttribute).GetTypeInfo().Assembly.Location);
-        yield return MetadataReference.CreateFromFile(typeof(APIGatewayHttpApiV2ProxyRequest).GetTypeInfo().Assembly.Location);
-        yield return MetadataReference.CreateFromFile(typeof(ILambdaContext).GetTypeInfo().Assembly.Location);
-        yield return MetadataReference.CreateFromFile(typeof(SQSEvent).GetTypeInfo().Assembly.Location);
-        yield return MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection).GetTypeInfo().Assembly.Location);
-
-        // System 関連アセンブリ（AppContext.GetData で信頼できるパスから取得）
-        var trustedPlatformAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
-        if (trustedPlatformAssemblies is not null)
+        var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))?
+            .Split(Path.PathSeparator)
+            ?? [];
+        var assemblyPaths = new HashSet<string>(trustedAssemblies, StringComparer.OrdinalIgnoreCase)
         {
-            var needed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "System.Runtime.dll",
-                "System.Collections.dll",
-                "System.Threading.Tasks.dll",
-                "System.Linq.dll",
-                "System.Text.RegularExpressions.dll",
-                "System.ObjectModel.dll",
-                "System.Console.dll",
-                "System.ComponentModel.dll",
-                "System.Net.Primitives.dll",
-                "netstandard.dll",
-                "mscorlib.dll"
-            };
+            typeof(IServiceCollection).Assembly.Location,
+            typeof(ServiceCollection).Assembly.Location,
+            typeof(LambdaAttribute).Assembly.Location,
+            typeof(APIGatewayHttpApiV2ProxyRequest).Assembly.Location,
+            typeof(ILambdaContext).Assembly.Location,
+            typeof(DefaultLambdaJsonSerializer).Assembly.Location,
+            typeof(SQSEvent).Assembly.Location
+        };
 
-            foreach (var path in trustedPlatformAssemblies.Split(Path.PathSeparator))
-            {
-                var fileName = Path.GetFileName(path);
-                if (needed.Contains(fileName) || fileName.StartsWith("System.Private.", StringComparison.Ordinal))
-                {
-                    yield return MetadataReference.CreateFromFile(path);
-                }
-            }
-        }
-        else
-        {
-            // フォールバック: ランタイムディレクトリから取得
-            var runtimeDir = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
-            foreach (var name in new[] { "System.Runtime.dll", "System.Collections.dll", "System.Threading.Tasks.dll", "netstandard.dll", "System.Linq.dll" })
-            {
-                var path = Path.Combine(runtimeDir, name);
-                if (File.Exists(path))
-                {
-                    yield return MetadataReference.CreateFromFile(path);
-                }
-            }
-        }
+        return [.. assemblyPaths.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))];
     }
+
+    public sealed record GeneratorResult(
+        ImmutableArray<Diagnostic> Diagnostics,
+        IReadOnlyDictionary<string, string> Sources,
+        string GeneratedCode);
 }
