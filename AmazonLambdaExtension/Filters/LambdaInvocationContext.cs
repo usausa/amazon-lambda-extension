@@ -1,18 +1,8 @@
 namespace AmazonLambdaExtension.Filters;
 
 using System.Threading;
-using System.Threading.Tasks;
 
 using Amazon.Lambda.Core;
-
-#pragma warning disable CA1711
-public delegate ValueTask LambdaFilterDelegate(LambdaInvocationContext context);
-#pragma warning restore CA1711
-
-public interface ILambdaFilter
-{
-    ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next);
-}
 
 #pragma warning disable CA1721
 public sealed class LambdaInvocationContext
@@ -29,8 +19,7 @@ public sealed class LambdaInvocationContext
 
     private Dictionary<string, object?>? items;
 
-    public IDictionary<string, object?> Items =>
-        items ??= [];
+    public IDictionary<string, object?> Items => items ??= [];
 
     public TRequest GetRequest<TRequest>()
         where TRequest : class
