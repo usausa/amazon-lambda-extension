@@ -10,6 +10,8 @@ using AmazonLambdaExtension.Serialization;
 using AmazonLambdaExtension.Validation;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public static class ServiceResolver
 {
@@ -23,6 +25,8 @@ public static class ServiceResolver
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
 
         services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
+
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 
         services.AddSingleton<DataService>();
         services.AddSingleton<IProcessor, MockProcessor>();
