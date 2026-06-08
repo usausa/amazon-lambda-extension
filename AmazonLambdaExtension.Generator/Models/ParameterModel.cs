@@ -9,7 +9,7 @@ internal enum ParameterBindingType
     FromRoute,
     FromBody,
     FromServices,
-    FromCustomAuthorizer
+    FromAuthorizer
 }
 
 internal sealed record ParameterModel(
@@ -18,4 +18,12 @@ internal sealed record ParameterModel(
     ParameterBindingType BindingType,
     string Key,
     string ConverterMethod,
-    bool SkipValidation);
+    bool SkipValidation,
+    bool HasDefault,
+    string? DefaultValueLiteral);
+
+internal static class ParameterModelExtensions
+{
+    public static bool IsNullableBodyParameter(this ParameterModel param)
+        => param.Type.IsNullable || (param.Type.IsReferenceType && param.Type.IsNullableReferenceType);
+}

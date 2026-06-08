@@ -195,7 +195,7 @@ internal static class LambdaSourceBuilder
         else
         {
             // Get event type
-            var eventParam = GetRequestParam(handler);
+            var eventParam = handler.GetRequestParam();
             if (eventParam is not null)
             {
                 builder.AppendLine($"var ev = ({eventParam.Type.FullName})ctx.Request;");
@@ -276,7 +276,7 @@ internal static class LambdaSourceBuilder
         if (handler.Type == HandlerType.Event)
         {
             // Determine request param type
-            var requestParam = GetRequestParam(handler);
+            var requestParam = handler.GetRequestParam();
             var reqTypeName = requestParam?.Type.FullName ?? V2RequestType;
             builder.AppendLine($"    {reqTypeName} ev,");
             builder.AppendLine($"    {LambdaContextType} context)");
@@ -357,7 +357,7 @@ internal static class LambdaSourceBuilder
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
             }
@@ -370,7 +370,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
             }
@@ -415,7 +415,7 @@ internal static class LambdaSourceBuilder
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
             }
@@ -428,7 +428,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
             }
@@ -478,12 +478,21 @@ internal static class LambdaSourceBuilder
 
         string BadRequest400(string paramName)
         {
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 return $"return {ToResponseCall($"{HttpResultsType}.BadRequest($\"Invalid parameter: {paramName}\")")};";
             }
             return $"return new {V2ResponseType} {{ StatusCode = 400, " +
                    $"Body = $\"Invalid parameter: {paramName}\" }};";
+        }
+
+        string BadRequestBody(string message)
+        {
+            if (handler.ResponseType == ResponseType.HttpResult)
+            {
+                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest(\"{message}\")")};";
+            }
+            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = \"{message}\" }};";
         }
 
         switch (param.BindingType)
@@ -516,7 +525,42 @@ internal static class LambdaSourceBuilder
             case ParameterBindingType.FromBody:
                 // リクエストボディをデシリアライズし、バリデーションを実行
                 // Deserialize request body and run validation unless skipped
-                builder.AppendLine($"var {pVar} = __bodySerializer__.Deserialize<{typeName}>({requestVar}.Body ?? string.Empty);");
+                builder.AppendLine($"var {pVar} = default({typeName})!;");
+                builder.AppendLine("try");
+                builder.BeginBlock();
+                builder.AppendLine($"{pVar} = __bodySerializer__.Deserialize<{typeName}>({requestVar}.Body ?? string.Empty);");
+                builder.EndBlock();
+                builder.AppendLine("catch (global::System.Text.Json.JsonException)");
+                builder.BeginBlock();
+                if (hasFilter)
+                {
+                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Invalid request body.\");");
+                    builder.AppendLine("return;");
+                }
+                else
+                {
+                    builder.AppendLine(BadRequestBody("Invalid request body."));
+                }
+                builder.EndBlock();
+
+                // null 非許容（NRT 注釈なし・非 Nullable）のボディは必須として 400 を返す
+                // Treat a non-nullable body (no NRT annotation / not Nullable) as required and return 400
+                if (!param.IsNullableBodyParameter())
+                {
+                    builder.AppendLine($"if ({pVar} is null)");
+                    builder.BeginBlock();
+                    if (hasFilter)
+                    {
+                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Request body is required.\");");
+                        builder.AppendLine("return;");
+                    }
+                    else
+                    {
+                        builder.AppendLine(BadRequestBody("Request body is required."));
+                    }
+                    builder.EndBlock();
+                }
+
                 if (!param.SkipValidation)
                 {
                     builder.AppendLine($"if ({pVar} is not null && !__requestValidator__.Validate({pVar}))");
@@ -535,7 +579,7 @@ internal static class LambdaSourceBuilder
                 builder.NewLine();
                 return;
 
-            case ParameterBindingType.FromCustomAuthorizer:
+            case ParameterBindingType.FromAuthorizer:
                 // Lambda オーソライザーが付与したカスタムコンテキストから値を取り出して変換
                 // Extract and convert value from custom authorizer context injected by Lambda authorizer
                 builder.AppendLine($"var {pVar} = default({typeName});");
@@ -551,7 +595,7 @@ internal static class LambdaSourceBuilder
                 {
                     var isEnum = param.ConverterMethod == "TryToEnum";
                     var converterCall = isEnum
-                        ? $"{StringConverterType}.TryToEnum<{GetBaseTypeName(param.Type)}>(({pRaw}ca as string ?? string.Empty).AsSpan(), out var {pVar}tmp)"
+                        ? $"{StringConverterType}.TryToEnum<{param.Type.GetBaseTypeName()}>(({pRaw}ca as string ?? string.Empty).AsSpan(), out var {pVar}tmp)"
                         : $"{StringConverterType}.{param.ConverterMethod}(({pRaw}ca as string ?? string.Empty).AsSpan(), out var {pVar}tmp)";
                     builder.AppendLine($"if (!{converterCall})");
                     builder.BeginBlock();
@@ -617,10 +661,11 @@ internal static class LambdaSourceBuilder
         var pRaw = $"p{index}raw";
         var typeName = param.Type.FullName;
         var key = param.Key;
+        var defaultLiteral = param.HasDefault ? (param.DefaultValueLiteral ?? "default") : null;
 
         string Bad400()
         {
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 return $"return {ToResponseCall($"{HttpResultsType}.BadRequest($\"Invalid parameter: {key}\")")};";
             }
@@ -675,7 +720,8 @@ internal static class LambdaSourceBuilder
             // Nullable<T>: perform type conversion only when the value is present
             var baseType = param.Type.UnderlyingType.FullName;
             var converterMethod = param.ConverterMethod;
-            builder.AppendLine($"var {pVar} = ({typeName})null;");
+            var init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}" : $"({typeName})null";
+            builder.AppendLine($"var {pVar} = {init};");
             builder.AppendLine($"if ({dictExpr} is not null &&");
             builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
             builder.AppendLine($"    {pRaw} is not null)");
@@ -715,7 +761,8 @@ internal static class LambdaSourceBuilder
             if (String.IsNullOrEmpty(converterMethod))
             {
                 // string
-                builder.AppendLine($"var {pVar} = default({typeName})!;");
+                var init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}!" : $"default({typeName})!";
+                builder.AppendLine($"var {pVar} = {init};");
                 builder.AppendLine($"if ({dictExpr} is not null &&");
                 builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}))");
                 builder.BeginBlock();
@@ -725,7 +772,8 @@ internal static class LambdaSourceBuilder
             }
             else
             {
-                builder.AppendLine($"var {pVar} = default({typeName});");
+                var init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}" : $"default({typeName})";
+                builder.AppendLine($"var {pVar} = {init};");
                 builder.AppendLine($"if ({dictExpr} is not null &&");
                 builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
                 builder.AppendLine($"    {pRaw} is not null)");
@@ -811,7 +859,7 @@ internal static class LambdaSourceBuilder
         }
         else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
         {
-            if (handler.ReturnsHttpResult)
+            if (handler.ResponseType == ResponseType.HttpResult)
             {
                 if (hasFilter)
                 {
@@ -827,7 +875,7 @@ internal static class LambdaSourceBuilder
                     builder.AppendLine($"return {ToResponseCall("__result__")};");
                 }
             }
-            else if (handler.ReturnsProxyResponse)
+            else if (handler.ResponseType == ResponseType.ProxyResponse)
             {
                 // APIGatewayHttpApiV2ProxyResponse はそのまま返す
                 // Return APIGatewayHttpApiV2ProxyResponse as-is
@@ -880,29 +928,16 @@ internal static class LambdaSourceBuilder
         return String.Join(", ", argParts);
     }
 
-    private static ParameterModel? GetRequestParam(HandlerModel handler)
-    {
-        // ReSharper disable once LoopCanBeConvertedToQuery
-        foreach (var p in handler.Parameters)
-        {
-            if (p.BindingType == ParameterBindingType.Request)
-            {
-                return p;
-            }
-        }
-        return null;
-    }
-
     private static string GetEntryRequestType(HandlerModel handler)
     {
         if (handler.Type == HandlerType.Event)
         {
-            return GetRequestParam(handler)?.Type.FullName ?? V2RequestType;
+            return handler.GetRequestParam()?.Type.FullName ?? V2RequestType;
         }
 
         if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
-            return GetRequestParam(handler)?.Type.FullName ?? V2AuthorizerRequestType;
+            return handler.GetRequestParam()?.Type.FullName ?? V2AuthorizerRequestType;
         }
 
         return V2RequestType;
@@ -938,21 +973,6 @@ internal static class LambdaSourceBuilder
         return GetEntryRequestType(handler) == V2AuthorizerRequestType
             ? hasFilter ? $"(({V2AuthorizerRequestType})ctx.Request).RouteArn" : "request.RouteArn"
             : "null";
-    }
-
-    private static string GetBaseTypeName(TypeRefModel type)
-    {
-        if (type.IsNullable && type.UnderlyingType is not null)
-        {
-            return type.UnderlyingType.FullName;
-        }
-
-        if (type.IsArray && type.ElementType is not null)
-        {
-            return type.ElementType.FullName;
-        }
-
-        return type.FullName;
     }
 }
 

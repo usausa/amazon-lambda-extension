@@ -5,4 +5,24 @@ internal sealed record TypeRefModel(
     bool IsArray,
     TypeRefModel? ElementType,
     bool IsNullable,
-    TypeRefModel? UnderlyingType);
+    TypeRefModel? UnderlyingType,
+    bool IsReferenceType,
+    bool IsNullableReferenceType);
+
+internal static class TypeRefModelExtensions
+{
+    public static string GetBaseTypeName(this TypeRefModel type)
+    {
+        if (type.IsNullable && type.UnderlyingType is not null)
+        {
+            return type.UnderlyingType.FullName;
+        }
+
+        if (type.IsArray && type.ElementType is not null)
+        {
+            return type.ElementType.FullName;
+        }
+
+        return type.FullName;
+    }
+}

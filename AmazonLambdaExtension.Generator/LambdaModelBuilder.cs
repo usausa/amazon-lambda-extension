@@ -24,7 +24,7 @@ internal static class LambdaModelBuilder
     private const string FromHeaderAttributeName = "AmazonLambdaExtension.Annotations.FromHeaderAttribute";
     private const string FromRouteAttributeName = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
     private const string FromServicesAttributeName = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
-    private const string FromCustomAuthorizerAttributeName = "AmazonLambdaExtension.Annotations.FromCustomAuthorizerAttribute";
+    private const string FromAuthorizerAttributeName = "AmazonLambdaExtension.Annotations.FromAuthorizerAttribute";
 
     private const string IHttpResultFullName = "AmazonLambdaExtension.APIGateway.IHttpResult";
     private const string IAuthorizerResultFullName = "AmazonLambdaExtension.APIGateway.IAuthorizerResult";
@@ -415,6 +415,11 @@ internal static class LambdaModelBuilder
 
         var returnsHttpResult = resultType is not null && IsImplementing(method.ReturnType, IHttpResultFullName);
         var returnsProxyResponse = resultType is not null && resultType.FullName == HttpApiResponseFullName;
+        var responseType = returnsHttpResult
+            ? ResponseType.HttpResult
+            : returnsProxyResponse
+                ? ResponseType.ProxyResponse
+                : ResponseType.Poco;
 
         // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
         // Phase 6: Validate return-type constraints that depend on the handler kind
@@ -438,8 +443,7 @@ internal static class LambdaModelBuilder
                 isAsync,
                 resultType,
                 new EquatableArray<ParameterModel>(parameters.ToArray()),
-                returnsHttpResult,
-                returnsProxyResponse,
+                responseType,
                 enableSimpleResponses),
             diagnostics);
     }
@@ -514,11 +518,11 @@ internal static class LambdaModelBuilder
             }
         }
 
-        if (bindingType == ParameterBindingType.FromCustomAuthorizer &&
+        if (bindingType == ParameterBindingType.FromAuthorizer &&
             handlerType != HandlerType.HttpApi)
         {
             diagnostics.Add(new DiagnosticInfo(
-                Diagnostics.FromCustomAuthorizerOutsideHttpApi,
+                Diagnostics.FromAuthorizerOutsideHttpApi,
                 GetLocation(param),
                 method.Name));
         }
@@ -542,6 +546,11 @@ internal static class LambdaModelBuilder
             skipValidation = skipArg is true;
         }
 
+        // フェーズ4b: 明示的なデフォルト値があれば文字列リテラルとして保持する
+        // Phase 4b: Preserve an explicit default value as a string literal if present
+        var hasDefault = param.HasExplicitDefaultValue;
+        var defaultValueLiteral = hasDefault ? FormatDefaultValue(param.ExplicitDefaultValue) : null;
+
         if (HasErrors(diagnostics))
         {
             return (null, diagnostics);
@@ -556,7 +565,9 @@ internal static class LambdaModelBuilder
                 bindingType,
                 key,
                 converterMethod,
-                skipValidation),
+                skipValidation,
+                hasDefault,
+                defaultValueLiteral),
             diagnostics);
     }
 
@@ -602,9 +613,9 @@ internal static class LambdaModelBuilder
             return;
         }
 
-        if (attrName == FromCustomAuthorizerAttributeName)
+        if (attrName == FromAuthorizerAttributeName)
         {
-            bindingType = ParameterBindingType.FromCustomAuthorizer;
+            bindingType = ParameterBindingType.FromAuthorizer;
             ApplyKeyOverride(attr, ref key);
         }
     }
@@ -638,7 +649,7 @@ internal static class LambdaModelBuilder
         return bindingType == ParameterBindingType.FromQuery ||
                bindingType == ParameterBindingType.FromHeader ||
                bindingType == ParameterBindingType.FromRoute ||
-               bindingType == ParameterBindingType.FromCustomAuthorizer;
+               bindingType == ParameterBindingType.FromAuthorizer;
     }
 
     private static bool IsSupportedBindingType(ITypeSymbol type)
@@ -778,7 +789,7 @@ internal static class LambdaModelBuilder
         var name = attr.AttributeClass?.ToDisplayString();
         return name == FromBodyAttributeName || name == FromQueryAttributeName ||
                name == FromHeaderAttributeName || name == FromRouteAttributeName ||
-               name == FromServicesAttributeName || name == FromCustomAuthorizerAttributeName;
+               name == FromServicesAttributeName || name == FromAuthorizerAttributeName;
     }
 
     private static string GetConverterMethod(ITypeSymbol type)
@@ -823,12 +834,41 @@ internal static class LambdaModelBuilder
         };
     }
 
+    private static string FormatDefaultValue(object? value)
+    {
+        // 明示デフォルト値をカルチャ非依存の C# リテラルへ整形（型キャストは生成側で付与）
+        // Format an explicit default value into a culture-invariant C# literal (the cast is added by the generator)
+        if (value is null)
+        {
+            return "default";
+        }
+
+        if (value is string s)
+        {
+            return SymbolDisplay.FormatLiteral(s, quote: true);
+        }
+
+        if (value is bool b)
+        {
+            return b ? "true" : "false";
+        }
+
+        if (value is char c)
+        {
+            return SymbolDisplay.FormatLiteral(c, quote: true);
+        }
+
+        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "default";
+    }
+
     private static TypeRefModel MakeTypeRef(ITypeSymbol type)
     {
         // Nullable<T> / 配列を再帰的に表現できる TypeRefModel へ正規化する
         // Normalize the Roslyn type into a recursive TypeRefModel that can represent Nullable<T> and arrays
         var isNullable = false;
         TypeRefModel? underlyingType = null;
+        var isReferenceType = type.IsReferenceType;
+        var isNullableReferenceType = isReferenceType && type.NullableAnnotation == NullableAnnotation.Annotated;
 
         if (type is INamedTypeSymbol namedType &&
             namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
@@ -844,7 +884,9 @@ internal static class LambdaModelBuilder
                 true,
                 MakeTypeRef(arr.ElementType),
                 false,
-                null);
+                null,
+                true,
+                false);
         }
 
         return new TypeRefModel(
@@ -852,6 +894,8 @@ internal static class LambdaModelBuilder
             false,
             null,
             isNullable,
-            underlyingType);
+            underlyingType,
+            isReferenceType,
+            isNullableReferenceType);
     }
 }

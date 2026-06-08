@@ -10,12 +10,35 @@ internal enum HandlerType
     HttpApiAuthorizer
 }
 
+internal enum ResponseType
+{
+    Poco,
+    HttpResult,
+    ProxyResponse
+}
+
 internal sealed record HandlerModel(
     string MethodName,
     HandlerType Type,
     bool IsAsync,
     TypeRefModel? ResultType,
     EquatableArray<ParameterModel> Parameters,
-    bool ReturnsHttpResult,
-    bool ReturnsProxyResponse,
+    ResponseType ResponseType,
     bool EnableSimpleResponses);
+
+internal static class HandlerModelExtensions
+{
+    public static ParameterModel? GetRequestParam(this HandlerModel handler)
+    {
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var p in handler.Parameters)
+        {
+            if (p.BindingType == ParameterBindingType.Request)
+            {
+                return p;
+            }
+        }
+
+        return null;
+    }
+}

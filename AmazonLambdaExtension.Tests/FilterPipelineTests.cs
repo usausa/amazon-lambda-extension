@@ -5,8 +5,6 @@ using AmazonLambdaExtension.Filters;
 
 using Xunit;
 
-// フィルターパイプラインの実行時挙動（順序・短絡・状態共有・例外伝播）を検証するテスト。
-// ジェネレーターが出力するパイプラインと同じ合成（オニオン順）を再現する。
 public sealed class FilterPipelineTests
 {
     [Fact]
@@ -119,7 +117,6 @@ public sealed class FilterPipelineTests
         Assert.Equal(expected, log);
     }
 
-    // ジェネレーターが出力するパイプラインと同じく、ターミナルをオニオン順（逆順）で包む。
     private static LambdaFilterDelegate Compose(LambdaFilterDelegate terminal, params ILambdaFilter[] filters)
     {
         var pipeline = terminal;
