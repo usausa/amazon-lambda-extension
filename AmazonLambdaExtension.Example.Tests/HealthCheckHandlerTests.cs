@@ -1,7 +1,5 @@
 namespace AmazonLambdaExtension.Example.Tests;
 
-using System.Text.Json;
-
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 
@@ -23,10 +21,8 @@ public class HealthCheckHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var stream = await HealthCheck.Ping_Handler(req, ctx);
+        var response = await HealthCheck.Ping_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(200, response.StatusCode);
     }
 }

@@ -11,7 +11,7 @@ using AmazonLambdaExtension.APIGateway;
 public partial class SecureFunctions
 {
     [HttpApi(LambdaHttpMethod.Get, "/secure/items/{id}")]
-    public ValueTask<IHttpResult> GetItem([FromRoute] string id)
+    public ValueTask<HttpResult> GetItem([FromRoute] string id)
         => ValueTask.FromResult(HttpResults.Ok(new { id }));
 }
 #pragma warning restore CA1822

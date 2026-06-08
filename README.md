@@ -167,7 +167,7 @@ public sealed class ApiKeyFilter : ILambdaFilter
 public partial class SecureFunctions
 {
     [HttpApi(LambdaHttpMethod.Get, "/secure/items/{id}")]
-    public ValueTask<IHttpResult> GetItem([FromRoute] string id)
+    public ValueTask<HttpResult> GetItem([FromRoute] string id)
         => ValueTask.FromResult(HttpResults.Ok(new { id }));
 }
 ```
@@ -255,6 +255,8 @@ public partial class HealthCheck
 | `JsonBodySerializer(JsonSerializerOptions)` | ❌ | Uses reflection. Already marked with `[RequiresDynamicCode]` |
 
 For AOT, just use the `JsonSerializerContext` constructor in your `ServiceResolver` and declare `[JsonSerializable(typeof(T))]` (see the ServiceResolver sample above).
+
+> HTTP handlers return `APIGatewayHttpApiV2ProxyResponse`, and authorizer handlers return `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse`. These are serialized by the Lambda runtime serializer. For AOT, make sure your Lambda serializer's `JsonSerializerContext` also covers those response types (in addition to your DTOs).
 
 ## Diagnostics
 

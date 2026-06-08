@@ -46,7 +46,7 @@ public sealed partial class QueueProcessor
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void HttpApiHandler_IHttpResultReturn_NoFilter_GeneratesStreamReturn()
+    public void HttpApiHandler_IHttpResultReturn_NoFilter_GeneratesResponseReturn()
     {
         var sources = CompilationHelper.RunGenerator(@"
 namespace Test;
@@ -65,10 +65,10 @@ public sealed partial class Function
         var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
-        // Stream を返す
-        Assert.Contains("global::System.IO.Stream", handlerSource, StringComparison.Ordinal);
-        // IHttpResult.Serialize を呼ぶ
-        Assert.Contains(".Serialize(", handlerSource, StringComparison.Ordinal);
+        // APIGatewayHttpApiV2ProxyResponse を返す
+        Assert.Contains("global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse", handlerSource, StringComparison.Ordinal);
+        // IHttpResult.ToResponse を呼ぶ
+        Assert.Contains(".ToResponse(", handlerSource, StringComparison.Ordinal);
         // ApiException をキャッチする
         Assert.Contains("global::AmazonLambdaExtension.ApiException", handlerSource, StringComparison.Ordinal);
     }
@@ -452,7 +452,7 @@ public sealed partial class AuthFunction
 
         Assert.Contains("Authorize_Handler", handlerSource, StringComparison.Ordinal);
         Assert.Contains("AuthorizerResult", handlerSource, StringComparison.Ordinal);
-        Assert.Contains(".Serialize(", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(".ToSimpleResponse(", handlerSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -477,6 +477,6 @@ public sealed partial class AuthFunction
         output.WriteLine(handlerSource);
 
         Assert.Contains("APIGatewayCustomAuthorizerV2Request", handlerSource, StringComparison.Ordinal);
-        Assert.Contains("RouteArn = request.RouteArn", handlerSource, StringComparison.Ordinal);
+        Assert.Contains(".ToIamResponse(request.RouteArn)", handlerSource, StringComparison.Ordinal);
     }
 }

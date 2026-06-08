@@ -42,11 +42,9 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "1" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunctions.GetItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(200, response.StatusCode);
     }
 
     [Fact]
@@ -57,11 +55,9 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "0" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunctions.GetItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(404, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(404, response.StatusCode);
     }
 
     [Fact]
@@ -72,11 +68,9 @@ public class CrudFunctionsHandlerTests
             query: new Dictionary<string, string> { ["page"] = "notanumber" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.GetItem_Handler(req, ctx);
+        var response = await CrudFunctions.GetItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(400, response.StatusCode);
     }
 
     [Fact]
@@ -87,11 +81,9 @@ public class CrudFunctionsHandlerTests
             headers: new Dictionary<string, string> { ["x-tenant-id"] = "tenant-a" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.ListItems_Handler(req, ctx);
+        var response = await CrudFunctions.ListItems_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(200, response.StatusCode);
     }
 
     [Fact]
@@ -112,11 +104,9 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(201, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(201, response.StatusCode);
     }
 
     [Fact]
@@ -134,11 +124,9 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(403, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(403, response.StatusCode);
     }
 
     [Fact]
@@ -156,11 +144,9 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(400, response.StatusCode);
     }
 
     [Fact]
@@ -178,11 +164,9 @@ public class CrudFunctionsHandlerTests
         };
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.CreateItem_Handler(req, ctx);
+        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(400, doc.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal(400, response.StatusCode);
     }
 
     [Fact]
@@ -191,11 +175,9 @@ public class CrudFunctionsHandlerTests
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "valid-token" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.Authorize_Handler(req, ctx);
+        var response = await CrudFunctions.Authorize_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.True(doc.RootElement.GetProperty("isAuthorized").GetBoolean());
+        Assert.True(response.IsAuthorized);
     }
 
     [Fact]
@@ -204,10 +186,8 @@ public class CrudFunctionsHandlerTests
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "bad-token" });
         var ctx = new TestLambdaContext();
 
-        var stream = await CrudFunctions.Authorize_Handler(req, ctx);
+        var response = await CrudFunctions.Authorize_Handler(req, ctx);
 
-        stream.Position = 0;
-        var doc = await JsonDocument.ParseAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
-        Assert.False(doc.RootElement.GetProperty("isAuthorized").GetBoolean());
+        Assert.False(response.IsAuthorized);
     }
 }

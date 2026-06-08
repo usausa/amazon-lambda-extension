@@ -4,10 +4,10 @@ using System.Net;
 
 public static class HttpResults
 {
-    public static IHttpResult Ok(object? body = null) =>
-        new HttpResult(HttpStatusCode.OK, body);
+    public static HttpResult Ok(object? body = null) =>
+        new(HttpStatusCode.OK, body);
 
-    public static IHttpResult Created(string? uri = null, object? body = null)
+    public static HttpResult Created(string? uri = null, object? body = null)
     {
         var result = new HttpResult(HttpStatusCode.Created, body);
         if (uri is not null)
@@ -17,34 +17,25 @@ public static class HttpResults
         return result;
     }
 
-    public static IHttpResult Accepted(object? body = null) =>
-        new HttpResult(HttpStatusCode.Accepted, body);
+    public static HttpResult Accepted(object? body = null) => new(HttpStatusCode.Accepted, body);
 
-    public static IHttpResult NoContent() =>
-        new HttpResult(HttpStatusCode.NoContent);
+    public static HttpResult NoContent() => new(HttpStatusCode.NoContent);
 
-    public static IHttpResult BadRequest(object? body = null) =>
-        new HttpResult(HttpStatusCode.BadRequest, body);
+    public static HttpResult BadRequest(object? body = null) => new(HttpStatusCode.BadRequest, body);
 
-    public static IHttpResult Unauthorized() =>
-        new HttpResult(HttpStatusCode.Unauthorized);
+    public static HttpResult Unauthorized() => new(HttpStatusCode.Unauthorized);
 
-    public static IHttpResult Forbid(object? body = null) =>
-        new HttpResult(HttpStatusCode.Forbidden, body);
+    public static HttpResult Forbid(object? body = null) => new(HttpStatusCode.Forbidden, body);
 
-    public static IHttpResult NotFound(object? body = null) =>
-        new HttpResult(HttpStatusCode.NotFound, body);
+    public static HttpResult NotFound(object? body = null) => new(HttpStatusCode.NotFound, body);
 
-    public static IHttpResult Conflict(object? body = null) =>
-        new HttpResult(HttpStatusCode.Conflict, body);
+    public static HttpResult Conflict(object? body = null) => new(HttpStatusCode.Conflict, body);
 
-    public static IHttpResult InternalServerError(object? body = null) =>
-        new HttpResult(HttpStatusCode.InternalServerError, body);
+    public static HttpResult InternalServerError(object? body = null) => new(HttpStatusCode.InternalServerError, body);
 
-    public static IHttpResult BadGateway() =>
-        new HttpResult(HttpStatusCode.BadGateway);
+    public static HttpResult BadGateway() => new(HttpStatusCode.BadGateway);
 
-    public static IHttpResult ServiceUnavailable(int? delaySeconds = null)
+    public static HttpResult ServiceUnavailable(int? delaySeconds = null)
     {
         var result = new HttpResult(HttpStatusCode.ServiceUnavailable);
         if (delaySeconds.HasValue)
@@ -54,7 +45,7 @@ public static class HttpResults
         return result;
     }
 
-    public static IHttpResult Redirect(string uri, bool permanent = false, bool preserveMethod = false)
+    public static HttpResult Redirect(string uri, bool permanent = false, bool preserveMethod = false)
     {
         var statusCode = (permanent, preserveMethod) switch
         {
@@ -68,6 +59,5 @@ public static class HttpResults
         return result;
     }
 
-    public static IHttpResult NewResult(HttpStatusCode statusCode, object? body = null) =>
-        new HttpResult(statusCode, body);
+    public static HttpResult NewResult(HttpStatusCode statusCode, object? body = null) => new(statusCode, body);
 }

@@ -3,130 +3,83 @@ namespace AmazonLambdaExtension.APIGateway;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Text.Json;
 
-internal sealed class HttpResult : IHttpResult
+using Amazon.Lambda.APIGatewayEvents;
+
+public sealed class HttpResult : IHttpResult
 {
-    public HttpStatusCode StatusCode { get; }
-
     private readonly object? body;
-    private Dictionary<string, string>? headers;
+
+    private readonly APIGatewayHttpApiV2ProxyResponse response;
+
+    public HttpStatusCode StatusCode => (HttpStatusCode)response.StatusCode;
 
     internal HttpResult(HttpStatusCode statusCode, object? body = null)
     {
-        StatusCode = statusCode;
+        response = new APIGatewayHttpApiV2ProxyResponse { StatusCode = (int)statusCode };
         this.body = body;
     }
 
-    public IHttpResult AddHeader(string name, string value)
+    public HttpResult AddHeader(string name, string value)
     {
-        headers ??= [];
-        if (headers.TryGetValue(name, out var existing))
+        response.Headers ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (response.Headers.TryGetValue(name, out var existing))
         {
-            headers[name] = existing + "," + value;
+            response.Headers[name] = existing + "," + value;
         }
         else
         {
-            headers[name] = value;
+            response.Headers[name] = value;
         }
         return this;
     }
 
-    public Stream Serialize(HttpResultSerializationOptions options)
+    APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(HttpResultSerializationOptions options)
     {
-        var bodyStr = BuildBodyString(options, out var isBase64, out var contentType);
-        var responseHeaders = BuildHeaders(contentType);
-
-        MemoryStream ms = new();
-        using (var writer = new Utf8JsonWriter(ms))
+        if (body is not null)
         {
-            writer.WriteStartObject();
-            writer.WriteNumber("statusCode"u8, (int)StatusCode);
-            writer.WriteBoolean("isBase64Encoded"u8, isBase64);
-            if (responseHeaders is not null && responseHeaders.Count > 0)
+            string contentType;
+            switch (body)
             {
-                writer.WriteStartObject("headers"u8);
-                foreach (var kv in responseHeaders)
-                {
-                    writer.WriteString(kv.Key, kv.Value);
-                }
-                writer.WriteEndObject();
+                case string s:
+                    response.Body = s;
+                    contentType = "text/plain";
+                    break;
+                case Stream stream:
+                    using (MemoryStream buffer = new())
+                    {
+                        stream.CopyTo(buffer);
+                        response.Body = Convert.ToBase64String(buffer.GetBuffer(), 0, (int)buffer.Length);
+                    }
+                    response.IsBase64Encoded = true;
+                    contentType = "application/octet-stream";
+                    break;
+                case byte[] bytes:
+                    response.Body = Convert.ToBase64String(bytes);
+                    response.IsBase64Encoded = true;
+                    contentType = "application/octet-stream";
+                    break;
+                case IList<byte> byteList:
+                    var arr = new byte[byteList.Count];
+                    byteList.CopyTo(arr, 0);
+                    response.Body = Convert.ToBase64String(arr);
+                    response.IsBase64Encoded = true;
+                    contentType = "application/octet-stream";
+                    break;
+                default:
+                    using (MemoryStream buffer = new())
+                    {
+                        options.Serializer.Serialize(body, buffer);
+                        response.Body = Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
+                    }
+                    contentType = "application/json";
+                    break;
             }
-            if (bodyStr is not null)
-            {
-                writer.WriteString("body"u8, bodyStr);
-            }
-            else
-            {
-                writer.WriteNull("body"u8);
-            }
-            writer.WriteEndObject();
-        }
-        ms.Position = 0;
-        return ms;
-    }
 
-    private string? BuildBodyString(HttpResultSerializationOptions options, out bool isBase64, out string? contentType)
-    {
-        isBase64 = false;
-        contentType = null;
-
-        if (body is null)
-        {
-            return null;
+            response.Headers ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            response.Headers.TryAdd("content-type", contentType);
         }
 
-        if (body is string s)
-        {
-            contentType = "text/plain";
-            return s;
-        }
-
-        if (body is Stream stream)
-        {
-            using MemoryStream streamBuffer = new();
-            stream.CopyTo(streamBuffer);
-            isBase64 = true;
-            contentType = "application/octet-stream";
-            return Convert.ToBase64String(streamBuffer.ToArray());
-        }
-
-        if (body is byte[] bytes)
-        {
-            isBase64 = true;
-            contentType = "application/octet-stream";
-            return Convert.ToBase64String(bytes);
-        }
-
-        if (body is IList<byte> byteList)
-        {
-            var arr = new byte[byteList.Count];
-            byteList.CopyTo(arr, 0);
-            isBase64 = true;
-            contentType = "application/octet-stream";
-            return Convert.ToBase64String(arr);
-        }
-
-        MemoryStream jsonBuffer = new();
-        options.Serializer.Serialize(body, jsonBuffer);
-        contentType = "application/json";
-        return Encoding.UTF8.GetString(jsonBuffer.ToArray());
-    }
-
-    private Dictionary<string, string>? BuildHeaders(string? contentType)
-    {
-        Dictionary<string, string>? responseHeaders = null;
-        if (headers is not null)
-        {
-            responseHeaders = new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
-        }
-
-        if (contentType is not null)
-        {
-            responseHeaders ??= [];
-            responseHeaders.TryAdd("content-type", contentType);
-        }
-
-        return responseHeaders;
+        return response;
     }
 }

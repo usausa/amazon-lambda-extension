@@ -2,7 +2,7 @@ namespace AmazonLambdaExtension.APIGateway;
 
 public static class AuthorizerResults
 {
-    public static IAuthorizerResult Allow() => new AuthorizerResult(isAuthorized: true);
+    public static AuthorizerResult Allow() => new(true);
 
-    public static IAuthorizerResult Deny() => new AuthorizerResult(isAuthorized: false);
+    public static AuthorizerResult Deny() => new(false);
 }

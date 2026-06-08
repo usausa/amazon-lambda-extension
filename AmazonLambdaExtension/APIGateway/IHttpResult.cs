@@ -1,8 +1,6 @@
 namespace AmazonLambdaExtension.APIGateway;
 
-using System.IO;
-using System.Net;
-
+using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 
 public sealed class HttpResultSerializationOptions
@@ -12,9 +10,5 @@ public sealed class HttpResultSerializationOptions
 
 public interface IHttpResult
 {
-    HttpStatusCode StatusCode { get; }
-
-    Stream Serialize(HttpResultSerializationOptions options);
-
-    IHttpResult AddHeader(string name, string value);
+    APIGatewayHttpApiV2ProxyResponse ToResponse(HttpResultSerializationOptions options);
 }

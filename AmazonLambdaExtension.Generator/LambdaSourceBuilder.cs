@@ -18,15 +18,14 @@ internal static class LambdaSourceBuilder
     private const string HttpResultOptionsType = "global::AmazonLambdaExtension.APIGateway.HttpResultSerializationOptions";
     private const string AuthorizerResultType = "global::AmazonLambdaExtension.APIGateway.IAuthorizerResult";
     private const string AuthorizerResultsType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResults";
-    private const string AuthorizerResultOptionsType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions";
-    private const string AuthorizerFormatType = "global::AmazonLambdaExtension.APIGateway.AuthorizerResultSerializationOptions.AuthorizerFormat";
+    private const string AuthorizerSimpleResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2SimpleResponse";
+    private const string AuthorizerIamResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2IamResponse";
     private const string StringConverterType = "global::AmazonLambdaExtension.Binders.StringConverter";
     private const string BodySerializerType = "global::AmazonLambdaExtension.Serialization.IBodySerializer";
     private const string DefaultBodySerializerType = "global::AmazonLambdaExtension.Serialization.JsonBodySerializer";
     private const string RequestValidatorType = "global::AmazonLambdaExtension.Validation.IRequestValidator";
     private const string DefaultRequestValidatorType = "global::AmazonLambdaExtension.Validation.DataAnnotationsRequestValidator";
     private const string ApiExceptionType = "global::AmazonLambdaExtension.ApiException";
-    private const string StreamType = "global::System.IO.Stream";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
     private const string GetRequiredKeyedService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderKeyedServiceExtensions.GetRequiredKeyedService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
@@ -258,12 +257,13 @@ internal static class LambdaSourceBuilder
         // ハンドラー種別と戻り値型に応じた戻り値型文字列を決定
         // Determine the return type string based on handler kind and result type
         string returnType;
-        if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl) ||
-            (handler.Kind == HandlerKind.HttpApiAuthorizer))
+        if (handler.Kind == HandlerKind.HttpApiAuthorizer)
         {
-            returnType = handler.ReturnsHttpResult || handler.Kind == HandlerKind.HttpApiAuthorizer
-                ? $"global::System.Threading.Tasks.Task<{StreamType}>"
-                : $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
+            returnType = $"global::System.Threading.Tasks.Task<{AuthorizerResponseType(handler)}>";
+        }
+        else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
+        {
+            returnType = $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
         }
         else
         {
@@ -351,16 +351,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            var format = handler.Authorizer?.EnableSimpleResponses == false
-                ? $"{AuthorizerFormatType}.HttpApiIamPolicy"
-                : $"{AuthorizerFormatType}.HttpApiSimple";
-            builder.AppendLine($"return {AuthorizerResultsType}.Deny()");
-            builder.AppendLine($"    .Serialize(new {AuthorizerResultOptionsType}");
-            builder.BeginBlock();
-            builder.AppendLine($"Format = {format},");
-            builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: true)}");
-            builder.EndBlock(semicolon: false);
-            builder.AppendLine(");");
+            builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: true)};");
             builder.EndBlock();
         }
         else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
@@ -369,8 +360,7 @@ internal static class LambdaSourceBuilder
             builder.BeginBlock();
             if (handler.ReturnsHttpResult)
             {
-                builder.AppendLine($"return {HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)");
-                builder.AppendLine($"    .Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
             }
             else
             {
@@ -383,8 +373,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             if (handler.ReturnsHttpResult)
             {
-                builder.AppendLine($"return {HttpResultsType}.InternalServerError()");
-                builder.AppendLine($"    .Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
             }
             else
             {
@@ -420,16 +409,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            var format = handler.Authorizer?.EnableSimpleResponses == false
-                ? $"{AuthorizerFormatType}.HttpApiIamPolicy"
-                : $"{AuthorizerFormatType}.HttpApiSimple";
-            builder.AppendLine($"return {AuthorizerResultsType}.Deny()");
-            builder.AppendLine($"    .Serialize(new {AuthorizerResultOptionsType}");
-            builder.BeginBlock();
-            builder.AppendLine($"Format = {format},");
-            builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: false)}");
-            builder.EndBlock(semicolon: false);
-            builder.AppendLine(");");
+            builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: false)};");
             builder.EndBlock();
         }
         else
@@ -438,8 +418,7 @@ internal static class LambdaSourceBuilder
             builder.BeginBlock();
             if (handler.ReturnsHttpResult)
             {
-                builder.AppendLine($"return {HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)");
-                builder.AppendLine($"    .Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
             }
             else
             {
@@ -452,8 +431,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             if (handler.ReturnsHttpResult)
             {
-                builder.AppendLine($"return {HttpResultsType}.InternalServerError()");
-                builder.AppendLine($"    .Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
             }
             else
             {
@@ -503,8 +481,7 @@ internal static class LambdaSourceBuilder
         {
             if (handler.ReturnsHttpResult)
             {
-                return $"return {HttpResultsType}.BadRequest($\"Invalid parameter: {paramName}\")" +
-                       $".Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});";
+                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest($\"Invalid parameter: {paramName}\")")};";
             }
             return $"return new {V2ResponseType} {{ StatusCode = 400, " +
                    $"Body = $\"Invalid parameter: {paramName}\" }};";
@@ -646,8 +623,7 @@ internal static class LambdaSourceBuilder
         {
             if (handler.ReturnsHttpResult)
             {
-                return $"return {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\")" +
-                       $".Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});";
+                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest($\"Invalid parameter: {key}\")")};";
             }
             return $"return new {V2ResponseType} {{ StatusCode = 400, Body = $\"Invalid parameter: {key}\" }};";
         }
@@ -824,28 +800,14 @@ internal static class LambdaSourceBuilder
         }
         else if (handler.Kind == HandlerKind.HttpApiAuthorizer)
         {
-            var format = handler.Authorizer?.EnableSimpleResponses == false
-                ? $"{AuthorizerFormatType}.HttpApiIamPolicy"
-                : $"{AuthorizerFormatType}.HttpApiSimple";
-
             if (hasFilter)
             {
                 builder.AppendLine($"var result = ({AuthorizerResultType})ctx.Result!;");
-                builder.AppendLine($"return result.Serialize(new {AuthorizerResultOptionsType}");
-                builder.BeginBlock();
-                builder.AppendLine($"Format = {format},");
-                builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: true)}");
-                builder.EndBlock(semicolon: false);
-                builder.AppendLine(");");
+                builder.AppendLine($"return {AuthorizerResponseCall(handler, "result", hasFilter: true)};");
             }
             else
             {
-                builder.AppendLine($"return __result__.Serialize(new {AuthorizerResultOptionsType}");
-                builder.BeginBlock();
-                builder.AppendLine($"Format = {format},");
-                builder.AppendLine($"RouteArn = {GetAuthorizerRouteArnExpression(handler, hasFilter: false)}");
-                builder.EndBlock(semicolon: false);
-                builder.AppendLine(");");
+                builder.AppendLine($"return {AuthorizerResponseCall(handler, "__result__", hasFilter: false)};");
             }
         }
         else if ((handler.Kind == HandlerKind.HttpApi) || (handler.Kind == HandlerKind.FunctionUrl))
@@ -856,15 +818,14 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine($"if (ctx.Result is {HttpResultType} httpResult)");
                     builder.BeginBlock();
-                    builder.AppendLine($"return httpResult.Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                    builder.AppendLine($"return {ToResponseCall("httpResult")};");
                     builder.EndBlock();
                     builder.NewLine();
-                    builder.AppendLine($"return {HttpResultsType}.InternalServerError()");
-                    builder.AppendLine($"    .Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                    builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
                 }
                 else
                 {
-                    builder.AppendLine($"return __result__.Serialize(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }});");
+                    builder.AppendLine($"return {ToResponseCall("__result__")};");
                 }
             }
             else
@@ -938,6 +899,31 @@ internal static class LambdaSourceBuilder
         }
 
         return V2RequestType;
+    }
+
+    private static string ToResponseCall(string expression)
+    {
+        // IHttpResult.ToResponse は明示的実装のため、IHttpResult へキャストして呼び出す
+        // IHttpResult.ToResponse is an explicit implementation, so cast to IHttpResult before calling
+        return $"(({HttpResultType})({expression})).ToResponse(new {HttpResultOptionsType} {{ Serializer = __lambdaSerializer__ }})";
+    }
+
+    private static string AuthorizerResponseType(HandlerModel handler)
+    {
+        // EnableSimpleResponses はコンパイル時に確定するため、応答型を静的に選択する
+        // EnableSimpleResponses is known at compile time, so the response type is selected statically
+        return handler.Authorizer?.EnableSimpleResponses == false
+            ? AuthorizerIamResponseType
+            : AuthorizerSimpleResponseType;
+    }
+
+    private static string AuthorizerResponseCall(HandlerModel handler, string expression, bool hasFilter)
+    {
+        // ToSimpleResponse / ToIamResponse は明示的実装のため、IAuthorizerResult へキャストして呼び出す
+        // ToSimpleResponse / ToIamResponse are explicit implementations, so cast to IAuthorizerResult before calling
+        return handler.Authorizer?.EnableSimpleResponses == false
+            ? $"(({AuthorizerResultType})({expression})).ToIamResponse({GetAuthorizerRouteArnExpression(handler, hasFilter)})"
+            : $"(({AuthorizerResultType})({expression})).ToSimpleResponse()";
     }
 
     private static string GetAuthorizerRouteArnExpression(HandlerModel handler, bool hasFilter)
