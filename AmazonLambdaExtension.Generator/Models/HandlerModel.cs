@@ -15,7 +15,7 @@ internal sealed record HandlerModel(
     HandlerType Type,
     bool IsAsync,
     TypeRefModel? ResultType,
+    EquatableArray<ParameterModel> Parameters,
     bool ReturnsHttpResult,
     bool ReturnsProxyResponse,
-    EquatableArray<ParameterModel> Parameters,
     bool EnableSimpleResponses);

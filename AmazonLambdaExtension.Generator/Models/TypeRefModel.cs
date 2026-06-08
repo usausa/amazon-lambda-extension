@@ -2,7 +2,7 @@ namespace AmazonLambdaExtension.Generator.Models;
 
 internal sealed record TypeRefModel(
     string FullName,
-    bool IsNullable,
-    TypeRefModel? UnderlyingType,
     bool IsArray,
-    TypeRefModel? ElementType);
+    TypeRefModel? ElementType,
+    bool IsNullable,
+    TypeRefModel? UnderlyingType);

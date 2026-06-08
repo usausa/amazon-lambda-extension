@@ -6,7 +6,7 @@ internal sealed record LambdaModel(
     string Namespace,
     string ClassName,
     TypeRefModel FunctionType,
-    EquatableArray<TypeRefModel> ConstructorParameters,
     TypeRefModel? ServiceResolver,
+    EquatableArray<TypeRefModel> ConstructorParameters,
     EquatableArray<TypeRefModel> Filters,
     EquatableArray<HandlerModel> Handlers);

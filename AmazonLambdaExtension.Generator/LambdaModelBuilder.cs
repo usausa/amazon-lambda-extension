@@ -268,8 +268,8 @@ internal static class LambdaModelBuilder
             ns,
             symbol.Name,
             functionType,
-            new EquatableArray<TypeRefModel>(ctorParams),
             serviceResolver,
+            new EquatableArray<TypeRefModel>(ctorParams),
             new EquatableArray<TypeRefModel>(sortedFilters.Select(static x => x.FilterType).ToArray()),
             new EquatableArray<HandlerModel>(handlers.ToArray()));
 
@@ -437,9 +437,9 @@ internal static class LambdaModelBuilder
                 handlerType.Value,
                 isAsync,
                 resultType,
+                new EquatableArray<ParameterModel>(parameters.ToArray()),
                 returnsHttpResult,
                 returnsProxyResponse,
-                new EquatableArray<ParameterModel>(parameters.ToArray()),
                 enableSimpleResponses),
             diagnostics);
     }
@@ -841,17 +841,17 @@ internal static class LambdaModelBuilder
         {
             return new TypeRefModel(
                 type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                false,
-                null,
                 true,
-                MakeTypeRef(arr.ElementType));
+                MakeTypeRef(arr.ElementType),
+                false,
+                null);
         }
 
         return new TypeRefModel(
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            isNullable,
-            underlyingType,
             false,
-            null);
+            null,
+            isNullable,
+            underlyingType);
     }
 }
