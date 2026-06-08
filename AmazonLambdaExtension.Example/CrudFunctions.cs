@@ -40,7 +40,7 @@ public partial class CrudFunctions
     [HttpApi(LambdaHttpMethod.Post, "/items", Authorizer = nameof(Authorize))]
     public async ValueTask<IHttpResult> CreateItem(
         [FromBody] CreateItemInput input,
-        [FromCustomAuthorizer("role")] string role)
+        [FromAuthorizer("role")] string role)
     {
         if (role != "admin")
         {

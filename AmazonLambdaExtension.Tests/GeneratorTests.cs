@@ -893,4 +893,137 @@ public sealed partial class AuthFunction
         Assert.Contains("APIGatewayCustomAuthorizerV2Request", handlerSource, StringComparison.Ordinal);
         Assert.Contains(".ToIamResponse(request.RouteArn)", handlerSource, StringComparison.Ordinal);
     }
+
+    // ---------------------------------------------------------------------------
+    // 既定値バインド（省略可能パラメータ）
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void HttpApiHandler_NullableQueryDefault_BindsDefaultValue()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromQuery] int? page = 1)
+        => HttpResults.Ok(new { });
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("(int?)1", handlerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("(int?)null", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HttpApiHandler_EnumQueryDefault_BindsDefaultValue()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+public enum Mode { Basic, Advanced }
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromQuery] Mode mode = Mode.Advanced)
+        => HttpResults.Ok(new { });
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("(global::Test.Mode)1", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HttpApiHandler_StringQueryDefault_BindsDefaultValue()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromQuery] string name = ""guest"")
+        => HttpResults.Ok(new { });
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("(string)\"guest\"", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HttpApiHandler_NumericQueryDefault_UsesInvariantCulture()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Get, ""/items"")]
+    public IHttpResult Handle([FromQuery] double rate = 1.5)
+        => HttpResults.Ok(new { });
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("(double)1.5", handlerSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("1,5", handlerSource, StringComparison.Ordinal);
+    }
+
+    // ---------------------------------------------------------------------------
+    // [FromBody] 必須ボディ（NRT 非許容）と不正 JSON
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void HttpApiHandler_FromBodyNonNullable_GeneratesRequiredAndInvalidChecks()
+    {
+        var sources = CompilationHelper.RunGenerator(@"
+namespace Test;
+
+using AmazonLambdaExtension.Annotations;
+using AmazonLambdaExtension.APIGateway;
+
+public sealed class Input { public string? Name { get; set; } }
+
+[Lambda]
+public sealed partial class Function
+{
+    [HttpApi(LambdaHttpMethod.Post, ""/items"")]
+    public IHttpResult Create([FromBody] Input input)
+        => HttpResults.Ok(new { });
+}
+");
+        var handlerSource = sources.Values.Single(s => s.Contains("Create_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        // 不正 JSON は捕捉して 400
+        Assert.Contains("catch (global::System.Text.Json.JsonException)", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("Invalid request body.", handlerSource, StringComparison.Ordinal);
+        // null 非許容ボディは必須として 400
+        Assert.Contains("Request body is required.", handlerSource, StringComparison.Ordinal);
+    }
 }

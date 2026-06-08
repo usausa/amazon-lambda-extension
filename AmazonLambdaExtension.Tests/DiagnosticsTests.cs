@@ -132,7 +132,7 @@ public sealed partial class Function
     }
 
     [Fact]
-    public void WhenFromCustomAuthorizerOutsideHttpApi_ReportsDiagnostic()
+    public void WhenFromAuthorizerOutsideHttpApi_ReportsDiagnostic()
     {
         var ids = GetDiagnosticIds(@"
 namespace Test;
@@ -141,7 +141,7 @@ using AmazonLambdaExtension.Annotations;
 public sealed partial class Function
 {
     [FunctionUrl]
-    public string Handle([FromCustomAuthorizer(""role"")] string role) => role;
+    public string Handle([FromAuthorizer(""role"")] string role) => role;
 }
 ");
         Assert.Contains("ALE0018", ids);

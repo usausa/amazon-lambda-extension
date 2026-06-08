@@ -144,10 +144,10 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static DiagnosticDescriptor FromCustomAuthorizerOutsideHttpApi { get; } = new(
+    public static DiagnosticDescriptor FromAuthorizerOutsideHttpApi { get; } = new(
         id: "ALE0018",
-        title: "[FromCustomAuthorizer] is used outside an HTTP API handler",
-        messageFormat: "[FromCustomAuthorizer] is used outside an HTTP API handler. handler=[{0}]",
+        title: "[FromAuthorizer] is used outside an HTTP API handler",
+        messageFormat: "[FromAuthorizer] is used outside an HTTP API handler. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

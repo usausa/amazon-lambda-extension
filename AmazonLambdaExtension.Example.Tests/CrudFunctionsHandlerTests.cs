@@ -110,6 +110,25 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
+    public async Task CreateItem_Handler_MissingBody_Returns400()
+    {
+        var req = MakeRequest(method: "POST", body: null);
+        req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
+        {
+            Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST" },
+            Authorizer = new APIGatewayHttpApiV2ProxyRequest.AuthorizerDescription
+            {
+                Lambda = new Dictionary<string, object> { ["role"] = "admin" }
+            }
+        };
+        var ctx = new TestLambdaContext();
+
+        var response = await CrudFunctions.CreateItem_Handler(req, ctx);
+
+        Assert.Equal(400, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateItem_Handler_NonAdminRole_Returns403()
     {
         var body = JsonSerializer.Serialize(new { name = "Widget", description = "A test widget" });

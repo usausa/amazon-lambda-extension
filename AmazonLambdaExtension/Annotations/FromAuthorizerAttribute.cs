@@ -1,11 +1,11 @@
 namespace AmazonLambdaExtension.Annotations;
 
 [AttributeUsage(AttributeTargets.Parameter)]
-public sealed class FromCustomAuthorizerAttribute : Attribute
+public sealed class FromAuthorizerAttribute : Attribute
 {
     public string Name { get; }
 
-    public FromCustomAuthorizerAttribute(string name)
+    public FromAuthorizerAttribute(string name)
     {
         Name = name;
     }
