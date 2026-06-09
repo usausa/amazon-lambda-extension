@@ -357,27 +357,20 @@ internal static class LambdaSourceBuilder
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
-            }
-            else
-            {
-                builder.AppendLine($"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
-            }
+
+            builder.AppendLine(
+                handler.ResponseType == ResponseType.HttpResult
+                ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
+                : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
             builder.EndBlock();
 
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
-            }
-            else
-            {
-                builder.AppendLine($"return new {V2ResponseType} {{ StatusCode = 500 }};");
-            }
+            builder.AppendLine(
+                handler.ResponseType == ResponseType.HttpResult
+                ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
+                : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
             builder.EndBlock();
         }
         else
@@ -415,27 +408,19 @@ internal static class LambdaSourceBuilder
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
             builder.BeginBlock();
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};");
-            }
-            else
-            {
-                builder.AppendLine($"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
-            }
+            builder.AppendLine(
+                handler.ResponseType == ResponseType.HttpResult
+                ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
+                : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
             builder.EndBlock();
 
             builder.AppendLine("catch (global::System.Exception ex)");
             builder.BeginBlock();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
-            }
-            else
-            {
-                builder.AppendLine($"return new {V2ResponseType} {{ StatusCode = 500 }};");
-            }
+            builder.AppendLine(
+                handler.ResponseType == ResponseType.HttpResult
+                ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
+                : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
             builder.EndBlock();
         }
     }
