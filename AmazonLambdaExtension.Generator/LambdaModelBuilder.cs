@@ -52,21 +52,21 @@ internal static class LambdaModelBuilder
         var isPartial = syntax.Modifiers.Any(static m => m.IsKind(SyntaxKind.PartialKeyword));
         if (!isPartial)
         {
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.NotPartialClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.NotPartialClass, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
         // ジェネリック型は型パラメータを生成側で再現できないため未対応
         // Generic types are unsupported because the generator cannot reproduce their type parameters
         if (symbol.TypeParameters.Length > 0)
         {
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.GenericLambdaClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.GenericLambdaClass, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
         // ネストされた型は外側型の入れ子構造を生成側で再現できないため未対応
         // Nested types are unsupported because the generator cannot reproduce the enclosing type nesting
         if (symbol.ContainingType is not null)
         {
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.NestedLambdaClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.NestedLambdaClass, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
         // record（record class）は宣言形を生成側で再現できないため未対応
@@ -75,14 +75,14 @@ internal static class LambdaModelBuilder
         // (struct / record struct never reach here because [Lambda] is restricted to AttributeTargets.Class)
         if (symbol.IsRecord)
         {
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.RecordLambdaClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.RecordLambdaClass, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
         // abstract クラスは new FunctionType(...) でインスタンス化できない（本体は DI 有無に関わらず常に new 生成）ため未対応
         // An abstract class cannot be instantiated via new FunctionType(...) (the target is always new'd regardless of DI), so it is unsupported
         if (symbol.IsAbstract)
         {
-            diagnostics.Add(new DiagnosticInfo(Diagnostics.AbstractLambdaClass, syntax.GetLocation(), symbol.Name));
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.AbstractLambdaClass, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
         if (HasErrors(diagnostics))
