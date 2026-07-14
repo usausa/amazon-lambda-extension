@@ -37,7 +37,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext context, Result<LambdaModel> result)
     {
-        if (result.HasValue)
+        if (!result.HasValue)
         {
             return;
         }
