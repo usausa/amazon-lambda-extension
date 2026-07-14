@@ -21,41 +21,44 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 LambdaAttributeFullName,
                 static (syntax, _) => syntax is ClassDeclarationSyntax or RecordDeclarationSyntax,
-                static (ctx, _) => LambdaModelBuilder.BuildLambdaModel(ctx))
-            .Collect();
+                static (ctx, _) => LambdaModelBuilder.BuildLambdaModel(ctx));
 
-        context.RegisterImplementationSourceOutput(provider, static (ctx, results) => Execute(ctx, results));
+        context.RegisterSourceOutput(provider, static (ctx, result) => ReportDiagnostics(ctx, result));
+        context.RegisterImplementationSourceOutput(provider, static (ctx, result) => Execute(ctx, result));
     }
 
-    private static void Execute(
-        SourceProductionContext context,
-        System.Collections.Immutable.ImmutableArray<Result<LambdaModel>> results)
+    private static void ReportDiagnostics(SourceProductionContext context, Result<LambdaModel> result)
     {
-        foreach (var diagnostic in results.SelectError())
+        foreach (var diagnostic in result.Diagnostics)
         {
             context.ReportDiagnostic(diagnostic);
         }
+    }
 
+    private static void Execute(SourceProductionContext context, Result<LambdaModel> result)
+    {
+        if (result.HasValue)
+        {
+            return;
+        }
+
+        var model = result.Value;
         var builder = new SourceBuilder();
 
-        foreach (var model in results.SelectValue())
+        LambdaSourceBuilder.BuildShared(builder, model);
+        context.AddSource(
+            MakeFilename(model.Namespace, model.ClassName, "__shared__"),
+            SourceText.From(builder.ToString(), Encoding.UTF8));
+
+        foreach (var handler in model.Handlers)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
 
             builder.Clear();
-            LambdaSourceBuilder.BuildShared(builder, model);
-            context.AddSource(
-                MakeFilename(model.Namespace, model.ClassName, "__shared__"),
-                SourceText.From(builder.ToString(), Encoding.UTF8));
+            LambdaSourceBuilder.Build(builder, model, handler);
 
-            foreach (var handler in model.Handlers)
-            {
-                builder.Clear();
-                LambdaSourceBuilder.Build(builder, model, handler);
-
-                var filename = MakeFilename(model.Namespace, model.ClassName, handler.MethodName);
-                context.AddSource(filename, SourceText.From(builder.ToString(), Encoding.UTF8));
-            }
+            var filename = MakeFilename(model.Namespace, model.ClassName, handler.MethodName);
+            context.AddSource(filename, SourceText.From(builder.ToString(), Encoding.UTF8));
         }
     }
 
