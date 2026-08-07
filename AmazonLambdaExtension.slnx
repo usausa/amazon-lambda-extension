@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/Example/">
     <Project Path="AmazonLambdaExtension.Example.Tests/AmazonLambdaExtension.Example.Tests.csproj" />
-    <Project Path="AmazonLambdaExtension.Example/AmazonLambdaExtension.Example.csproj" />
+    <Project Path="AmazonLambdaExtension.Example/AmazonLambdaExtension.Example.csproj" DefaultStartup="true" />
   </Folder>
   <Folder Name="/Library/">
     <Project Path="AmazonLambdaExtension.Generator/AmazonLambdaExtension.Generator.csproj" />
