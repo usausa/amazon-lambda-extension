@@ -1,0 +1,129 @@
+#pragma warning disable CA1707
+namespace AmazonLambdaExtension;
+
+using System.ComponentModel.DataAnnotations;
+
+using Amazon.Lambda.APIGatewayEvents;
+
+using AmazonLambdaExtension.APIGateway;
+using AmazonLambdaExtension.Binders;
+using AmazonLambdaExtension.Validation;
+
+public sealed class ReviewFollowUpTests
+{
+    //--------------------------------------------------------------------------------
+    // StringConverter: explicit DateTimeStyles
+    //--------------------------------------------------------------------------------
+
+    [Fact]
+    public void TryToDateTime_UtcDesignator_KeepsUtcKind()
+    {
+        Assert.True(StringConverter.TryToDateTime("2026-06-10T01:02:03Z", out var result));
+
+        Assert.Equal(DateTimeKind.Utc, result.Kind);
+        Assert.Equal(new DateTime(2026, 6, 10, 1, 2, 3, DateTimeKind.Utc), result);
+    }
+
+    [Fact]
+    public void TryToDateTime_WithoutOffset_KeepsUnspecifiedKind()
+    {
+        Assert.True(StringConverter.TryToDateTime("2026-06-10T01:02:03", out var result));
+
+        Assert.Equal(DateTimeKind.Unspecified, result.Kind);
+    }
+
+    [Fact]
+    public void TryToDateTimeOffset_WithoutOffset_AssumesUtc()
+    {
+        Assert.True(StringConverter.TryToDateTimeOffset("2026-06-10T01:02:03", out var result));
+
+        Assert.Equal(TimeSpan.Zero, result.Offset);
+        Assert.Equal(new DateTimeOffset(2026, 6, 10, 1, 2, 3, TimeSpan.Zero), result);
+    }
+
+    [Fact]
+    public void TryToDateTimeOffset_WithOffset_KeepsOffset()
+    {
+        Assert.True(StringConverter.TryToDateTimeOffset("2026-06-10T01:02:03+09:00", out var result));
+
+        Assert.Equal(TimeSpan.FromHours(9), result.Offset);
+    }
+
+    //--------------------------------------------------------------------------------
+    // DataAnnotationsRequestValidator: detailed results
+    //--------------------------------------------------------------------------------
+
+    private sealed class ValidatedRequest
+    {
+        [Required]
+        public string? Name { get; set; }
+
+        [Range(1, 10)]
+        public int Count { get; set; }
+    }
+
+    [Fact]
+    public void Validate_CollectsMemberDetails()
+    {
+        var validator = new DataAnnotationsRequestValidator();
+        var results = new List<ValidationResult>();
+
+        Assert.False(validator.Validate(new ValidatedRequest { Count = 0 }, results));
+
+        Assert.Equal(2, results.Count);
+        Assert.Contains(results, static r => r.MemberNames.Contains(nameof(ValidatedRequest.Name)));
+        Assert.Contains(results, static r => r.MemberNames.Contains(nameof(ValidatedRequest.Count)));
+    }
+
+    private sealed class BoolOnlyValidator : IRequestValidator
+    {
+        public bool Validate(object value) => false;
+    }
+
+    [Fact]
+    public void Validate_DetailOverload_FallsBackForBoolOnlyValidator()
+    {
+        IRequestValidator validator = new BoolOnlyValidator();
+        var results = new List<ValidationResult>();
+
+        Assert.False(validator.Validate(new ValidatedRequest(), results));
+        Assert.Empty(results);
+    }
+
+    //--------------------------------------------------------------------------------
+    // HttpResult: cookies
+    //--------------------------------------------------------------------------------
+
+    [Fact]
+    public void AddCookie_FlowsIntoResponseCookies()
+    {
+        var result = HttpResults.Ok()
+            .AddCookie("session=abc; Path=/; HttpOnly")
+            .AddCookie("theme=dark");
+
+        var response = ((IHttpResult)result).ToResponse(null!);
+
+        Assert.Equal(["session=abc; Path=/; HttpOnly", "theme=dark"], response.Cookies);
+    }
+
+    [Fact]
+    public void AddHeader_SetCookie_IsRejected()
+    {
+        var result = HttpResults.Ok();
+
+        Assert.Throws<ArgumentException>(() => result.AddHeader("Set-Cookie", "session=abc"));
+        Assert.Throws<ArgumentException>(() => result.AddHeader("set-cookie", "session=abc"));
+    }
+
+    [Fact]
+    public void AddHeader_OtherHeaders_StillCombine()
+    {
+        var result = HttpResults.Ok()
+            .AddHeader("Vary", "Accept")
+            .AddHeader("Vary", "Accept-Encoding");
+
+        var response = ((IHttpResult)result).ToResponse(null!);
+
+        Assert.Equal("Accept,Accept-Encoding", response.Headers["Vary"]);
+    }
+}

@@ -15,7 +15,19 @@ public sealed class AuthorizerResult : IAuthorizerResult
         IsAuthorized = isAuthorized;
     }
 
-    public AuthorizerResult WithContext(string key, object value)
+    // The authorizer context accepts only string, number and boolean values; anything else
+    // fails later at serialization time, so the accepted types are limited up front.
+    public AuthorizerResult WithContext(string key, string value) => WithContextCore(key, value);
+
+    public AuthorizerResult WithContext(string key, bool value) => WithContextCore(key, value);
+
+    public AuthorizerResult WithContext(string key, int value) => WithContextCore(key, value);
+
+    public AuthorizerResult WithContext(string key, long value) => WithContextCore(key, value);
+
+    public AuthorizerResult WithContext(string key, double value) => WithContextCore(key, value);
+
+    private AuthorizerResult WithContextCore(string key, object value)
     {
         context ??= [];
         context[key] = value;

@@ -13,6 +13,8 @@ public sealed class HttpResult : IHttpResult
 
     private readonly APIGatewayHttpApiV2ProxyResponse response;
 
+    private List<string>? cookies;
+
     public HttpStatusCode StatusCode => (HttpStatusCode)response.StatusCode;
 
     internal HttpResult(HttpStatusCode statusCode, object? body = null)
@@ -23,6 +25,13 @@ public sealed class HttpResult : IHttpResult
 
     public HttpResult AddHeader(string name, string value)
     {
+        // Set-Cookie is the canonical header that must not be comma-combined (the Expires
+        // attribute itself contains a comma). HTTP API v2 carries cookies in a dedicated field.
+        if (String.Equals(name, "set-cookie", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Set-Cookie can not be combined by comma. Use AddCookie instead.", nameof(name));
+        }
+
         response.Headers ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (response.Headers.TryGetValue(name, out var existing))
         {
@@ -35,8 +44,20 @@ public sealed class HttpResult : IHttpResult
         return this;
     }
 
+    public HttpResult AddCookie(string cookie)
+    {
+        cookies ??= [];
+        cookies.Add(cookie);
+        return this;
+    }
+
     APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(ILambdaSerializer serializer)
     {
+        if (cookies is not null)
+        {
+            response.Cookies = cookies.ToArray();
+        }
+
         if (body is not null)
         {
             string contentType;

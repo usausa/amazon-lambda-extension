@@ -273,6 +273,14 @@ internal static class LambdaModelBuilder
             new EquatableArray<TypeRefModel>(sortedFilters.Select(static x => x.FilterType).ToArray()),
             new EquatableArray<HandlerModel>(handlers.ToArray()));
 
+        // TODO SourceGenerateHelper 2.0: 値 + 診断を持つ Result の扱いが変わった。SelectValue は
+        // 値があれば診断の有無にかかわらず返すようになったため、この Result を SelectValue 経由で
+        // 消費する形に変えるときは、warning 付きモデルも生成対象になる点を確認すること。
+        // 現状の消費は LambdaGenerator.Execute の HasValue 判定なので挙動は変わらない。
+        // TODO SourceGenerateHelper 2.0: the handling of a Result carrying both a value and
+        // diagnostics changed. SelectValue now returns the value regardless of diagnostics, so if this
+        // Result is ever consumed through SelectValue, confirm that models with warnings should be
+        // emitted. Today it is consumed via HasValue in LambdaGenerator.Execute, so nothing changes.
         return new Result<LambdaModel>(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
     }
 
@@ -681,6 +689,10 @@ internal static class LambdaModelBuilder
         return !string.IsNullOrEmpty(GetConverterMethod(type));
     }
 
+    // TODO SourceGenerateHelper 2.0: Result.HasErrors が同じ判定を提供するようになったため、
+    // Result 経由で判定できる箇所はそちらへ寄せられる。
+    // TODO SourceGenerateHelper 2.0: Result.HasErrors now provides the same check, so the call sites
+    // that already hold a Result can use it instead.
     private static bool HasErrors(IEnumerable<DiagnosticInfo> diagnostics)
     {
         // 収集済み診断の中に Error があるかだけを判定する

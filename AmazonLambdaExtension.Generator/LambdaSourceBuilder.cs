@@ -480,6 +480,17 @@ internal static class LambdaSourceBuilder
             return $"return new {V2ResponseType} {{ StatusCode = 400, Body = \"{message}\" }};";
         }
 
+        // メッセージを実行時に組み立てた変数で 400 を返す（検証エラー詳細用）
+        // Returns 400 with a message held in a runtime variable (used for validation details)
+        string BadRequestVar(string variableName)
+        {
+            if (handler.ResponseType == ResponseType.HttpResult)
+            {
+                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest({variableName})")};";
+            }
+            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = {variableName} }};";
+        }
+
         switch (param.BindingType)
         {
             case ParameterBindingType.Request:
@@ -550,14 +561,19 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine($"if ({pVar} is not null && !__requestValidator__.Validate({pVar}))");
                     builder.BeginBlock();
+                    // 失敗時のみ詳細を収集し直す（成功パスにアロケーションを増やさない）
+                    // Details are collected only on failure, keeping the success path allocation free
+                    builder.AppendLine($"var {pVar}errors = new global::System.Collections.Generic.List<global::System.ComponentModel.DataAnnotations.ValidationResult>();");
+                    builder.AppendLine($"_ = __requestValidator__.Validate({pVar}, {pVar}errors);");
+                    builder.AppendLine($"var {pVar}message = \"Validation failed: {param.Name}\" + ({pVar}errors.Count > 0 ? \": \" + global::System.String.Join(\"; \", {pVar}errors) : \"\");");
                     if (hasFilter)
                     {
-                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Validation failed: {param.Name}\");");
+                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({pVar}message);");
                         builder.AppendLine("return;");
                     }
                     else
                     {
-                        builder.AppendLine($"{BadRequest400(param.Name)}");
+                        builder.AppendLine(BadRequestVar($"{pVar}message"));
                     }
                     builder.EndBlock();
                 }
