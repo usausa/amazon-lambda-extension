@@ -25,8 +25,6 @@ public sealed class HttpResult : IHttpResult
 
     public HttpResult AddHeader(string name, string value)
     {
-        // Set-Cookie is the canonical header that must not be comma-combined (the Expires
-        // attribute itself contains a comma). HTTP API v2 carries cookies in a dedicated field.
         if (String.Equals(name, "set-cookie", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Set-Cookie can not be combined by comma. Use AddCookie instead.", nameof(name));

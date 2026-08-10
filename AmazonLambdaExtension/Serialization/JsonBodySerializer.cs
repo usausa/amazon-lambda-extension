@@ -13,9 +13,6 @@ public sealed class JsonBodySerializer : IBodySerializer
         [RequiresDynamicCode("JSON serialization may require dynamic code generation. Use the JsonSerializerContext overload.")]
         get
         {
-            // field ??= is not atomic: racing first accesses could publish several instances,
-            // each with its own serializer metadata cache. CompareExchange keeps the instance
-            // unique while the getter stays lazy to carry the trimming annotations.
             var instance = Volatile.Read(ref field);
             if (instance is not null)
             {
