@@ -1,4 +1,3 @@
-#pragma warning disable CA1707
 namespace AmazonLambdaExtension;
 
 using System.ComponentModel.DataAnnotations;
@@ -14,7 +13,7 @@ public sealed class ReviewFollowUpTests
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void TryToDateTime_UtcDesignator_KeepsUtcKind()
+    public void TryToDateTimeUtcDesignatorKeepsUtcKind()
     {
         Assert.True(StringConverter.TryToDateTime("2026-06-10T01:02:03Z", out var result));
 
@@ -23,7 +22,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void TryToDateTime_WithoutOffset_KeepsUnspecifiedKind()
+    public void TryToDateTimeWithoutOffsetKeepsUnspecifiedKind()
     {
         Assert.True(StringConverter.TryToDateTime("2026-06-10T01:02:03", out var result));
 
@@ -31,7 +30,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void TryToDateTimeOffset_WithoutOffset_AssumesUtc()
+    public void TryToDateTimeOffsetWithoutOffsetAssumesUtc()
     {
         Assert.True(StringConverter.TryToDateTimeOffset("2026-06-10T01:02:03", out var result));
 
@@ -40,7 +39,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void TryToDateTimeOffset_WithOffset_KeepsOffset()
+    public void TryToDateTimeOffsetWithOffsetKeepsOffset()
     {
         Assert.True(StringConverter.TryToDateTimeOffset("2026-06-10T01:02:03+09:00", out var result));
 
@@ -61,7 +60,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void Validate_CollectsMemberDetails()
+    public void ValidateCollectsMemberDetails()
     {
         var validator = new DataAnnotationsRequestValidator();
         var results = new List<ValidationResult>();
@@ -79,7 +78,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void Validate_DetailOverload_FallsBackForBoolOnlyValidator()
+    public void ValidateDetailOverloadFallsBackForBoolOnlyValidator()
     {
         IRequestValidator validator = new BoolOnlyValidator();
         var results = new List<ValidationResult>();
@@ -93,7 +92,7 @@ public sealed class ReviewFollowUpTests
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void AddCookie_FlowsIntoResponseCookies()
+    public void AddCookieFlowsIntoResponseCookies()
     {
         var result = HttpResults.Ok()
             .AddCookie("session=abc; Path=/; HttpOnly")
@@ -105,7 +104,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void AddHeader_SetCookie_IsRejected()
+    public void AddHeaderSetCookieIsRejected()
     {
         var result = HttpResults.Ok();
 
@@ -114,7 +113,7 @@ public sealed class ReviewFollowUpTests
     }
 
     [Fact]
-    public void AddHeader_OtherHeaders_StillCombine()
+    public void AddHeaderOtherHeadersStillCombine()
     {
         var result = HttpResults.Ok()
             .AddHeader("Vary", "Accept")

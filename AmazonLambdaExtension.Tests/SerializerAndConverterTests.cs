@@ -1,4 +1,3 @@
-#pragma warning disable CA1707
 namespace AmazonLambdaExtension;
 
 using System.Globalization;
@@ -13,7 +12,7 @@ public sealed class SerializerAndConverterTests
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void Default_ReturnsSameInstance()
+    public void DefaultReturnsSameInstance()
     {
         var first = JsonBodySerializer.Default;
         var second = JsonBodySerializer.Default;
@@ -26,7 +25,7 @@ public sealed class SerializerAndConverterTests
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void TryToDouble_WithDeDE_ParsesDotSeparatedValue()
+    public void TryToDoubleWithDeDEParsesDotSeparatedValue()
     {
         var original = CultureInfo.CurrentCulture;
         try
@@ -44,7 +43,7 @@ public sealed class SerializerAndConverterTests
     }
 
     [Fact]
-    public void TryToDateTime_WithDeDE_ParsesIsoFormat()
+    public void TryToDateTimeWithDeDEParsesIsoFormat()
     {
         var original = CultureInfo.CurrentCulture;
         try
