@@ -46,11 +46,11 @@ internal static class LambdaSourceBuilder
         }
 
         builder.AppendLine($"partial class {model.ClassName}");
-        builder.BeginBlock();
+        builder.BeginScope();
 
         BuildStaticFields(builder, model);
 
-        builder.EndBlock();
+        builder.EndScope();
     }
 
     public static void Build(SourceBuilder builder, LambdaModel model, HandlerModel handler)
@@ -68,7 +68,7 @@ internal static class LambdaSourceBuilder
         }
 
         builder.AppendLine($"partial class {model.ClassName}");
-        builder.BeginBlock();
+        builder.BeginScope();
 
         if (model.Filters.Count > 0)
         {
@@ -78,7 +78,7 @@ internal static class LambdaSourceBuilder
 
         BuildHandlerMethod(builder, model, handler);
 
-        builder.EndBlock();
+        builder.EndScope();
     }
 
     private static void BuildStaticFields(SourceBuilder builder, LambdaModel model)
@@ -102,16 +102,16 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("private static readonly global::System.IServiceProvider __provider__ = BuildProvider();");
             builder.NewLine();
             builder.AppendLine("private static global::System.IServiceProvider BuildProvider()");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine($"var services = {model.ServiceResolver.FullName}.ConfigureServices();");
             builder.AppendLine($"return {BuildServiceProvider}(services, new {ServiceProviderOptionsType}");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("#if DEBUG");
             builder.AppendLine("ValidateScopes = true,");
             builder.AppendLine("#endif");
-            builder.EndBlock(semicolon: false);
+            builder.EndScope(semicolon: false);
             builder.AppendLine(");");
-            builder.EndBlock();
+            builder.EndScope();
             builder.NewLine();
 
             // target（本体は singleton。コンストラクタ引数のみ DI から解決＝Controller 的な特別扱い）
@@ -183,7 +183,7 @@ internal static class LambdaSourceBuilder
         var methodName = handler.MethodName;
         builder.AppendLine($"private static async global::System.Threading.Tasks.ValueTask __{methodName}_Inner__(");
         builder.AppendLine($"    {InvocationContextType} ctx)");
-        builder.BeginBlock();
+        builder.BeginScope();
 
         if (handler.Type != HandlerType.Event)
         {
@@ -207,7 +207,7 @@ internal static class LambdaSourceBuilder
 
         BuildHandlerInvocation(builder, handler, hasFilter: true);
 
-        builder.EndBlock();
+        builder.EndScope();
     }
 
     private static bool UsesScope(LambdaModel model, HandlerModel handler)
@@ -287,7 +287,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"    {LambdaContextType} context)");
         }
 
-        builder.BeginBlock();
+        builder.BeginScope();
 
         if (UsesScope(model, handler))
         {
@@ -303,7 +303,7 @@ internal static class LambdaSourceBuilder
             // フィルターあり: InvocationContext を作成しパイプラインを実行、結果を抽出
             // With filters: create InvocationContext, execute pipeline, then extract result
             builder.AppendLine($"var ctx = new {InvocationContextType}");
-            builder.BeginBlock();
+            builder.BeginScope();
 
             builder.AppendLine(handler.Type == HandlerType.Event ? "Request = ev," : "Request = request,");
 
@@ -313,7 +313,7 @@ internal static class LambdaSourceBuilder
             {
                 builder.AppendLine("ServiceProvider = __sp__,");
             }
-            builder.EndBlock(semicolon: true);
+            builder.EndScope(semicolon: true);
             builder.NewLine();
 
             BuildInlinePipeline(builder, model, handler);
@@ -335,51 +335,51 @@ internal static class LambdaSourceBuilder
             }
         }
 
-        builder.EndBlock();
+        builder.EndScope();
     }
 
     private static void BuildTryCatchWithFilter(SourceBuilder builder, HandlerModel handler)
     {
         builder.AppendLine("try");
-        builder.BeginBlock();
+        builder.BeginScope();
         builder.AppendLine("await __pipeline__(ctx);");
-        builder.EndBlock();
+        builder.EndScope();
 
         if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             builder.AppendLine("catch (global::System.Exception ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: true)};");
-            builder.EndBlock();
+            builder.EndScope();
         }
         else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
 
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
                 ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
                 : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
-            builder.EndBlock();
+            builder.EndScope();
 
             builder.AppendLine("catch (global::System.Exception ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
                 ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
                 : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
-            builder.EndBlock();
+            builder.EndScope();
         }
         else
         {
             builder.AppendLine("catch (global::System.Exception ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine("throw;");
-            builder.EndBlock();
+            builder.EndScope();
         }
 
         builder.NewLine();
@@ -389,56 +389,56 @@ internal static class LambdaSourceBuilder
     private static void BuildHttpTryCatch(SourceBuilder builder, HandlerModel handler)
     {
         builder.AppendLine("try");
-        builder.BeginBlock();
+        builder.BeginScope();
 
         BuildParameterBindings(builder, handler, hasFilter: false);
         BuildHandlerInvocation(builder, handler, hasFilter: false);
 
-        builder.EndBlock();
+        builder.EndScope();
 
         if (handler.Type == HandlerType.HttpApiAuthorizer)
         {
             builder.AppendLine("catch (global::System.Exception ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: false)};");
-            builder.EndBlock();
+            builder.EndScope();
         }
         else
         {
             builder.AppendLine($"catch ({ApiExceptionType} ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
                 ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
                 : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
-            builder.EndBlock();
+            builder.EndScope();
 
             builder.AppendLine("catch (global::System.Exception ex)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
                 ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
                 : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
-            builder.EndBlock();
+            builder.EndScope();
         }
     }
 
     private static void BuildEventTryCatch(SourceBuilder builder, HandlerModel handler)
     {
         builder.AppendLine("try");
-        builder.BeginBlock();
+        builder.BeginScope();
 
         BuildParameterBindings(builder, handler, hasFilter: false);
         BuildHandlerInvocation(builder, handler, hasFilter: false);
 
-        builder.EndBlock();
+        builder.EndScope();
         builder.AppendLine("catch (global::System.Exception ex)");
-        builder.BeginBlock();
+        builder.BeginScope();
         builder.AppendLine("context.Logger.LogLine(ex.ToString());");
         builder.AppendLine("throw;");
-        builder.EndBlock();
+        builder.EndScope();
     }
 
     private static void BuildParameterBindings(SourceBuilder builder, HandlerModel handler, bool hasFilter)
@@ -523,11 +523,11 @@ internal static class LambdaSourceBuilder
                 // Deserialize request body and run validation unless skipped
                 builder.AppendLine($"var {pVar} = default({typeName})!;");
                 builder.AppendLine("try");
-                builder.BeginBlock();
+                builder.BeginScope();
                 builder.AppendLine($"{pVar} = __bodySerializer__.Deserialize<{typeName}>({requestVar}.Body ?? string.Empty);");
-                builder.EndBlock();
+                builder.EndScope();
                 builder.AppendLine("catch (global::System.Text.Json.JsonException)");
-                builder.BeginBlock();
+                builder.BeginScope();
                 if (hasFilter)
                 {
                     builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Invalid request body.\");");
@@ -537,14 +537,14 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine(BadRequestBody("Invalid request body."));
                 }
-                builder.EndBlock();
+                builder.EndScope();
 
                 // null 非許容（NRT 注釈なし・非 Nullable）のボディは必須として 400 を返す
                 // Treat a non-nullable body (no NRT annotation / not Nullable) as required and return 400
                 if (!param.IsNullableBodyParameter())
                 {
                     builder.AppendLine($"if ({pVar} is null)");
-                    builder.BeginBlock();
+                    builder.BeginScope();
                     if (hasFilter)
                     {
                         builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Request body is required.\");");
@@ -554,13 +554,13 @@ internal static class LambdaSourceBuilder
                     {
                         builder.AppendLine(BadRequestBody("Request body is required."));
                     }
-                    builder.EndBlock();
+                    builder.EndScope();
                 }
 
                 if (!param.SkipValidation)
                 {
                     builder.AppendLine($"if ({pVar} is not null && !__requestValidator__.Validate({pVar}))");
-                    builder.BeginBlock();
+                    builder.BeginScope();
                     // 失敗時のみ詳細を収集し直す（成功パスにアロケーションを増やさない）
                     // Details are collected only on failure, keeping the success path allocation free
                     builder.AppendLine($"var {pVar}errors = new global::System.Collections.Generic.List<global::System.ComponentModel.DataAnnotations.ValidationResult>();");
@@ -575,7 +575,7 @@ internal static class LambdaSourceBuilder
                     {
                         builder.AppendLine(BadRequestVar($"{pVar}message"));
                     }
-                    builder.EndBlock();
+                    builder.EndScope();
                 }
                 builder.NewLine();
                 return;
@@ -587,7 +587,7 @@ internal static class LambdaSourceBuilder
                 builder.AppendLine($"if ({requestVar}.RequestContext?.Authorizer?.Lambda is not null &&");
                 builder.AppendLine($"    {requestVar}.RequestContext.Authorizer.Lambda.TryGetValue(\"{key}\", out var {pRaw}ca) &&");
                 builder.AppendLine($"    {pRaw}ca is not null)");
-                builder.BeginBlock();
+                builder.BeginScope();
                 if (String.IsNullOrEmpty(param.ConverterMethod))
                 {
                     builder.AppendLine($"{pVar} = {pRaw}ca as {typeName};");
@@ -599,7 +599,7 @@ internal static class LambdaSourceBuilder
                         ? $"{StringConverterType}.TryToEnum<{param.Type.GetBaseTypeName()}>(({pRaw}ca as string ?? string.Empty).AsSpan(), out var {pVar}tmp)"
                         : $"{StringConverterType}.{param.ConverterMethod}(({pRaw}ca as string ?? string.Empty).AsSpan(), out var {pVar}tmp)";
                     builder.AppendLine($"if (!{converterCall})");
-                    builder.BeginBlock();
+                    builder.BeginScope();
                     if (hasFilter)
                     {
                         builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\");");
@@ -609,10 +609,10 @@ internal static class LambdaSourceBuilder
                     {
                         builder.AppendLine(BadRequest400(key));
                     }
-                    builder.EndBlock();
+                    builder.EndScope();
                     builder.AppendLine($"{pVar} = {pVar}tmp;");
                 }
-                builder.EndBlock();
+                builder.EndScope();
                 builder.NewLine();
                 return;
 
@@ -683,11 +683,11 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"if ({dictExpr} is not null &&");
             builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
             builder.AppendLine($"    {pRaw} is not null)");
-            builder.BeginBlock();
+            builder.BeginScope();
             builder.AppendLine($"var {pVar}parts = {pRaw}.Split(',');");
             builder.AppendLine($"{pVar} = new {elemType}[{pVar}parts.Length];");
             builder.AppendLine($"for (var i = 0; i < {pVar}parts.Length; i++)");
-            builder.BeginBlock();
+            builder.BeginScope();
             if (String.IsNullOrEmpty(converterMethod))
             {
                 builder.AppendLine($"{pVar}[i] = {pVar}parts[i];");
@@ -699,7 +699,7 @@ internal static class LambdaSourceBuilder
                     ? $"!{StringConverterType}.TryToEnum<{elemType}>({pVar}parts[i].AsSpan(), out {pVar}[i])"
                     : $"!{StringConverterType}.{converterMethod}({pVar}parts[i].AsSpan(), out {pVar}[i])";
                 builder.AppendLine($"if ({converterCall})");
-                builder.BeginBlock();
+                builder.BeginScope();
                 if (hasFilter)
                 {
                     builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\");");
@@ -709,10 +709,10 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine(Bad400());
                 }
-                builder.EndBlock();
+                builder.EndScope();
             }
-            builder.EndBlock();
-            builder.EndBlock();
+            builder.EndScope();
+            builder.EndScope();
             builder.NewLine();
         }
         else if (param.Type.IsNullable && param.Type.UnderlyingType is not null)
@@ -726,7 +726,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"if ({dictExpr} is not null &&");
             builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
             builder.AppendLine($"    {pRaw} is not null)");
-            builder.BeginBlock();
+            builder.BeginScope();
             if (String.IsNullOrEmpty(converterMethod))
             {
                 builder.AppendLine($"{pVar} = {pRaw};");
@@ -738,7 +738,7 @@ internal static class LambdaSourceBuilder
                     ? $"!{StringConverterType}.TryToEnum<{baseType}>({pRaw}.AsSpan(), out var {pVar}tmp)"
                     : $"!{StringConverterType}.{converterMethod}({pRaw}.AsSpan(), out var {pVar}tmp)";
                 builder.AppendLine($"if ({converterCall})");
-                builder.BeginBlock();
+                builder.BeginScope();
                 if (hasFilter)
                 {
                     builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\");");
@@ -748,10 +748,10 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine(Bad400());
                 }
-                builder.EndBlock();
+                builder.EndScope();
                 builder.AppendLine($"{pVar} = {pVar}tmp;");
             }
-            builder.EndBlock();
+            builder.EndScope();
             builder.NewLine();
         }
         else
@@ -766,9 +766,9 @@ internal static class LambdaSourceBuilder
                 builder.AppendLine($"var {pVar} = {init};");
                 builder.AppendLine($"if ({dictExpr} is not null &&");
                 builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}))");
-                builder.BeginBlock();
+                builder.BeginScope();
                 builder.AppendLine($"{pVar} = {pRaw};");
-                builder.EndBlock();
+                builder.EndScope();
                 builder.NewLine();
             }
             else
@@ -778,13 +778,13 @@ internal static class LambdaSourceBuilder
                 builder.AppendLine($"if ({dictExpr} is not null &&");
                 builder.AppendLine($"    {dictExpr}.TryGetValue(\"{key}\", out var {pRaw}) &&");
                 builder.AppendLine($"    {pRaw} is not null)");
-                builder.BeginBlock();
+                builder.BeginScope();
                 var isEnum = converterMethod == "TryToEnum";
                 var converterCall = isEnum
                     ? $"!{StringConverterType}.TryToEnum<{typeName}>({pRaw}.AsSpan(), out {pVar})"
                     : $"!{StringConverterType}.{converterMethod}({pRaw}.AsSpan(), out {pVar})";
                 builder.AppendLine($"if ({converterCall})");
-                builder.BeginBlock();
+                builder.BeginScope();
                 if (hasFilter)
                 {
                     builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest($\"Invalid parameter: {key}\");");
@@ -794,8 +794,8 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine(Bad400());
                 }
-                builder.EndBlock();
-                builder.EndBlock();
+                builder.EndScope();
+                builder.EndScope();
                 builder.NewLine();
             }
         }
@@ -865,9 +865,9 @@ internal static class LambdaSourceBuilder
                 if (hasFilter)
                 {
                     builder.AppendLine($"if (ctx.Result is {HttpResultType} httpResult)");
-                    builder.BeginBlock();
+                    builder.BeginScope();
                     builder.AppendLine($"return {ToResponseCall("httpResult")};");
-                    builder.EndBlock();
+                    builder.EndScope();
                     builder.NewLine();
                     builder.AppendLine($"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};");
                 }
@@ -974,33 +974,5 @@ internal static class LambdaSourceBuilder
         return GetEntryRequestType(handler) == V2AuthorizerRequestType
             ? hasFilter ? $"(({V2AuthorizerRequestType})ctx.Request).RouteArn" : "request.RouteArn"
             : "null";
-    }
-}
-
-internal static class SourceBuilderExtensions
-{
-    public static void AppendLine(this SourceBuilder builder, string line)
-    {
-        builder.Indent().Append(line).NewLine();
-    }
-
-    public static void BeginBlock(this SourceBuilder builder)
-    {
-        builder.Indent().Append("{").NewLine();
-        builder.IndentLevel++;
-    }
-
-    public static void EndBlock(this SourceBuilder builder, bool semicolon = false)
-    {
-        builder.IndentLevel--;
-        builder.Indent();
-        if (semicolon)
-        {
-            builder.Append("};").NewLine();
-        }
-        else
-        {
-            builder.Append("}").NewLine();
-        }
     }
 }

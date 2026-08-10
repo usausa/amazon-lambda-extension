@@ -1,12 +1,9 @@
 namespace AmazonLambdaExtension.Generator;
 
-using System.Text;
-
 using AmazonLambdaExtension.Generator.Models;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 using SourceGenerateHelper;
 
@@ -46,9 +43,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
         var builder = new SourceBuilder();
 
         LambdaSourceBuilder.BuildShared(builder, model);
-        context.AddSource(
-            MakeFilename(model.Namespace, model.ClassName, "__shared__"),
-            SourceText.From(builder.ToString(), Encoding.UTF8));
+        context.AddSource(HintNameBuilder.Build(model.Namespace, model.ClassName, "__shared__"), builder);
 
         foreach (var handler in model.Handlers)
         {
@@ -57,17 +52,7 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             builder.Clear();
             LambdaSourceBuilder.Build(builder, model, handler);
 
-            var filename = MakeFilename(model.Namespace, model.ClassName, handler.MethodName);
-            context.AddSource(filename, SourceText.From(builder.ToString(), Encoding.UTF8));
+            context.AddSource(HintNameBuilder.Build(model.Namespace, model.ClassName, handler.MethodName), builder);
         }
-    }
-
-    private static string MakeFilename(string ns, string className, string methodName)
-    {
-        if (string.IsNullOrEmpty(ns))
-        {
-            return $"{className}__{methodName}.g.cs";
-        }
-        return $"{ns}.{className}__{methodName}.g.cs";
     }
 }
