@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 
 using SourceGenerateHelper.Testing;
+
 internal static class CompilationHelper
 {
     private static GeneratorTestRunner Runner => GeneratorTestRunner
@@ -31,8 +32,7 @@ internal static class CompilationHelper
 
         return new GeneratorResult(
             [.. result.GeneratorDiagnostics],
-            result.GeneratedSources,
-            result.AllGeneratedText);
+            result.GeneratedSources);
     }
 
     public static void AssertNoGeneratorErrors(GeneratorResult result)
@@ -46,6 +46,5 @@ internal static class CompilationHelper
 
     public sealed record GeneratorResult(
         ImmutableArray<Diagnostic> Diagnostics,
-        IReadOnlyDictionary<string, string> Sources,
-        string GeneratedCode);
+        IReadOnlyDictionary<string, string> Sources);
 }

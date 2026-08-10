@@ -3,8 +3,6 @@ namespace AmazonLambdaExtension;
 
 using System.ComponentModel.DataAnnotations;
 
-using Amazon.Lambda.APIGatewayEvents;
-
 using AmazonLambdaExtension.APIGateway;
 using AmazonLambdaExtension.Binders;
 using AmazonLambdaExtension.Validation;
