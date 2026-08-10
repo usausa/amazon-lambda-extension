@@ -2,7 +2,7 @@
   "profiles": {
     "AmazonLambdaExtension.Generator": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\Develop\\Develop.csproj"
+      "targetProject": "..\AmazonLambdaExtension.Example\AmazonLambdaExtension.Example.csproj"
     }
   }
 }
