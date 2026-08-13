@@ -25,7 +25,7 @@ public sealed class SerializerAndConverterTests
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void TryToDoubleWithDeDEParsesDotSeparatedValue()
+    public void TryToDoubleDotSeparatedValue()
     {
         var original = CultureInfo.CurrentCulture;
         try
@@ -43,7 +43,7 @@ public sealed class SerializerAndConverterTests
     }
 
     [Fact]
-    public void TryToDateTimeWithDeDEParsesIsoFormat()
+    public void TryToDateTimeParsesIsoFormat()
     {
         var original = CultureInfo.CurrentCulture;
         try
