@@ -14,9 +14,9 @@
 
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.props" PackagePath="build" />
       <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.Generator\bin\$(Configuration)\netstandard2.0\AmazonLambdaExtension.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
       <TfmSpecificPackageFile Include="$(PKGSourceGenerateHelper)\lib\netstandard2.0\SourceGenerateHelper.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.targets" Pack="true" PackagePath="buildTransitive\AmazonLambdaExtension.targets" Visible="false" />
     </ItemGroup>
   </Target>
 

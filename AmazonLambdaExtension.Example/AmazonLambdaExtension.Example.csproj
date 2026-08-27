@@ -14,8 +14,6 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
-  <Import Project="..\AmazonLambdaExtension.props" />
-
   <PropertyGroup>
     <AmazonLambdaExtensioneneratorValue>test</AmazonLambdaExtensioneneratorValue>
   </PropertyGroup>
@@ -24,6 +22,8 @@
     <ProjectReference Include="..\AmazonLambdaExtension.Generator\AmazonLambdaExtension.Generator.csproj" OutputItemType="analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
   </ItemGroup>
+
+  <Import Project="..\AmazonLambdaExtension.targets" />
 
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.1" />

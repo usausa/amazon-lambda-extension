@@ -13,7 +13,7 @@
     <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
   </PropertyGroup>
 
-  <Import Project="..\AmazonLambdaExtension.props" />
+  <Import Project="..\AmazonLambdaExtension.targets" />
 
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.Core" Version="3.3.0" />
