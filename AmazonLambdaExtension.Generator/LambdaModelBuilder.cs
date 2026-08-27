@@ -270,10 +270,10 @@ internal static class LambdaModelBuilder
             functionType,
             serviceResolver,
             new EquatableArray<TypeRefModel>(ctorParams),
-            new EquatableArray<TypeRefModel>(sortedFilters.Select(static x => x.FilterType).ToArray()),
-            new EquatableArray<HandlerModel>(handlers.ToArray()));
+            new EquatableArray<TypeRefModel>(sortedFilters.Select(static x => x.FilterType)),
+            new EquatableArray<HandlerModel>(handlers));
 
-        return new Result<LambdaModel>(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+        return new Result<LambdaModel>(model, new EquatableArray<DiagnosticInfo>(diagnostics));
     }
 
     private static (HandlerModel? Model, IReadOnlyList<DiagnosticInfo> Diagnostics) BuildHandlerModel(
@@ -442,7 +442,7 @@ internal static class LambdaModelBuilder
                 handlerType.Value,
                 isAsync,
                 resultType,
-                new EquatableArray<ParameterModel>(parameters.ToArray()),
+                new EquatableArray<ParameterModel>(parameters),
                 responseType,
                 enableSimpleResponses),
             diagnostics);
