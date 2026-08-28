@@ -269,35 +269,6 @@ For AOT, just use the `JsonSerializerContext` constructor in your `ServiceResolv
 
 > HTTP handlers return `APIGatewayHttpApiV2ProxyResponse`, and authorizer handlers return `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse`. These are serialized by the Lambda runtime serializer. For AOT, make sure your Lambda serializer's `JsonSerializerContext` also covers those response types (in addition to your DTOs).
 
-## Diagnostics
-
-| ID | Severity | Phase | Description |
-|:---|:------:|:--------|:-----|
-| `ALE0001` | Error | Class structure | `[Lambda]` class is not `partial` |
-| `ALE0002` | Error | Class structure | `[Lambda]` class is generic |
-| `ALE0003` | Error | Class structure | `[Lambda]` class is a nested type |
-| `ALE0004` | Error | Class structure | `[Lambda]` applied to a record (record class) — not supported |
-| `ALE0005` | Error | Class structure | `[Lambda]` class is `abstract` |
-| `ALE0006` | Error | DI/generation | `ServiceResolver` has no `ConfigureServices()` method |
-| `ALE0007` | Error | DI/generation | Constructor parameters present without `[ServiceResolver]` |
-| `ALE0008` | Error | DI/generation | `[Lambda]` class has no parameterless constructor without `[ServiceResolver]` |
-| `ALE0009` | Error | Filter | Filter type does not implement `ILambdaFilter` |
-| `ALE0010` | Error | Filter | Filter is `abstract` without `[ServiceResolver]` |
-| `ALE0011` | Error | Filter | Filter has no reachable parameterless constructor without `[ServiceResolver]` |
-| `ALE0012` | Warning | Handler/parameter | Method without a handler attribute detected |
-| `ALE0013` | Error | Handler/parameter | Duplicate handler attributes |
-| `ALE0014` | Warning | Handler/parameter | Target of `Authorizer = nameof(...)` not found |
-| `ALE0015` | Error | Handler/parameter | Duplicate binding attributes |
-| `ALE0016` | Error | Handler/parameter | `[FromBody]` applied to an `[Event]` handler |
-| `ALE0017` | Error | Handler/parameter | Unsupported binding attribute used in an `[Event]` handler |
-| `ALE0018` | Warning | Handler/parameter | Misuse of `[FromAuthorizer]` |
-| `ALE0019` | Error | Handler/parameter | Type not supported by binding |
-| `ALE0020` | Error | Handler/parameter | `[Event]` handler has no payload parameter |
-| `ALE0021` | Error | Handler/parameter | `[Event]` handler has multiple payload parameters |
-| `ALE0022` | Error | Handler/parameter | Invalid return type for `[HttpApiAuthorizer]` |
-| `ALE0023` | Error | Post-collection | `[FromServices]` used without `[ServiceResolver]` |
-| `ALE0024` | Error | Post-collection | Overloaded handler name (handler names must be unique) |
-
 ## Scope / Non-goals
 
 This library only generates wrapper code (Source Generator output). The following are intentionally out of scope.
