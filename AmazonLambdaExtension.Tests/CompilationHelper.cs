@@ -47,4 +47,7 @@ internal static class CompilationHelper
     public sealed record GeneratorResult(
         ImmutableArray<Diagnostic> Diagnostics,
         IReadOnlyDictionary<string, string> Sources);
+
+    public static IncrementalRunResult RunIncremental(string source, string addedSource) =>
+        Runner.WithTracking().RunIncremental(source, addedSource);
 }

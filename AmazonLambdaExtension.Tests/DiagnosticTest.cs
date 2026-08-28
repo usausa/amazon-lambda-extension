@@ -1,16 +1,49 @@
 namespace AmazonLambdaExtension;
 
-public sealed class DiagnosticsTests
+public class DiagnosticTest
 {
     private static List<string> GetDiagnosticIds(string source)
         => CompilationHelper.RunGenerator(source).Diagnostics.Select(d => d.Id).ToList();
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0001
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenNotPartial_ReportsDiagnostic()
+    public void Ale0012NoHandlerAttributeEmitsDiagnostic()
+    {
+        // Arrange
+        const string source =
+            """
+            namespace Test;
+
+            using AmazonLambdaExtension.Annotations;
+
+            public sealed class MyEvent { }
+
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle(MyEvent ev)
+                {
+                }
+
+                public void Extra()
+                {
+                }
+            }
+            """;
+
+        // Act
+        var diagnostics = CompilationHelper.RunGenerator(source).Diagnostics;
+
+        // Assert
+        Assert.Contains(diagnostics, static x => x.Id == "ALE0012");
+    }
+
+    [Fact]
+    public void Ale0001NotPartialEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -27,7 +60,7 @@ public sealed class DiagnosticsTests
     }
 
     [Fact]
-    public void WhenPartial_NoDiagnostic()
+    public void Ale0001PartialEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -43,12 +76,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0001", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0002
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenLambdaClassIsGeneric_ReportsDiagnostic()
+    public void Ale0002LambdaClassIsGenericEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -64,12 +97,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0002", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0002 / ALE0003 / ALE0004
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenTopLevelNonGeneric_NoDiagnostic()
+    public void Ale0002TopLevelNonGenericEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -88,12 +121,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0004", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0003
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenLambdaClassIsNested_ReportsDiagnostic()
+    public void Ale0003LambdaClassIsNestedEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -112,12 +145,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0003", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0004
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenLambdaClassIsRecord_ReportsDiagnostic()
+    public void Ale0004LambdaClassIsRecordEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -134,12 +167,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0004", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0005
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenLambdaClassIsAbstract_ReportsDiagnostic()
+    public void Ale0005LambdaClassIsAbstractEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -156,12 +189,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0005", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0006
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenServiceResolverMissingConfigureServices_ReportsDiagnostic()
+    public void Ale0006ServiceResolverMissingConfigureServicesEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -180,7 +213,7 @@ public sealed class DiagnosticsTests
     }
 
     [Fact]
-    public void WhenInternalResolverWithAccessibleConfigureServices_NoDiagnostic()
+    public void Ale0006InternalResolverWithAccessibleConfigureServicesEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -203,12 +236,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0006", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0007
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenCtorParamsButNoServiceResolver_ReportsDiagnostic()
+    public void Ale0007CtorParamsButNoServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -227,12 +260,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0007", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0008
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenNoParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
+    public void Ale0008NoParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -250,12 +283,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0008", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0008 / ALE0011
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenParameterlessCtorsWithoutServiceResolver_NoDiagnostic()
+    public void Ale0008ParameterlessCtorsWithoutServiceResolverEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -280,12 +313,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0011", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0009
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenFilterTypeNotImplementILambdaFilter_ReportsDiagnostic()
+    public void Ale0009FilterTypeNotImplementILambdaFilterEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -304,12 +337,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0009", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0010
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenAbstractFilterWithoutServiceResolver_ReportsDiagnostic()
+    public void Ale0010AbstractFilterWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -333,12 +366,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0010", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0011
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenFilterHasNoPublicParameterlessCtorWithoutServiceResolver_ReportsDiagnostic()
+    public void Ale0011FilterHasNoPublicParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -364,7 +397,7 @@ public sealed class DiagnosticsTests
     }
 
     [Fact]
-    public void WhenInternalFilterWithAccessibleCtor_NoDiagnostic()
+    public void Ale0011InternalFilterWithAccessibleCtorEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -388,12 +421,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0011", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0013
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenMultipleHandlerAttributes_ReportsDiagnostic()
+    public void Ale0013MultipleHandlerAttributesEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -411,12 +444,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0013", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0014
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenAuthorizerMethodMissing_ReportsDiagnostic()
+    public void Ale0014AuthorizerMethodMissingEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -433,12 +466,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0014", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0015
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenMultipleBindingAttributes_ReportsDiagnostic()
+    public void Ale0015MultipleBindingAttributesEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -455,12 +488,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0015", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0016
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenFromBodyOnEventHandler_ReportsDiagnostic()
+    public void Ale0016FromBodyOnEventHandlerEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -476,12 +509,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0016", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0017
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenInvalidBindingOnEventHandler_ReportsDiagnostic()
+    public void Ale0017InvalidBindingOnEventHandlerEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -497,12 +530,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0017", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0018
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenFromAuthorizerOutsideHttpApi_ReportsDiagnostic()
+    public void Ale0018FromAuthorizerOutsideHttpApiEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -518,12 +551,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0018", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0019
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenUnsupportedBindingType_ReportsDiagnostic()
+    public void Ale0019UnsupportedBindingTypeEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -541,12 +574,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0019", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0020
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenEventHandlerHasNoPayload_ReportsDiagnostic()
+    public void Ale0020EventHandlerHasNoPayloadEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -563,12 +596,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0020", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0020 / ALE0021
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenEventHandlerHasSinglePayload_NoDiagnostic()
+    public void Ale0020EventHandlerHasSinglePayloadEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -587,12 +620,12 @@ public sealed class DiagnosticsTests
         Assert.DoesNotContain("ALE0021", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0021
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenEventHandlerHasMultiplePayloads_ReportsDiagnostic()
+    public void Ale0021EventHandlerHasMultiplePayloadsEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -610,12 +643,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0021", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0022
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenAuthorizerInvalidReturnType_ReportsDiagnostic()
+    public void Ale0022AuthorizerInvalidReturnTypeEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -631,12 +664,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0022", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0023
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenFromServicesWithoutServiceResolver_ReportsDiagnostic()
+    public void Ale0023FromServicesWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -654,12 +687,12 @@ public sealed class DiagnosticsTests
         Assert.Contains("ALE0023", ids);
     }
 
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
     // ALE0024
-    //--------------------------------------------------------------------------------
+    // ------------------------------------------------------------
 
     [Fact]
-    public void WhenHandlerIsOverloaded_ReportsDiagnostic()
+    public void Ale0024HandlerIsOverloadedEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
