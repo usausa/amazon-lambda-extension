@@ -49,7 +49,7 @@ internal static class Diagnostics
     public static DiagnosticDescriptor InvalidServiceResolverType { get; } = new(
         id: "ALE0006",
         title: "Invalid ServiceResolver type",
-        messageFormat: "ServiceResolver has no ConfigureServices. type=[{0}]",
+        messageFormat: "[ServiceResolver] type has no ConfigureServices. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -171,7 +171,7 @@ internal static class Diagnostics
     public static DiagnosticDescriptor EventHandlerMultiplePayloads { get; } = new(
         id: "ALE0021",
         title: "Multiple event payloads",
-        messageFormat: "Multiple event payload parameters. handler=[{0}]",
+        messageFormat: "[Event] handler has multiple payload parameters. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -179,7 +179,7 @@ internal static class Diagnostics
     public static DiagnosticDescriptor AuthorizerInvalidReturnType { get; } = new(
         id: "ALE0022",
         title: "Invalid authorizer return type",
-        messageFormat: "Return type must be IAuthorizerResult. handler=[{0}]",
+        messageFormat: "[HttpApiAuthorizer] return type must be IAuthorizerResult. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

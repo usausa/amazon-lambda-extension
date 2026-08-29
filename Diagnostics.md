@@ -14,7 +14,7 @@
 
 | ID | Severity | Description | How to fix |
 |---|---|---|---|
-| ALE0006 | ❌ Error | `ServiceResolver` type has no accessible `static IServiceCollection ConfigureServices()` method | Add the `ConfigureServices()` method to the resolver type |
+| ALE0006 | ❌ Error | `[ServiceResolver]` type has no accessible `static IServiceCollection ConfigureServices()` method | Add the `ConfigureServices()` method to the resolver type |
 | ALE0007 | ❌ Error | `[Lambda]` class has constructor parameters but no `[ServiceResolver]` | Specify `[ServiceResolver]`, or remove the constructor parameters |
 | ALE0008 | ❌ Error | `[Lambda]` class has no parameterless constructor and no `[ServiceResolver]` | Add a parameterless constructor, or specify `[ServiceResolver]` |
 
