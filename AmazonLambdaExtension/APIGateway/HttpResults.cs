@@ -2,6 +2,7 @@ namespace AmazonLambdaExtension.APIGateway;
 
 using System.Net;
 
+#pragma warning disable CA1054
 public static class HttpResults
 {
     public static HttpResult Ok(object? body = null) =>
@@ -61,3 +62,4 @@ public static class HttpResults
 
     public static HttpResult NewResult(HttpStatusCode statusCode, object? body = null) => new(statusCode, body);
 }
+#pragma warning restore CA1054

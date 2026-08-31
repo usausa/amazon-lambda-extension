@@ -145,7 +145,7 @@ internal static class LambdaSourceBuilder
             }
         }
 
-        if (hasBodyParam && model.ServiceResolver is not null)
+        if (hasBodyParam && (model.ServiceResolver is not null))
         {
             // DIから IBodySerializer を解決
             // Resolve IBodySerializer from DI container
@@ -160,7 +160,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine($"    {DefaultBodySerializerType}.Default;");
         }
 
-        if (hasValidation && model.ServiceResolver is not null)
+        if (hasValidation && (model.ServiceResolver is not null))
         {
             // DIからリクエストバリデーターを解決
             // Resolve IRequestValidator from DI container
@@ -214,8 +214,8 @@ internal static class LambdaSourceBuilder
     {
         // DI 利用時で、フィルターか [FromServices] がある場合のみ invocation scope が必要
         // A per-invocation scope is needed only with DI when filters or [FromServices] are present
-        return model.ServiceResolver is not null &&
-            (model.Filters.Count > 0 ||
+        return (model.ServiceResolver is not null) &&
+            ((model.Filters.Count > 0) ||
              handler.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromServices));
     }
 
@@ -673,7 +673,7 @@ internal static class LambdaSourceBuilder
             return $"return new {V2ResponseType} {{ StatusCode = 400, Body = $\"Invalid parameter: {key}\" }};";
         }
 
-        if (param.Type.IsArray && param.Type.ElementType is not null)
+        if (param.Type.IsArray && (param.Type.ElementType is not null))
         {
             // カンマ分割で複数値を配列に変換、各要素を型変換
             // Split comma-separated values into array and convert each element
@@ -715,7 +715,7 @@ internal static class LambdaSourceBuilder
             builder.EndScope();
             builder.NewLine();
         }
-        else if (param.Type.IsNullable && param.Type.UnderlyingType is not null)
+        else if (param.Type.IsNullable && (param.Type.UnderlyingType is not null))
         {
             // Nullable<T>: 値が存在する場合のみ型変換を実施
             // Nullable<T>: perform type conversion only when the value is present
@@ -841,7 +841,7 @@ internal static class LambdaSourceBuilder
         // Serialize or convert the result according to handler kind and generate the return statement
         if (handler.Type == HandlerType.Event)
         {
-            if (handler.ResultType is not null && hasFilter)
+            if ((handler.ResultType is not null) && hasFilter)
             {
                 builder.AppendLine($"return ({handler.ResultType.FullName})ctx.Result!;");
             }

@@ -92,7 +92,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ3: 名前空間、型参照、コンストラクタ依存など基礎メタデータを抽出
         // Phase 3: Extract core metadata such as namespace, type references, and constructor dependencies
-        var ns = string.IsNullOrEmpty(symbol.ContainingNamespace.Name)
+        var ns = String.IsNullOrEmpty(symbol.ContainingNamespace.Name)
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
 
@@ -110,9 +110,9 @@ internal static class LambdaModelBuilder
         TypeRefModel? serviceResolver = null;
         var serviceResolverAttr = symbol.GetAttributes()
             .FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() == ServiceResolverAttributeName);
-        if (serviceResolverAttr is not null &&
-            serviceResolverAttr.ConstructorArguments.Length > 0 &&
-            serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType)
+        if ((serviceResolverAttr is not null) &&
+            (serviceResolverAttr.ConstructorArguments.Length > 0) &&
+            (serviceResolverAttr.ConstructorArguments[0].Value is INamedTypeSymbol resolverType))
         {
             // ConfigureServices は Lambda クラス内（BuildProvider）から呼ぶため、public 固定ではなく
             // Lambda クラスから到達可能な static メソッドであればよい（同一アセンブリ internal 等）
@@ -121,8 +121,8 @@ internal static class LambdaModelBuilder
             var configureMethod = resolverType.GetMembers("ConfigureServices")
                 .OfType<IMethodSymbol>()
                 .FirstOrDefault(m => m.IsStatic
-                    && m.Parameters.Length == 0
-                    && m.ReturnType.ToDisplayString() == IServiceCollectionFullName
+                    && (m.Parameters.Length == 0)
+                    && (m.ReturnType.ToDisplayString() == IServiceCollectionFullName)
                     && compilation.IsSymbolAccessibleWithin(m, symbol));
 
             if (configureMethod is null)
@@ -151,8 +151,8 @@ internal static class LambdaModelBuilder
         // Without [ServiceResolver] the generated code emits new FunctionType() (inside the same partial class),
         // so a parameterless constructor accessible from the Lambda class is required (private is fine in-class).
         // Limited to ctorParams.Length == 0 so ALE0007 covers the public-ctor-with-parameters case without duplication.
-        if (serviceResolverAttr is null &&
-            ctorParams.Length == 0 &&
+        if ((serviceResolverAttr is null) &&
+            (ctorParams.Length == 0) &&
             !HasAccessibleParameterlessConstructor(symbol, symbol, compilation))
         {
             diagnostics.Add(new DiagnosticInfo(
@@ -220,7 +220,7 @@ internal static class LambdaModelBuilder
         var handlerMethods = new List<IMethodSymbol>();
         foreach (var member in symbol.GetMembers().OfType<IMethodSymbol>())
         {
-            if (member.MethodKind != MethodKind.Ordinary || member.IsStatic)
+            if ((member.MethodKind != MethodKind.Ordinary) || member.IsStatic)
             {
                 continue;
             }
@@ -236,7 +236,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ7: 収集済みハンドラー一覧に基づくクラス単位の後続制約を検証
         // Phase 7: Run follow-up class-level validation based on the collected handlers
-        if (serviceResolver is null &&
+        if ((serviceResolver is null) &&
             handlers.Any(static h => h.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromServices)))
         {
             diagnostics.Add(new DiagnosticInfo(
@@ -339,8 +339,8 @@ internal static class LambdaModelBuilder
             diagnostics.Add(new DiagnosticInfo(Diagnostics.MultipleHandlerAttributes, GetLocation(method), method.Name));
         }
 
-        if (handlerType == HandlerType.HttpApi &&
-            !string.IsNullOrWhiteSpace(authorizerMethodName) &&
+        if ((handlerType == HandlerType.HttpApi) &&
+            !String.IsNullOrWhiteSpace(authorizerMethodName) &&
             !HasAuthorizerMethod(containingType, authorizerMethodName!))
         {
             diagnostics.Add(new DiagnosticInfo(
@@ -366,7 +366,7 @@ internal static class LambdaModelBuilder
         // Phase 4b: Event handlers must declare exactly one event payload (Request-bound) parameter
         // パラメータ単位の診断が出ているときはエラーの連鎖を避けるため検証しない
         // Skip this check when parameter-level diagnostics already exist to avoid cascading errors
-        if (handlerType == HandlerType.Event && !HasErrors(diagnostics))
+        if ((handlerType == HandlerType.Event) && !HasErrors(diagnostics))
         {
             var payloadCount = parameters.Count(static p => p.BindingType == ParameterBindingType.Request);
             if (payloadCount == 0)
@@ -387,14 +387,14 @@ internal static class LambdaModelBuilder
 
         if (returnType is INamedTypeSymbol namedReturn)
         {
-            if (namedReturn.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>" ||
-                namedReturn.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>")
+            if ((namedReturn.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>") ||
+                (namedReturn.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>"))
             {
                 isAsync = true;
                 resultType = MakeTypeRef(namedReturn.TypeArguments[0]);
             }
-            else if (namedReturn.ToDisplayString() == "System.Threading.Tasks.Task" ||
-                     namedReturn.ToDisplayString() == "System.Threading.Tasks.ValueTask")
+            else if ((namedReturn.ToDisplayString() == "System.Threading.Tasks.Task") ||
+                     (namedReturn.ToDisplayString() == "System.Threading.Tasks.ValueTask"))
             {
                 isAsync = true;
                 resultType = null;
@@ -413,8 +413,8 @@ internal static class LambdaModelBuilder
             resultType = MakeTypeRef(returnType);
         }
 
-        var returnsHttpResult = resultType is not null && IsImplementing(method.ReturnType, IHttpResultFullName);
-        var returnsProxyResponse = resultType is not null && resultType.FullName == HttpApiResponseFullName;
+        var returnsHttpResult = (resultType is not null) && IsImplementing(method.ReturnType, IHttpResultFullName);
+        var returnsProxyResponse = (resultType is not null) && (resultType.FullName == HttpApiResponseFullName);
         var responseType = returnsHttpResult
             ? ResponseType.HttpResult
             : returnsProxyResponse
@@ -423,8 +423,8 @@ internal static class LambdaModelBuilder
 
         // フェーズ6: ハンドラー種別ごとの戻り値制約を検証
         // Phase 6: Validate return-type constraints that depend on the handler kind
-        if (handlerType == HandlerType.HttpApiAuthorizer &&
-            !(resultType is not null && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
+        if ((handlerType == HandlerType.HttpApiAuthorizer) &&
+            !((resultType is not null) && IsImplementing(method.ReturnType, IAuthorizerResultFullName)))
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.AuthorizerInvalidReturnType, GetLocation(method), method.Name));
         }
@@ -500,7 +500,7 @@ internal static class LambdaModelBuilder
 
         // フェーズ3: ハンドラー種別ごとの binding 制約を検証
         // Phase 3: Validate binding restrictions that depend on the handler kind
-        if (handlerType == HandlerType.Event && explicitBinding is not null)
+        if ((handlerType == HandlerType.Event) && (explicitBinding is not null))
         {
             var explicitBindingName = explicitBinding.AttributeClass?.ToDisplayString();
             if (explicitBindingName == FromBodyAttributeName)
@@ -518,8 +518,8 @@ internal static class LambdaModelBuilder
             }
         }
 
-        if (bindingType == ParameterBindingType.FromAuthorizer &&
-            handlerType != HandlerType.HttpApi)
+        if ((bindingType == ParameterBindingType.FromAuthorizer) &&
+            (handlerType != HandlerType.HttpApi))
         {
             diagnostics.Add(new DiagnosticInfo(
                 Diagnostics.FromAuthorizerOutsideHttpApi,
@@ -625,7 +625,7 @@ internal static class LambdaModelBuilder
         // [FromQuery("name")] のような属性引数からキー名の上書きを取り出す
         // Read a key override such as [FromQuery("name")] from the attribute constructor argument
         var nameArg = attr.ConstructorArguments.Length > 0 ? attr.ConstructorArguments[0].Value as string : null;
-        if (!string.IsNullOrEmpty(nameArg))
+        if (!String.IsNullOrEmpty(nameArg))
         {
             key = nameArg!;
         }
@@ -637,7 +637,7 @@ internal static class LambdaModelBuilder
         // Locate the [HttpApiAuthorizer] method referenced by HttpApiAttribute.Authorizer
         return containingType.GetMembers(authorizerMethodName)
             .OfType<IMethodSymbol>()
-            .Any(static m => m.MethodKind == MethodKind.Ordinary &&
+            .Any(static m => (m.MethodKind == MethodKind.Ordinary) &&
                              !m.IsStatic &&
                              m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == HttpApiAuthorizerAttributeName));
     }
@@ -646,10 +646,10 @@ internal static class LambdaModelBuilder
     {
         // 文字列入力から scalar 変換を行う binding 種別だけ型サポート検証の対象にする
         // Limit type-support validation to binding kinds that convert from scalar string inputs
-        return bindingType == ParameterBindingType.FromQuery ||
-               bindingType == ParameterBindingType.FromHeader ||
-               bindingType == ParameterBindingType.FromRoute ||
-               bindingType == ParameterBindingType.FromAuthorizer;
+        return (bindingType == ParameterBindingType.FromQuery) ||
+               (bindingType == ParameterBindingType.FromHeader) ||
+               (bindingType == ParameterBindingType.FromRoute) ||
+               (bindingType == ParameterBindingType.FromAuthorizer);
     }
 
     private static bool IsSupportedBindingType(ITypeSymbol type)
@@ -661,8 +661,8 @@ internal static class LambdaModelBuilder
             return IsSupportedBindingType(arrayType.ElementType);
         }
 
-        if (type is INamedTypeSymbol namedType &&
-            namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
+        if ((type is INamedTypeSymbol namedType) &&
+            (namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>"))
         {
             return IsSupportedBindingType(namedType.TypeArguments[0]);
         }
@@ -678,7 +678,7 @@ internal static class LambdaModelBuilder
             return true;
         }
 
-        return !string.IsNullOrEmpty(GetConverterMethod(type));
+        return !String.IsNullOrEmpty(GetConverterMethod(type));
     }
 
     private static bool HasErrors(IEnumerable<DiagnosticInfo> diagnostics)
@@ -760,7 +760,7 @@ internal static class LambdaModelBuilder
         // Determine whether a parameterless constructor callable from the generation site (within = Lambda class) exists
         // Judged by actual constructability (same-assembly internal, in-class private, etc.), not a fixed public rule
         return type.InstanceConstructors.Any(c =>
-            c.Parameters.Length == 0 && compilation.IsSymbolAccessibleWithin(c, within));
+            (c.Parameters.Length == 0) && compilation.IsSymbolAccessibleWithin(c, within));
     }
 
     private static bool IsImplementing(ITypeSymbol type, string interfaceName)
@@ -769,13 +769,13 @@ internal static class LambdaModelBuilder
         // Unwrap Task<T>/ValueTask<T> and determine whether the effective type implements the interface
         if (type is INamedTypeSymbol named)
         {
-            if (named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>" ||
-                named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>")
+            if ((named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.Task<TResult>") ||
+                (named.OriginalDefinition.ToDisplayString() == "System.Threading.Tasks.ValueTask<TResult>"))
             {
                 return IsImplementing(named.TypeArguments[0], interfaceName);
             }
 
-            return named.ToDisplayString() == interfaceName ||
+            return (named.ToDisplayString() == interfaceName) ||
                    named.AllInterfaces.Any(i => i.ToDisplayString() == interfaceName);
         }
 
@@ -787,9 +787,9 @@ internal static class LambdaModelBuilder
         // パラメータ binding として扱う属性群かどうかをまとめて判定
         // Determine whether the attribute belongs to the supported parameter-binding set
         var name = attr.AttributeClass?.ToDisplayString();
-        return name == FromBodyAttributeName || name == FromQueryAttributeName ||
-               name == FromHeaderAttributeName || name == FromRouteAttributeName ||
-               name == FromServicesAttributeName || name == FromAuthorizerAttributeName;
+        return (name == FromBodyAttributeName) || (name == FromQueryAttributeName) ||
+               (name == FromHeaderAttributeName) || (name == FromRouteAttributeName) ||
+               (name == FromServicesAttributeName) || (name == FromAuthorizerAttributeName);
     }
 
     private static string GetConverterMethod(ITypeSymbol type)
@@ -801,7 +801,7 @@ internal static class LambdaModelBuilder
             return GetConverterMethod(arr.ElementType);
         }
 
-        if (type is INamedTypeSymbol named && named.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
+        if ((type is INamedTypeSymbol named) && (named.OriginalDefinition.ToDisplayString() == "System.Nullable<T>"))
         {
             return GetConverterMethod(named.TypeArguments[0]);
         }
@@ -868,10 +868,10 @@ internal static class LambdaModelBuilder
         var isNullable = false;
         TypeRefModel? underlyingType = null;
         var isReferenceType = type.IsReferenceType;
-        var isNullableReferenceType = isReferenceType && type.NullableAnnotation == NullableAnnotation.Annotated;
+        var isNullableReferenceType = isReferenceType && (type.NullableAnnotation == NullableAnnotation.Annotated);
 
-        if (type is INamedTypeSymbol namedType &&
-            namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>")
+        if ((type is INamedTypeSymbol namedType) &&
+            (namedType.OriginalDefinition.ToDisplayString() == "System.Nullable<T>"))
         {
             isNullable = true;
             underlyingType = MakeTypeRef(namedType.TypeArguments[0]);
