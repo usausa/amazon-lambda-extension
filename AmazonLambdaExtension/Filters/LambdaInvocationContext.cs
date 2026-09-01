@@ -20,7 +20,7 @@ public sealed class LambdaInvocationContext
 
     public IDictionary<string, object?> Items => items ??= [];
 
-    public TRequest GetRequest<TRequest>()
+    public TRequest GetRequestAs<TRequest>()
         where TRequest : class
         => (TRequest)Request;
 }
