@@ -6,7 +6,7 @@ using Amazon.Lambda.TestUtilities;
 public class HealthCheckHandlerTests
 {
     [Fact]
-    public async Task Ping_Handler_Returns200WithStatus()
+    public async Task PingHandlerReturns200WithStatus()
     {
         var req = new APIGatewayHttpApiV2ProxyRequest
         {

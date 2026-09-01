@@ -6,7 +6,7 @@ using Amazon.Lambda.TestUtilities;
 public class QueueProcessorHandlerTests
 {
     [Fact]
-    public Task Handle_Handler_ProcessesRecords_WithoutException()
+    public Task HandleHandlerProcessesRecordsWithoutException()
     {
         var ev = new SQSEvent
         {

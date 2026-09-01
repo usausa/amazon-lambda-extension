@@ -31,7 +31,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task GetItem_Handler_ExistingId_Returns200()
+    public async Task GetItemHandlerExistingIdReturns200()
     {
         var req = MakeRequest(
             path: new Dictionary<string, string> { ["id"] = "item-1" },
@@ -44,7 +44,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task GetItem_Handler_MissingId_Returns404()
+    public async Task GetItemHandlerMissingIdReturns404()
     {
         var req = MakeRequest(
             path: new Dictionary<string, string> { ["id"] = "not-exist" },
@@ -57,7 +57,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task GetItem_Handler_InvalidPage_Returns400()
+    public async Task GetItemHandlerInvalidPageReturns400()
     {
         var req = MakeRequest(
             path: new Dictionary<string, string> { ["id"] = "item-1" },
@@ -70,7 +70,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task ListItems_Handler_ValidRequest_Returns200()
+    public async Task ListItemsHandlerValidRequestReturns200()
     {
         var req = MakeRequest(
             query: new Dictionary<string, string> { ["ids"] = "1,2" },
@@ -83,7 +83,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task CreateItem_Handler_AdminRole_Returns201()
+    public async Task CreateItemHandlerAdminRoleReturns201()
     {
         var body = JsonSerializer.Serialize(new { name = "Widget", description = "A test widget" });
         var req = MakeRequest(
@@ -106,7 +106,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task CreateItem_Handler_MissingBody_Returns400()
+    public async Task CreateItemHandlerMissingBodyReturns400()
     {
         var req = MakeRequest(method: "POST", body: null);
         req.RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
@@ -125,7 +125,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task CreateItem_Handler_NonAdminRole_Returns403()
+    public async Task CreateItemHandlerNonAdminRoleReturns403()
     {
         var body = JsonSerializer.Serialize(new { name = "Widget", description = "A test widget" });
         var req = MakeRequest(method: "POST", body: body);
@@ -145,7 +145,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task CreateItem_Handler_ValidationFails_EmptyName_Returns400()
+    public async Task CreateItemHandlerValidationFailsEmptyNameReturns400()
     {
         var body = JsonSerializer.Serialize(new { name = string.Empty });
         var req = MakeRequest(method: "POST", body: body);
@@ -165,7 +165,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task CreateItem_Handler_ValidationFails_NameTooLong_Returns400()
+    public async Task CreateItemHandlerValidationFailsNameTooLongReturns400()
     {
         var body = JsonSerializer.Serialize(new { name = new string('x', 101) });
         var req = MakeRequest(method: "POST", body: body);
@@ -185,7 +185,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task Authorize_Handler_ValidToken_ReturnsIsAuthorizedTrue()
+    public async Task AuthorizeHandlerValidTokenReturnsIsAuthorizedTrue()
     {
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "valid-token" });
         var ctx = new TestLambdaContext();
@@ -196,7 +196,7 @@ public class CrudFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task Authorize_Handler_InvalidToken_ReturnsIsAuthorizedFalse()
+    public async Task AuthorizeHandlerInvalidTokenReturnsIsAuthorizedFalse()
     {
         var req = MakeRequest(headers: new Dictionary<string, string> { ["authorization"] = "bad-token" });
         var ctx = new TestLambdaContext();

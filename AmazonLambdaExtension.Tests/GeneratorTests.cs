@@ -7,7 +7,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenNoServiceResolver_ServiceResolverIsNull()
+    public void WhenNoServiceResolverServiceResolverIsNull()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -31,7 +31,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void SharedFields_GeneratesStaticReadonlyProvider()
+    public void SharedFieldsGeneratesStaticReadonlyProvider()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -68,7 +68,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void DiHandler_NoFilterNoFromServices_DoesNotCreateScope()
+    public void DiHandlerNoFilterNoFromServicesDoesNotCreateScope()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -104,7 +104,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenEventHandler_GeneratesHandlerMethod()
+    public void WhenEventHandlerGeneratesHandlerMethod()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -128,7 +128,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void EventHandler_NoFilter_GeneratesCorrectStructure()
+    public void EventHandlerNoFilterGeneratesCorrectStructure()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -159,7 +159,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void EventHandler_WithFromServices_NoFilter_GeneratesServiceBinding()
+    public void EventHandlerWithFromServicesNoFilterGeneratesServiceBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -204,7 +204,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenHttpApiHandler_GeneratesHandlerMethod()
+    public void WhenHttpApiHandlerGeneratesHandlerMethod()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -226,7 +226,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenFunctionUrlHandler_GeneratesHandlerMethod()
+    public void WhenFunctionUrlHandlerGeneratesHandlerMethod()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -252,7 +252,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void HttpApiHandler_IHttpResultReturn_NoFilter_GeneratesResponseReturn()
+    public void HttpApiHandlerIHttpResultReturnNoFilterGeneratesResponseReturn()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -279,7 +279,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_PocoReturn_NoFilter_WrapsWithHttpResultsOk()
+    public void HttpApiHandlerPocoReturnNoFilterWrapsWithHttpResultsOk()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -310,7 +310,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_ProxyResponseReturn_NoFilter_ReturnsDirectly()
+    public void HttpApiHandlerProxyResponseReturnNoFilterReturnsDirectly()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -341,7 +341,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenFromQuery_GeneratesQueryStringBinding()
+    public void WhenFromQueryGeneratesQueryStringBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -364,7 +364,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenFromRoute_GeneratesPathParameterBinding()
+    public void WhenFromRouteGeneratesPathParameterBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -387,7 +387,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenFromHeader_GeneratesHeaderBinding()
+    public void WhenFromHeaderGeneratesHeaderBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -410,7 +410,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenFromQueryArray_GeneratesArrayBinding()
+    public void WhenFromQueryArrayGeneratesArrayBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -434,7 +434,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenIntParameter_GeneratesStringConverterCall()
+    public void WhenIntParameterGeneratesStringConverterCall()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -457,7 +457,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_FromRouteAndQuery_GeneratesCorrectBinding()
+    public void HttpApiHandlerFromRouteAndQueryGeneratesCorrectBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -487,7 +487,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_FromQueryArray_GeneratesArrayBinding()
+    public void HttpApiHandlerFromQueryArrayGeneratesArrayBinding()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -517,7 +517,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void HttpApiHandler_NullableQueryDefault_BindsDefaultValue()
+    public void HttpApiHandlerNullableQueryDefaultBindsDefaultValue()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -543,7 +543,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_EnumQueryDefault_BindsDefaultValue()
+    public void HttpApiHandlerEnumQueryDefaultBindsDefaultValue()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -570,7 +570,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_StringQueryDefault_BindsDefaultValue()
+    public void HttpApiHandlerStringQueryDefaultBindsDefaultValue()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -595,7 +595,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_NumericQueryDefault_UsesInvariantCulture()
+    public void HttpApiHandlerNumericQueryDefaultUsesInvariantCulture()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -625,7 +625,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenFromServices_GeneratesServiceProviderResolution()
+    public void WhenFromServicesGeneratesServiceProviderResolution()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -655,7 +655,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenFromServicesWithKey_GeneratesKeyedServiceResolution()
+    public void WhenFromServicesWithKeyGeneratesKeyedServiceResolution()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -690,7 +690,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void FromBody_WithValidation_GeneratesRequestValidatorField()
+    public void FromBodyWithValidationGeneratesRequestValidatorField()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -731,7 +731,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void FromBody_SkipValidate_DoesNotGenerateRequestValidatorField()
+    public void FromBodySkipValidateDoesNotGenerateRequestValidatorField()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -765,7 +765,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void FromBody_WithoutServiceResolver_GeneratesDefaultSerializerAndValidator()
+    public void FromBodyWithoutServiceResolverGeneratesDefaultSerializerAndValidator()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -793,7 +793,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_FromBodyNonNullable_GeneratesRequiredAndInvalidChecks()
+    public void HttpApiHandlerFromBodyNonNullableGeneratesRequiredAndInvalidChecks()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -826,7 +826,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void WhenFilterSpecified_GeneratesPipelineCode()
+    public void WhenFilterSpecifiedGeneratesPipelineCode()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -866,7 +866,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void WhenNoFilter_DoesNotGeneratePipelineCode()
+    public void WhenNoFilterDoesNotGeneratePipelineCode()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -890,7 +890,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void HttpApiHandler_WithFilter_GeneratesPipelineStructure()
+    public void HttpApiHandlerWithFilterGeneratesPipelineStructure()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -940,7 +940,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     //--------------------------------------------------------------------------------
 
     [Fact]
-    public void AuthorizerHandler_GeneratesCorrectStructure()
+    public void AuthorizerHandlerGeneratesCorrectStructure()
     {
         var result = CompilationHelper.RunGenerator(
             """
@@ -974,7 +974,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AuthorizerHandler_WithCustomAuthorizerRequest_UsesRouteArn()
+    public void AuthorizerHandlerWithCustomAuthorizerRequestUsesRouteArn()
     {
         var result = CompilationHelper.RunGenerator(
             """

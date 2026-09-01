@@ -19,7 +19,7 @@ public class SecureFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task GetItem_Handler_ValidApiKey_Returns200()
+    public async Task GetItemHandlerValidApiKeyReturns200()
     {
         var req = MakeRequest(new Dictionary<string, string> { ["x-api-key"] = "expected" });
         var ctx = new TestLambdaContext();
@@ -30,7 +30,7 @@ public class SecureFunctionsHandlerTests
     }
 
     [Fact]
-    public async Task GetItem_Handler_MissingApiKey_ShortCircuitsWith401()
+    public async Task GetItemHandlerMissingApiKeyShortCircuitsWith401()
     {
         var req = MakeRequest();
         var ctx = new TestLambdaContext();
