@@ -1,6 +1,6 @@
 namespace AmazonLambdaExtension;
 
-public class DiagnosticTest
+public class DiagnosticTests
 {
     private static List<string> GetDiagnosticIds(string source)
         => CompilationHelper.RunGenerator(source).Diagnostics.Select(d => d.Id).ToList();
