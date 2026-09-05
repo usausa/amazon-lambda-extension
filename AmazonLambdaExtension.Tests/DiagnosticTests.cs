@@ -2,8 +2,10 @@ namespace AmazonLambdaExtension;
 
 public class DiagnosticTests
 {
+#pragma warning disable IDE0028
     private static List<string> GetDiagnosticIds(string source)
         => CompilationHelper.RunGenerator(source).Diagnostics.Select(d => d.Id).ToList();
+#pragma warning restore IDE0028
 
     // ------------------------------------------------------------
     // ALE0001

@@ -87,7 +87,7 @@ internal static class LambdaModelBuilder
 
         if (HasErrors(diagnostics))
         {
-            return Results.Errors<LambdaModel>(diagnostics.ToArray());
+            return Results.Errors<LambdaModel>(diagnostics);
         }
 
         // フェーズ3: 名前空間、型参照、コンストラクタ依存など基礎メタデータを抽出
@@ -261,7 +261,7 @@ internal static class LambdaModelBuilder
         // Phase 8: Build the LambdaModel when no errors remain and return it with warnings
         if (HasErrors(diagnostics))
         {
-            return Results.Errors<LambdaModel>(diagnostics.ToArray());
+            return Results.Errors<LambdaModel>(diagnostics);
         }
 
         var model = new LambdaModel(
