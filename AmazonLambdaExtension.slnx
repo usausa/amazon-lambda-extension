@@ -18,7 +18,6 @@
     <File Path="AmazonLambdaExtension.sln.DotSettings" />
     <File Path="AGENTS.md" />
     <File Path="Analyzers.ruleset" />
-    <File Path="CLAUDE.md" />
     <File Path="CodeCoverage.runsettings" />
     <File Path="Diagnostics.md" />
     <File Path="Directory.Build.props" />
