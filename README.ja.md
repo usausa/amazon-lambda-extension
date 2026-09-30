@@ -122,6 +122,7 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 - `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
 - `[FromServices("key")]` は keyed service（`GetRequiredKeyedService`）を解決します。キー未指定時は既定のサービス（`GetRequiredService`）を解決します。
+- `[FromAuthorizer("key")]` は Lambda オーソライザーが返したコンテキスト（`requestContext.authorizer.lambda`）から読みます。文字列・数値・真偽値を引数の型に変換します。配列は未対応です。
 - **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
@@ -256,35 +257,6 @@ public partial class HealthCheck
 
 AOT 向けには `ServiceResolver` で `JsonSerializerContext` コンストラクタを使い、`[JsonSerializable(typeof(T))]` を宣言するだけで対応できます（上記 ServiceResolver サンプル参照）。
 
-## Diagnostics
-
-| ID | 重大度 | フェーズ | 内容 |
-|:---|:------:|:--------|:-----|
-| `ALE0001` | Error | クラス構造 | `[Lambda]` クラスが `partial` でない |
-| `ALE0002` | Error | クラス構造 | `[Lambda]` クラスがジェネリック |
-| `ALE0003` | Error | クラス構造 | `[Lambda]` クラスがネストされた型 |
-| `ALE0004` | Error | クラス構造 | `[Lambda]` を record（record class）に付与（未対応） |
-| `ALE0005` | Error | クラス構造 | `[Lambda]` クラスが `abstract` |
-| `ALE0006` | Error | DI/生成 | `ServiceResolver` の `ConfigureServices()` メソッドがない |
-| `ALE0007` | Error | DI/生成 | `[ServiceResolver]` なしでコンストラクタ引数あり |
-| `ALE0008` | Error | DI/生成 | `[ServiceResolver]` なしで `[Lambda]` クラスに parameterless コンストラクタがない |
-| `ALE0009` | Error | フィルター | フィルタ型が `ILambdaFilter` を実装していない |
-| `ALE0010` | Error | フィルター | `[ServiceResolver]` なしで Filter が `abstract` |
-| `ALE0011` | Error | フィルター | `[ServiceResolver]` なしで Filter に到達可能な parameterless コンストラクタがない |
-| `ALE0012` | Warning | ハンドラ/引数 | ハンドラ属性なしメソッドを検知 |
-| `ALE0013` | Error | ハンドラ/引数 | ハンドラ属性の重複付与 |
-| `ALE0014` | Warning | ハンドラ/引数 | `Authorizer = nameof(...)` の参照先が見つからない |
-| `ALE0015` | Error | ハンドラ/引数 | バインド属性の重複付与 |
-| `ALE0016` | Error | ハンドラ/引数 | `[Event]` ハンドラへの `[FromBody]` 付与 |
-| `ALE0017` | Error | ハンドラ/引数 | `[Event]` ハンドラで未対応のバインド属性を使用 |
-| `ALE0018` | Warning | ハンドラ/引数 | `[FromAuthorizer]` の誤用 |
-| `ALE0019` | Error | ハンドラ/引数 | バインドで扱えない型 |
-| `ALE0020` | Error | ハンドラ/引数 | `[Event]` ハンドラに payload 引数がない |
-| `ALE0021` | Error | ハンドラ/引数 | `[Event]` ハンドラに payload 引数が複数ある |
-| `ALE0022` | Error | ハンドラ/引数 | `[HttpApiAuthorizer]` の戻り値型不正 |
-| `ALE0023` | Error | 収集後 | `[FromServices]` を使っているのに `[ServiceResolver]` がない |
-| `ALE0024` | Error | 収集後 | 同名ハンドラーのオーバーロード（ハンドラー名は一意である必要がある） |
-
 ## Scope / Non-goals
 
 本ライブラリは **ラッパーコード（Source Generator 出力）の生成のみ** を行います。以下は意図的に対象外です。
@@ -292,8 +264,3 @@ AOT 向けには `ServiceResolver` で `JsonSerializerContext` コンストラ�
 - **API Gateway HTTP API (V2) 専用** — REST API (V1) / `[RestApi]` / `[RestApiAuthorizer]`、および HTTP API V1 ペイロードは非対応です。
 - **設定ファイルは生成しない** — `serverless.template` / CloudFormation / SAM の生成・同期は行いません。`[FunctionUrl]` は単なるマーカー属性です（`AuthType` などの認証・CORS 設定は SAM / CDK 側で構成します）。`Authorizer = nameof(...)` は診断にのみ使用し、インフラ定義の出力には使いません。
 - **メソッド単位のインフラ設定は持たない** — `Timeout` / `MemorySize` / `Role` / `Policies` / `PackageType` など（`[LambdaFunction]` 相当）は SAM / CDK 側で設定してください。
-
-## License
-
-MIT
-

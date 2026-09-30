@@ -566,7 +566,7 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         var handlerSource = result.Sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
         output.WriteLine(handlerSource);
 
-        Assert.Contains("(global::Test.Mode)1", handlerSource, StringComparison.Ordinal);
+        Assert.Contains("(global::Test.Mode)global::Test.Mode.Advanced", handlerSource, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,5 +1,11 @@
 namespace AmazonLambdaExtension;
 
+using System.Reflection;
+
+using AmazonLambdaExtension.Generator;
+
+using Microsoft.CodeAnalysis;
+
 public class DiagnosticTests
 {
 #pragma warning disable IDE0028
@@ -712,5 +718,206 @@ public class DiagnosticTests
             }
             """);
         Assert.Contains("ALE0024", ids);
+    }
+
+    // ------------------------------------------------------------
+    // ALE0025
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0025GenericHandlerEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            public sealed class MyEvent { }
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle<T>(MyEvent ev) { }
+            }
+            """);
+        Assert.Equal(["ALE0025"], ids);
+    }
+
+    // ------------------------------------------------------------
+    // ALE0019 (FromAuthorizer)
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0019FromAuthorizerArrayEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([FromAuthorizer("ids")] int[] ids) => HttpResults.Ok();
+            }
+            """);
+        Assert.Equal(["ALE0019"], ids);
+    }
+
+    // ------------------------------------------------------------
+    // Valid declarations
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void InterfaceImplementationAndOverrideAreNotHandlerCandidates()
+    {
+        const string source =
+            """
+            namespace Test;
+            using System;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function : IDisposable
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get() => HttpResults.Ok();
+
+                public void Dispose()
+                {
+                }
+
+                public override string ToString() => "Function";
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void ConstructorWithParametersBesideParameterlessConstructorIsAllowed()
+    {
+        const string source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            public interface IService { string Name { get; } }
+            public sealed class Service : IService { public string Name => "real"; }
+            [Lambda]
+            public sealed partial class Function
+            {
+                private readonly IService service;
+
+                public Function()
+                    : this(new Service())
+                {
+                }
+
+                public Function(IService service)
+                {
+                    this.service = service;
+                }
+
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get() => HttpResults.Ok(service.Name);
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Theory]
+    [InlineData("[HttpApi(LambdaHttpMethod.Get, \"/a\")]", "IHttpResult", "[FromQuery] string? keyword, [FromHeader(\"x-trace\")] string? trace")]
+    [InlineData("[HttpApi(LambdaHttpMethod.Get, \"/a\")]", "IHttpResult", "APIGatewayHttpApiV2ProxyRequest? request, ILambdaContext? context")]
+    [InlineData("[HttpApi(LambdaHttpMethod.Get, \"/a\")]", "IHttpResult?", "")]
+    [InlineData("[HttpApiAuthorizer]", "IAuthorizerResult?", "APIGatewayCustomAuthorizerV2Request? request")]
+    [InlineData("[Event]", "string?", "MyEvent? ev, ILambdaContext? context")]
+    public void NullableAnnotationsAreAccepted(string attribute, string returnType, string parameters)
+    {
+        var source = $$"""
+            namespace Test;
+            using Amazon.Lambda.APIGatewayEvents;
+            using Amazon.Lambda.Core;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            public sealed class MyEvent { }
+            [Lambda]
+            public sealed partial class Function
+            {
+                {{attribute}}
+                public {{returnType}} Handle({{parameters}}) => default!;
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void NullableServiceCollectionIsAccepted()
+    {
+        const string source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            using Microsoft.Extensions.DependencyInjection;
+            public interface IService { }
+            public sealed class Resolver
+            {
+                public static IServiceCollection? ConfigureServices() => new ServiceCollection();
+            }
+            [Lambda]
+            [ServiceResolver(typeof(Resolver))]
+            public sealed partial class Function
+            {
+                internal Function(IService service)
+                {
+                    Service = service;
+                }
+
+                public IService Service { get; }
+
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([FromServices] IService? other, [FromServices("key")] IService? keyed) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    // ------------------------------------------------------------
+    // Reporting
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void DiagnosticIsReportedInSource()
+    {
+        var diagnostics = CompilationHelper.RunGenerator(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            [Lambda]
+            public sealed class Function
+            {
+            }
+            """).Diagnostics;
+
+        var diagnostic = Assert.Single(diagnostics, static x => x.Id == "ALE0001");
+        Assert.True(diagnostic.Location.IsInSource);
+    }
+
+    [Fact]
+    public void ErrorsCannotBeSuppressed()
+    {
+        var descriptors = typeof(LambdaGenerator).Assembly.GetType("AmazonLambdaExtension.Generator.Diagnostics", throwOnError: true)!
+            .GetProperties(BindingFlags.Public | BindingFlags.Static)
+            .Where(static x => x.PropertyType == typeof(DiagnosticDescriptor))
+            .Select(static x => (DiagnosticDescriptor)x.GetValue(null)!)
+            .ToList();
+
+        Assert.All(
+            descriptors.Where(static x => x.DefaultSeverity == DiagnosticSeverity.Error),
+            static x => Assert.Equal([WellKnownDiagnosticTags.NotConfigurable, WellKnownDiagnosticTags.Compiler], x.CustomTags));
     }
 }

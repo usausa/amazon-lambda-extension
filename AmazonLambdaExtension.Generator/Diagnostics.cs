@@ -2,6 +2,8 @@ namespace AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
 
+using SourceGenerateHelper;
+
 internal static class Diagnostics
 {
     // Class structure (ALE0001-ALE0005)
@@ -11,7 +13,8 @@ internal static class Diagnostics
         messageFormat: "[Lambda] class must be partial. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor GenericLambdaClass { get; } = new(
         id: "ALE0002",
@@ -19,15 +22,17 @@ internal static class Diagnostics
         messageFormat: "[Lambda] class must not be generic. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor NestedLambdaClass { get; } = new(
         id: "ALE0003",
         title: "Class must not be nested",
-        messageFormat: "[Lambda] class must not be nested. type=[{0}]",
+        messageFormat: "[Lambda] class must not be nested or file-local. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor RecordLambdaClass { get; } = new(
         id: "ALE0004",
@@ -35,7 +40,8 @@ internal static class Diagnostics
         messageFormat: "[Lambda] record is not supported. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor AbstractLambdaClass { get; } = new(
         id: "ALE0005",
@@ -43,7 +49,8 @@ internal static class Diagnostics
         messageFormat: "[Lambda] class must not be abstract. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     // DI / generation (ALE0006-ALE0008)
     public static DiagnosticDescriptor InvalidServiceResolverType { get; } = new(
@@ -52,7 +59,8 @@ internal static class Diagnostics
         messageFormat: "[ServiceResolver] type has no ConfigureServices. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor MissingServiceResolver { get; } = new(
         id: "ALE0007",
@@ -60,15 +68,17 @@ internal static class Diagnostics
         messageFormat: "Constructor parameters need [ServiceResolver]. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor LambdaClassNoParameterlessCtor { get; } = new(
         id: "ALE0008",
         title: "No parameterless constructor",
-        messageFormat: "Class has no parameterless constructor. type=[{0}]",
+        messageFormat: "Class has no parameterless constructor (with [SetsRequiredMembers] when it has required members). type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     // Filter (ALE0009-ALE0011)
     public static DiagnosticDescriptor FilterNotImplementILambdaFilter { get; } = new(
@@ -77,7 +87,8 @@ internal static class Diagnostics
         messageFormat: "Filter type does not implement ILambdaFilter. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor AbstractFilter { get; } = new(
         id: "ALE0010",
@@ -85,17 +96,19 @@ internal static class Diagnostics
         messageFormat: "Filter type is abstract. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor FilterNoParameterlessCtor { get; } = new(
         id: "ALE0011",
         title: "Invalid filter constructor",
-        messageFormat: "Filter has no parameterless constructor. type=[{0}]",
+        messageFormat: "Filter has no parameterless constructor (with [SetsRequiredMembers] when it has required members). type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
-    // Handler / parameter (ALE0012-ALE0022)
+    // Handler / parameter (ALE0012-ALE0022, ALE0025)
     public static DiagnosticDescriptor NoHandlerAttribute { get; } = new(
         id: "ALE0012",
         title: "No handler attribute",
@@ -110,7 +123,8 @@ internal static class Diagnostics
         messageFormat: "Handler has multiple handler attributes. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor AuthorizerMethodNotFound { get; } = new(
         id: "ALE0014",
@@ -126,7 +140,8 @@ internal static class Diagnostics
         messageFormat: "Parameter has multiple binding attributes. handler=[{0}], parameter=[{1}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor FromBodyOnEventHandler { get; } = new(
         id: "ALE0016",
@@ -134,7 +149,8 @@ internal static class Diagnostics
         messageFormat: "[FromBody] cannot be used with [Event]. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor InvalidEventBinding { get; } = new(
         id: "ALE0017",
@@ -142,7 +158,8 @@ internal static class Diagnostics
         messageFormat: "[Event] handler cannot use this binding. handler=[{0}], attribute=[{1}], parameter=[{2}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor FromAuthorizerOutsideHttpApi { get; } = new(
         id: "ALE0018",
@@ -158,7 +175,8 @@ internal static class Diagnostics
         messageFormat: "Binding type is not supported. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor EventHandlerMissingPayload { get; } = new(
         id: "ALE0020",
@@ -166,7 +184,8 @@ internal static class Diagnostics
         messageFormat: "[Event] handler has no payload parameter. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor EventHandlerMultiplePayloads { get; } = new(
         id: "ALE0021",
@@ -174,7 +193,8 @@ internal static class Diagnostics
         messageFormat: "[Event] handler has multiple payload parameters. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor AuthorizerInvalidReturnType { get; } = new(
         id: "ALE0022",
@@ -182,7 +202,17 @@ internal static class Diagnostics
         messageFormat: "[HttpApiAuthorizer] return type must be IAuthorizerResult. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor GenericHandler { get; } = new(
+        id: "ALE0025",
+        title: "Handler must not be generic",
+        messageFormat: "Handler must not be generic. handler=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     // Post-collection (ALE0023-ALE0024)
     public static DiagnosticDescriptor MissingServiceResolverForFromServices { get; } = new(
@@ -191,7 +221,8 @@ internal static class Diagnostics
         messageFormat: "[FromServices] needs [ServiceResolver]. type=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 
     public static DiagnosticDescriptor OverloadedHandler { get; } = new(
         id: "ALE0024",
@@ -199,5 +230,32 @@ internal static class Diagnostics
         messageFormat: "Handler name is not unique. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor RequiredMembersNotSet { get; } = new(
+        id: "ALE0026",
+        title: "Required members are not set",
+        messageFormat: "Class has required members, and the constructor the generated code calls has no [SetsRequiredMembers]. type=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor HintNameCollision { get; } = new(
+        id: "ALE0027",
+        title: "Name differs only in case",
+        messageFormat: "Class or handler name differs only in case from another one, and its source is not generated. name=[{0}], other=[{1}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor BaseClassHandler { get; } = new(
+        id: "ALE0028",
+        title: "Handler declared in a base class",
+        messageFormat: "Handler declared in a base class is not generated. handler=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 }

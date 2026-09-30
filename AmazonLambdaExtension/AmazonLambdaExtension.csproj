@@ -16,8 +16,8 @@
     <ItemGroup>
       <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.Generator\bin\$(Configuration)\netstandard2.0\AmazonLambdaExtension.Generator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
       <TfmSpecificPackageFile Include="$(PKGSourceGenerateHelper)\lib\netstandard2.0\SourceGenerateHelper.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.props" Pack="true" PackagePath="buildTransitive\AmazonLambdaExtension.props" Visible="false" />
-      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.targets" Pack="true" PackagePath="buildTransitive\AmazonLambdaExtension.targets" Visible="false" />
+      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.props" Pack="true" PackagePath="build\AmazonLambdaExtension.props" Visible="false" />
+      <TfmSpecificPackageFile Include="..\AmazonLambdaExtension.targets" Pack="true" PackagePath="build\AmazonLambdaExtension.targets" Visible="false" />
     </ItemGroup>
   </Target>
 
@@ -32,7 +32,7 @@
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.1" />
     <PackageReference Include="Amazon.Lambda.Core" Version="3.3.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
-    <PackageReference Include="SourceGenerateHelper" Version="1.28.0" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="SourceGenerateHelper" Version="1.30.0" GeneratePathProperty="true" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
