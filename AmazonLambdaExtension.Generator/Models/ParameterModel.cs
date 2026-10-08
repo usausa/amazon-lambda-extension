@@ -4,6 +4,7 @@ internal enum ParameterBindingType
 {
     Request,
     Context,
+    CancellationToken,
     FromQuery,
     FromHeader,
     FromRoute,

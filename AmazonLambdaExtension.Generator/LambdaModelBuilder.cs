@@ -36,6 +36,7 @@ internal static class LambdaModelBuilder
     private const string HttpApiAuthorizerRequestFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2Request";
     private const string HttpApiResponseFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse";
     private const string LambdaContextFullName = "Amazon.Lambda.Core.ILambdaContext";
+    private const string CancellationTokenFullName = "System.Threading.CancellationToken";
     private const string SetsRequiredMembersAttributeName = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
     // ReSharper restore InconsistentNaming
 
@@ -520,6 +521,13 @@ internal static class LambdaModelBuilder
             else if (param.Type.HasFullyQualifiedMetadataName(LambdaContextFullName))
             {
                 bindingType = ParameterBindingType.Context;
+                converterMethod = string.Empty;
+            }
+            else if (param.Type.HasFullyQualifiedMetadataName(CancellationTokenFullName))
+            {
+                // 残り時間から作る打ち切りのトークン（[Event] の payload より先に判定する）
+                // The cancellation token created from the remaining time (checked before the [Event] payload)
+                bindingType = ParameterBindingType.CancellationToken;
                 converterMethod = string.Empty;
             }
             else if (handlerType == HandlerType.Event)

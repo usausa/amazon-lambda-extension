@@ -133,6 +133,7 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
 - `ILambdaContext` はどこでも引数に追加できます（バインド属性不要）。
+- `CancellationToken` も同じく引数に追加できます（[Cancellation](#cancellation) を参照）。
 - `[Lambda]` クラスはトップレベルの非ジェネリックな非 `abstract` の `partial class` である必要があります（ジェネリック型・ネストされた型・record・`abstract` は未対応。`struct`/`record struct` は `[Lambda]` 自体が付与不可）。Filter も `[ServiceResolver]` なしでは `abstract` 不可。
 - `[ServiceResolver]` の `ConfigureServices()` は **生成コード（Lambda クラス内）から到達可能な `static` メソッド**であれば可（同一アセンブリの `internal` でも可）。同様に、`[ServiceResolver]` なしの本体/Filter の parameterless コンストラクタも「到達可能であること」で判定します。
 - 同一クラス内でハンドラー名は一意である必要があります（同名のオーバーロードは未対応）。
@@ -206,6 +207,23 @@ public partial class SecureFunctions
         => ValueTask.FromResult(HttpResults.Ok(new { id }));
 }
 ```
+
+### Cancellation
+
+フィルター（`LambdaInvocationContext.CancellationToken`）とハンドラー（`CancellationToken` の引数）は、呼び出しの残り時間から余裕（既定 500 ms）を引いた時点で取り消されるトークンを受け取ります。関数のタイムアウトの前に処理を止められます。
+
+```csharp
+[HttpApi(LambdaHttpMethod.Get, "/items")]
+public async ValueTask<IHttpResult> List(CancellationToken cancellationToken)
+    => HttpResults.Ok(await data.ListAsync(cancellationToken));
+```
+
+```csharp
+services.AddSingleton(new LambdaCancellationOptions { Margin = TimeSpan.FromSeconds(1) });
+```
+
+- トークンは、クラスにフィルターがあるか、ハンドラーが `CancellationToken` を受け取るときだけ作ります。
+- `ILambdaContext.RemainingTime` が 0 のとき（テストの文脈など）は取り消しません。
 
 ## Authorizer
 

@@ -35,6 +35,7 @@ internal static class LambdaSourceBuilder
     private const string BindingSourceType = "global::AmazonLambdaExtension.Binders.BindingSource";
     private const string BindingErrorResultFactoryType = "global::AmazonLambdaExtension.Binders.IBindingErrorResultFactory";
     private const string GetService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService";
+    private const string CancellationOptionsType = "global::AmazonLambdaExtension.LambdaCancellationOptions";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
     private const string GetRequiredKeyedService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderKeyedServiceExtensions.GetRequiredKeyedService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
@@ -155,6 +156,17 @@ internal static class LambdaSourceBuilder
                 builder.AppendLine("private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
                 builder.AppendLine("    new global::Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer();");
             }
+        }
+
+        if (model.Handlers.Any(h => UsesCancellation(model, h)))
+        {
+            // 打ち切りのトークンの設定（DI に登録されていればそれ、なければ既定）
+            // Settings of the cancellation token (from DI when registered, otherwise the default)
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {CancellationOptionsType} __cancellationOptions__ =");
+            builder.AppendLine(model.ServiceResolver is not null
+                ? $"    {GetService}<{CancellationOptionsType}>(__provider__) ?? {CancellationOptionsType}.Default;"
+                : $"    {CancellationOptionsType}.Default;");
         }
 
         if (UsesBindingErrorFactory(model))
@@ -318,6 +330,14 @@ internal static class LambdaSourceBuilder
             builder.NewLine();
         }
 
+        if (UsesCancellation(model, handler))
+        {
+            // 残り時間から余裕を引いた時点で取り消されるトークンを、呼び出しごとに作る
+            // Create a token per invocation that is canceled at the remaining time minus the margin
+            builder.AppendLine("using var __cts__ = __cancellationOptions__.CreateTokenSource(context);");
+            builder.NewLine();
+        }
+
         if (hasFilters)
         {
             // フィルターあり: InvocationContext を作成しパイプラインを実行、結果を抽出
@@ -328,7 +348,7 @@ internal static class LambdaSourceBuilder
             builder.AppendLine(handler.Type == HandlerType.Event ? "Request = ev," : "Request = request,");
 
             builder.AppendLine("LambdaContext = context,");
-            builder.AppendLine("CancellationToken = default,");
+            builder.AppendLine("CancellationToken = __cts__.Token,");
             if (model.ServiceResolver is not null)
             {
                 builder.AppendLine("ServiceProvider = __sp__,");
@@ -473,6 +493,12 @@ internal static class LambdaSourceBuilder
         }
     }
 
+    private static bool UsesCancellation(LambdaModel model, HandlerModel handler) =>
+        // フィルターがあるか、ハンドラーが CancellationToken を受け取るときだけトークンを作る
+        // Create the token only when there are filters or the handler takes a CancellationToken
+        (model.Filters.Count > 0) ||
+        handler.Parameters.Any(static p => p.BindingType == ParameterBindingType.CancellationToken);
+
     private static bool UsesBindingErrorFactory(LambdaModel model) =>
         (model.ServiceResolver is not null) &&
         model.Handlers.Any(static h => (h.Type == HandlerType.HttpApi) || (h.Type == HandlerType.FunctionUrl));
@@ -535,6 +561,11 @@ internal static class LambdaSourceBuilder
             case ParameterBindingType.Context:
                 // context 変数はメソッド引数にそのまま存在するため何も不要
                 // already in scope as 'context'
+                return;
+
+            case ParameterBindingType.CancellationToken:
+                // 打ち切りのトークンは呼び出しの先頭で作成済み
+                // The cancellation token is already created at the start of the invocation
                 return;
 
             case ParameterBindingType.FromServices:
@@ -1000,6 +1031,9 @@ internal static class LambdaSourceBuilder
                     break;
                 case ParameterBindingType.Context:
                     argParts.Add(hasFilter ? "ctx.LambdaContext" : "context");
+                    break;
+                case ParameterBindingType.CancellationToken:
+                    argParts.Add(hasFilter ? "ctx.CancellationToken" : "__cts__.Token");
                     break;
                 default:
                     argParts.Add($"p{i}!");
