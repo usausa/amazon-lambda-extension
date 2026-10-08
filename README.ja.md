@@ -208,6 +208,18 @@ public partial class SecureFunctions
 }
 ```
 
+### Assembly-level Filters
+
+`[Filter<T>]` はアセンブリにも付けられます。アセンブリ内のすべての `[Lambda]` クラスに適用されるため、共通のパイプラインをクラスごとに並べずに済みます。
+
+```csharp
+[assembly: Filter<ErrorFilter>(Order = 0)]
+[assembly: Filter<LoggingFilter>(Order = 10)]
+```
+
+- アセンブリとクラスのフィルターは、まとめて `Order` 昇順でチェインされます。`Order` が同じなら、アセンブリのフィルターが外側になります。
+- 同じフィルターの型をアセンブリとクラスの両方に付けると、2 回実行されます。
+
 ### Cancellation
 
 フィルター（`LambdaInvocationContext.CancellationToken`）とハンドラー（`CancellationToken` の引数）は、呼び出しの残り時間から余裕（既定 500 ms）を引いた時点で取り消されるトークンを受け取ります。関数のタイムアウトの前に処理を止められます。

@@ -220,6 +220,18 @@ public partial class SecureFunctions
 }
 ```
 
+### Assembly-level Filters
+
+`[Filter<T>]` can also be applied to the assembly. It applies to every `[Lambda]` class in the assembly, so a common pipeline does not need to be repeated on each class.
+
+```csharp
+[assembly: Filter<ErrorFilter>(Order = 0)]
+[assembly: Filter<LoggingFilter>(Order = 10)]
+```
+
+- Assembly-level and class-level filters are chained together in ascending `Order`. With the same `Order`, the assembly-level filter is outer.
+- When the same filter type is applied to both the assembly and a class, it runs twice.
+
 ### Cancellation
 
 Filters (`LambdaInvocationContext.CancellationToken`) and handlers (a `CancellationToken` parameter) receive a token that is canceled at the remaining time of the invocation minus a margin (500 ms by default), so that the work can stop before the function times out.

@@ -178,12 +178,20 @@ internal static class LambdaModelBuilder
             diagnostics.Add(new DiagnosticInfo(Diagnostics.RequiredMembersNotSet, syntax.Identifier.GetLocation(), symbol.Name));
         }
 
-        // フェーズ5: クラスレベルの [Filter<T>] を順序付きで収集し、型契約を検証
-        // Phase 5: Collect ordered class-level [Filter<T>] declarations and validate their type contract
-        var sortedFilters = symbol.GetAttributes()
-            .Select(static (a, i) => (Attribute: a, AttributeIndex: i))
-            .Where(static x => IsFilterAttribute(x.Attribute))
+        // フェーズ5: アセンブリとクラスの [Filter<T>] を順序付きで収集し、型契約を検証
+        // アセンブリの [Filter<T>] は全 [Lambda] クラスの既定。同じ Order ならアセンブリ側を外側にする
+        // Phase 5: Collect ordered assembly-level and class-level [Filter<T>] declarations and validate their type contract
+        // Assembly-level [Filter<T>] are defaults for every [Lambda] class; with the same Order, assembly-level ones are outer
+        var assemblyFilters = compilation.Assembly.GetAttributes()
+            .Select(static (a, i) => (Attribute: a, Level: 0, AttributeIndex: i))
+            .Where(static x => IsFilterAttribute(x.Attribute));
+        var classFilters = symbol.GetAttributes()
+            .Select(static (a, i) => (Attribute: a, Level: 1, AttributeIndex: i))
+            .Where(static x => IsFilterAttribute(x.Attribute));
+        var sortedFilters = assemblyFilters
+            .Concat(classFilters)
             .OrderBy(static x => GetFilterOrder(x.Attribute))
+            .ThenBy(static x => x.Level)
             .ThenBy(static x => x.AttributeIndex)
             .Select(static x => (
                 x.Attribute,

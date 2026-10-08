@@ -3,7 +3,8 @@ namespace AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.Filters;
 
 // ReSharper disable once UnusedTypeParameter
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+// On an assembly, the filter applies to every [Lambda] class in it
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class FilterAttribute<TFilter> : Attribute
     where TFilter : ILambdaFilter
 {
