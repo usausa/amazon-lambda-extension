@@ -42,6 +42,8 @@
 | ALE0021 | ❌ Error | `[Event]` handler declares multiple event payload parameters | Leave a single event payload parameter |
 | ALE0022 | ❌ Error | `[HttpApiAuthorizer]` handler does not return `IAuthorizerResult` | Change the return type to `IAuthorizerResult` |
 | ALE0025 | ❌ Error | Handler is a generic method | Remove the type parameters from the handler |
+| ALE0032 | ❌ Error | `[FromClaim]` is used outside an `[HttpApi]` handler | Remove `[FromClaim]`, or use an `[HttpApi]` handler |
+| ALE0033 | ❌ Error | `[FromCookie]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove `[FromCookie]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |
 
 ## Post-collection
 

@@ -25,6 +25,8 @@ internal static class LambdaModelBuilder
     private const string FromRouteAttributeName = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
     private const string FromServicesAttributeName = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
     private const string FromAuthorizerAttributeName = "AmazonLambdaExtension.Annotations.FromAuthorizerAttribute";
+    private const string FromClaimAttributeName = "AmazonLambdaExtension.Annotations.FromClaimAttribute";
+    private const string FromCookieAttributeName = "AmazonLambdaExtension.Annotations.FromCookieAttribute";
 
     private const string IHttpResultFullName = "AmazonLambdaExtension.APIGateway.IHttpResult";
     private const string IAuthorizerResultFullName = "AmazonLambdaExtension.APIGateway.IAuthorizerResult";
@@ -555,9 +557,34 @@ internal static class LambdaModelBuilder
                 method.Name));
         }
 
+        // [FromClaim] は JWT オーソライザーのクレーム、[FromCookie] は v2 形式の Cookie を読むため、
+        // 読み先を持たない種別のハンドラーでは生成できない（[Event] は ALE0017 で扱う）
+        // [FromClaim] reads JWT authorizer claims and [FromCookie] reads payload v2 cookies,
+        // so they cannot be generated for handler kinds without that source ([Event] is covered by ALE0017)
+        if ((bindingType == ParameterBindingType.FromClaim) &&
+            (handlerType != HandlerType.HttpApi) &&
+            (handlerType != HandlerType.Event))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.FromClaimOutsideHttpApi,
+                GetLocation(param),
+                method.Name));
+        }
+
+        if ((bindingType == ParameterBindingType.FromCookie) &&
+            (handlerType != HandlerType.HttpApi) &&
+            (handlerType != HandlerType.FunctionUrl) &&
+            (handlerType != HandlerType.Event))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.FromCookieOutsideHttpHandler,
+                GetLocation(param),
+                method.Name));
+        }
+
         if (RequiresScalarBindingValidation(bindingType) &&
             (!IsSupportedBindingType(param.Type) ||
-             ((bindingType == ParameterBindingType.FromAuthorizer) && (param.Type is IArrayTypeSymbol))))
+             (IsSingleValueBinding(bindingType) && (param.Type is IArrayTypeSymbol))))
         {
             diagnostics.Add(new DiagnosticInfo(
                 Diagnostics.UnsupportedBindingType,
@@ -646,6 +673,20 @@ internal static class LambdaModelBuilder
         {
             bindingType = ParameterBindingType.FromAuthorizer;
             ApplyKeyOverride(attr, ref key);
+            return;
+        }
+
+        if (attrClass.HasFullyQualifiedMetadataName(FromClaimAttributeName))
+        {
+            bindingType = ParameterBindingType.FromClaim;
+            ApplyKeyOverride(attr, ref key);
+            return;
+        }
+
+        if (attrClass.HasFullyQualifiedMetadataName(FromCookieAttributeName))
+        {
+            bindingType = ParameterBindingType.FromCookie;
+            ApplyKeyOverride(attr, ref key);
         }
     }
 
@@ -678,7 +719,16 @@ internal static class LambdaModelBuilder
         return (bindingType == ParameterBindingType.FromQuery) ||
                (bindingType == ParameterBindingType.FromHeader) ||
                (bindingType == ParameterBindingType.FromRoute) ||
-               (bindingType == ParameterBindingType.FromAuthorizer);
+               IsSingleValueBinding(bindingType);
+    }
+
+    private static bool IsSingleValueBinding(ParameterBindingType bindingType)
+    {
+        // 1つの値だけを読む binding（カンマ区切りの配列に対応しない）
+        // Bindings that read a single value (comma-separated arrays are not supported)
+        return (bindingType == ParameterBindingType.FromAuthorizer) ||
+               (bindingType == ParameterBindingType.FromClaim) ||
+               (bindingType == ParameterBindingType.FromCookie);
     }
 
     private static bool IsSupportedBindingType(ITypeSymbol type)
@@ -817,7 +867,9 @@ internal static class LambdaModelBuilder
                attrClass.HasFullyQualifiedMetadataName(FromHeaderAttributeName) ||
                attrClass.HasFullyQualifiedMetadataName(FromRouteAttributeName) ||
                attrClass.HasFullyQualifiedMetadataName(FromServicesAttributeName) ||
-               attrClass.HasFullyQualifiedMetadataName(FromAuthorizerAttributeName);
+               attrClass.HasFullyQualifiedMetadataName(FromAuthorizerAttributeName) ||
+               attrClass.HasFullyQualifiedMetadataName(FromClaimAttributeName) ||
+               attrClass.HasFullyQualifiedMetadataName(FromCookieAttributeName);
     }
 
     private static string GetConverterMethod(ITypeSymbol type)

@@ -6,5 +6,7 @@ public enum BindingSource
     Query,
     Header,
     Body,
-    Authorizer
+    Authorizer,
+    Claim,
+    Cookie
 }

@@ -9,7 +9,9 @@ internal enum ParameterBindingType
     FromRoute,
     FromBody,
     FromServices,
-    FromAuthorizer
+    FromAuthorizer,
+    FromClaim,
+    FromCookie
 }
 
 internal sealed record ParameterModel(

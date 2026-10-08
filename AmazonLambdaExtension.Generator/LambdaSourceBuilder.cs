@@ -21,6 +21,8 @@ internal static class LambdaSourceBuilder
     private const string AuthorizerIamResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2IamResponse";
     private const string StringConverterType = "global::AmazonLambdaExtension.Binders.StringConverter";
     private const string AuthorizerContextReaderType = "global::AmazonLambdaExtension.Binders.AuthorizerContextReader";
+    private const string ClaimReaderType = "global::AmazonLambdaExtension.Binders.ClaimReader";
+    private const string CookieReaderType = "global::AmazonLambdaExtension.Binders.CookieReader";
     private const string AsSpanMethod = "global::System.MemoryExtensions.AsSpan";
     private const string InvalidOperationExceptionType = "global::System.InvalidOperationException";
     private const string BodySerializerType = "global::AmazonLambdaExtension.Serialization.IBodySerializer";
@@ -615,6 +617,34 @@ internal static class LambdaSourceBuilder
                 builder.NewLine();
                 return;
 
+            case ParameterBindingType.FromClaim:
+                // JWT オーソライザーが検証したクレームから値を取り出して変換
+                // Extract and convert the value from the claims validated by the JWT authorizer
+                BuildReaderBinding(
+                    builder,
+                    model,
+                    handler,
+                    param,
+                    index,
+                    hasFilter,
+                    $"{ClaimReaderType}.TryGetValue({requestVar}.RequestContext?.Authorizer?.Jwt?.Claims, {CSharpLiteral.Format(key)}, out var {pRaw})",
+                    "Claim");
+                return;
+
+            case ParameterBindingType.FromCookie:
+                // v2 形式の Cookie の配列（name=value）から値を取り出して変換
+                // Extract and convert the value from the payload v2 cookies array (name=value)
+                BuildReaderBinding(
+                    builder,
+                    model,
+                    handler,
+                    param,
+                    index,
+                    hasFilter,
+                    $"{CookieReaderType}.TryGetValue({requestVar}.Cookies, {CSharpLiteral.Format(key)}, out var {pRaw})",
+                    "Cookie");
+                return;
+
             case ParameterBindingType.FromRoute:
                 // パスパラメーターディクショナリから値を取得して型変換
                 // Retrieve and convert value from path parameters dictionary
@@ -657,6 +687,57 @@ internal static class LambdaSourceBuilder
                     "Header");
                 return;
         }
+    }
+
+    private static void BuildReaderBinding(SourceBuilder builder, LambdaModel model, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string tryGetExpression, string source)
+    {
+        // 読み取り用ヘルパー（TryGetValue）で値を取り出し、string / Nullable<T> / スカラーに変換（配列は ALE0019 で除外済み）
+        // 値がなければ既定値（引数のデフォルト値があればそれ）のまま
+        // Read the value with a TryGetValue helper and convert it to string, Nullable<T>, or a scalar (arrays are rejected by ALE0019)
+        // When the value is missing, keep the default (or the parameter's default value)
+        var pVar = $"p{index}";
+        var pRaw = $"p{index}raw";
+        var typeName = param.Type.FullName;
+        var key = param.Key;
+        var defaultLiteral = param.HasDefault ? (param.DefaultValueLiteral ?? "default") : null;
+        var converterMethod = param.ConverterMethod;
+        var isNullable = param.Type.IsNullable && (param.Type.UnderlyingType is not null);
+
+        string init;
+        if (String.IsNullOrEmpty(converterMethod))
+        {
+            init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}!" : $"default({typeName})!";
+        }
+        else if (isNullable)
+        {
+            init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}" : $"({typeName})null";
+        }
+        else
+        {
+            init = defaultLiteral is not null ? $"({typeName}){defaultLiteral}" : $"default({typeName})";
+        }
+
+        builder.AppendLine($"var {pVar} = {init};");
+        builder.AppendLine($"if ({tryGetExpression})");
+        builder.BeginScope();
+        if (String.IsNullOrEmpty(converterMethod))
+        {
+            builder.AppendLine($"{pVar} = {pRaw};");
+        }
+        else
+        {
+            var baseType = isNullable ? param.Type.UnderlyingType!.FullName : typeName;
+            var converterCall = converterMethod == "TryToEnum"
+                ? $"!{StringConverterType}.TryToEnum<{baseType}>({AsSpanMethod}({pRaw}), out var {pVar}tmp)"
+                : $"!{StringConverterType}.{converterMethod}({AsSpanMethod}({pRaw}), out var {pVar}tmp)";
+            builder.AppendLine($"if ({converterCall})");
+            builder.BeginScope();
+            AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", source, key), InvalidParameterMessage(key));
+            builder.EndScope();
+            builder.AppendLine($"{pVar} = {pVar}tmp;");
+        }
+        builder.EndScope();
+        builder.NewLine();
     }
 
     private static void BuildScalarOrArrayBinding(SourceBuilder builder, LambdaModel model, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string dictExpr, string source)

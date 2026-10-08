@@ -286,4 +286,23 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         customTags: DiagnosticTags.NotSuppressible);
+
+    // Claim / cookie binding (ALE0032-ALE0033)
+    public static DiagnosticDescriptor FromClaimOutsideHttpApi { get; } = new(
+        id: "ALE0032",
+        title: "[FromClaim] outside HTTP API",
+        messageFormat: "[FromClaim] needs an HTTP API handler. handler=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor FromCookieOutsideHttpHandler { get; } = new(
+        id: "ALE0033",
+        title: "[FromCookie] outside HTTP handler",
+        messageFormat: "[FromCookie] needs an HTTP API or Function URL handler. handler=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 }

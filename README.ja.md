@@ -12,7 +12,7 @@ HTTP API (API Gateway v2) のパラメータバインド・フィルタパイプ
 ## Features
 
 - **Dependency Injection** — `[ServiceResolver]` 属性で DI コンテナを宣言するだけでコンストラクタ引数を自動解決
-- **Parameter binding** — `[FromRoute]` / `[FromQuery]` / `[FromHeader]` / `[FromBody]` / `[FromServices]` / `[FromAuthorizer]`
+- **Parameter binding** — `[FromRoute]` / `[FromQuery]` / `[FromHeader]` / `[FromBody]` / `[FromServices]` / `[FromAuthorizer]` / `[FromClaim]` / `[FromCookie]`
 - **HTTP results** — `IHttpResult` / `HttpResults` によるステータスコード付きレスポンス生成
 - **Authorizer** — `[HttpApiAuthorizer]` によるラムダオーソライザー生成
 - **Filter pipeline** — `ILambdaFilter` を実装したクラスを `[Filter<T>(Order = N)]` で複数チェイン可能
@@ -118,12 +118,17 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 | `[FromBody]` | リクエストボディ (JSON) | ✅ | |
 | `[FromServices]` / `[FromServices("key")]` | DI コンテナ | ✅ | ✅ |
 | `[FromAuthorizer("key")]` | ラムダオーソライザーコンテキスト | ✅ | |
+| `[FromClaim("name")]` | JWT オーソライザーのクレーム | ✅ | |
+| `[FromCookie("name")]` | Cookie | ✅ | |
 
 - `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーション。失敗時は 400 を返します。
 - `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
 - `[FromServices("key")]` は keyed service（`GetRequiredKeyedService`）を解決します。キー未指定時は既定のサービス（`GetRequiredService`）を解決します。
 - `[FromAuthorizer("key")]` は Lambda オーソライザーが返したコンテキスト（`requestContext.authorizer.lambda`）から読みます。文字列・数値・真偽値を引数の型に変換します。配列は未対応です。
+- `[FromClaim("name")]` は HTTP API の JWT オーソライザーが検証したクレーム（`requestContext.authorizer.jwt.claims`）から読みます。`[HttpApi]` ハンドラーでだけ使えます。
+- `[FromCookie("name")]` は payload v2 の `cookies` の配列（`name=value`。HTTP API は Cookie をヘッダーに入れません）から読みます。`[HttpApi]` と `[FunctionUrl]` のハンドラーで使えます。名前は大文字と小文字を区別し、値はそのまま使います（デコードしません）。
+- `[FromClaim]` と `[FromCookie]` は `[FromQuery]` と同じく値を変換します。値がなければ既定値（または `null`）になり、配列は未対応です。
 - **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
@@ -153,8 +158,8 @@ services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
 | `BindingError` | 内容 |
 |:-----|:-----|
 | `Kind` | `InvalidValue`（変換の失敗）、`InvalidBody`（JSON の誤り）、`MissingBody`（null 非許容のボディが null）、`ValidationFailed`（`IRequestValidator` の失敗） |
-| `Source` | `Route` / `Query` / `Header` / `Body` / `Authorizer` |
-| `Name` | バインドのキー（ルート・クエリ・ヘッダー・オーソライザーの名前）、またはボディの引数名 |
+| `Source` | `Route` / `Query` / `Header` / `Body` / `Authorizer` / `Claim` / `Cookie` |
+| `Name` | バインドのキー（ルート・クエリ・ヘッダー・オーソライザー・クレーム・Cookie の名前）、またはボディの引数名 |
 | `ValidationResults` | `IRequestValidator` の結果（`ValidationFailed` のときだけ） |
 
 - ファクトリーは、`[ServiceResolver]` を持つクラスの HTTP API / Function URL ハンドラーで使います。登録がない場合は、従来どおり文字列の `400` を返します。

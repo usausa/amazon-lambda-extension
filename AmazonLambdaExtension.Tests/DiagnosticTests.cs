@@ -980,6 +980,104 @@ public class DiagnosticTests
     }
 
     // ------------------------------------------------------------
+    // ALE0032-ALE0033 (claim / cookie binding)
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0032FromClaimOnFunctionUrlEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public IHttpResult Ping([FromClaim("sub")] string subject) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0032", ids);
+    }
+
+    [Fact]
+    public void Ale0032FromClaimOnHttpApiEmitsNoDiagnostic()
+    {
+        var source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([FromClaim("sub")] string subject) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void Ale0033FromCookieOnAuthorizerEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApiAuthorizer]
+                public IAuthorizerResult Authorize([FromCookie("rt")] string? token) => AuthorizerResults.Allow();
+            }
+            """);
+        Assert.Contains("ALE0033", ids);
+    }
+
+    [Fact]
+    public void Ale0033FromCookieOnFunctionUrlEmitsNoDiagnostic()
+    {
+        var source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public IHttpResult Ping([FromCookie("rt")] string? token) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Theory]
+    [InlineData("FromClaim")]
+    [InlineData("FromCookie")]
+    public void Ale0019ArrayOnSingleValueBindingEmitsDiagnostic(string attribute)
+    {
+        var ids = GetDiagnosticIds(
+            $$"""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([{{attribute}}("roles")] string[] roles) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0019", ids);
+    }
+
+    // ------------------------------------------------------------
     // Reporting
     // ------------------------------------------------------------
 
