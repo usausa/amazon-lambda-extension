@@ -13,6 +13,7 @@ using SourceGenerateHelper;
 public sealed class LambdaGenerator : IIncrementalGenerator
 {
     private const string LambdaAttributeFullName = "AmazonLambdaExtension.Annotations.LambdaAttribute";
+    private const string LambdaEntryPointAttributeFullName = "AmazonLambdaExtension.Annotations.LambdaEntryPointAttribute";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -31,6 +32,27 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             static (ctx, input) => ctx.ReportDiagnostics(SelectDiagnostics(input.Left), input.Right));
         var models = collected.SelectMany(static (results, _) => SelectModels(results));
         context.RegisterImplementationSourceOutput(models, static (ctx, model) => Execute(ctx, model));
+
+        // [assembly: LambdaEntryPoint] があれば、生成した全ハンドラーを _HANDLER で振り分ける Main を生成
+        // When [assembly: LambdaEntryPoint] exists, generate Main that dispatches all generated handlers by _HANDLER
+        var entryPoints = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                LambdaEntryPointAttributeFullName,
+                static (syntax, _) => syntax is CompilationUnitSyntax,
+                static (ctx, _) => EntryPointModelBuilder.BuildEntryPointModel(ctx))
+            .Collect();
+        var entryPointTreeProvider = context.ForAttributeWithMetadataNameSyntaxTrees(
+            LambdaEntryPointAttributeFullName,
+            static (syntax, _) => syntax is CompilationUnitSyntax);
+
+        context.RegisterSourceOutput(
+            entryPoints.Combine(entryPointTreeProvider),
+            static (ctx, input) => ctx.ReportDiagnostics(input.Left.SelectError().Distinct(), input.Right));
+        // 実行ファイルの入口は設計時のビルドでも要るため、実装専用の出力にはしない
+        // The executable entry point is needed in design-time builds too, so it is not an implementation-only output
+        context.RegisterSourceOutput(
+            entryPoints.Combine(models.Collect()),
+            static (ctx, input) => ExecuteEntryPoint(ctx, input.Left, input.Right));
     }
 
     private static bool IsClassSyntax(SyntaxNode syntax) =>
@@ -121,5 +143,31 @@ public sealed class LambdaGenerator : IIncrementalGenerator
             LambdaSourceBuilder.Build(builder, model, handler);
             context.AddSource(HintNameBuilder.Build(model.Namespace, model.ClassName, handler.MethodName), builder);
         }
+    }
+
+    private static void ExecuteEntryPoint(SourceProductionContext context, ImmutableArray<Result<EntryPointModel>> entryPoints, ImmutableArray<LambdaModel> models)
+    {
+        var entryPoint = entryPoints.SelectValue().FirstOrDefault();
+        if (entryPoint is null)
+        {
+            return;
+        }
+
+        // 生成しなかったハンドラー（大文字小文字だけ違う名前）は Main から呼べないため除く
+        // Exclude handlers that were not generated (names differing only in case), since Main cannot call them
+        var handlers = models
+            .SelectMany(static model =>
+            {
+                var collisions = FindHandlerCollisions(model);
+                return model.Handlers
+                    .Where(handler => !collisions.ContainsKey(handler.MethodName))
+                    .Select(handler => (Model: model, Handler: handler));
+            })
+            .OrderBy(x => EntryPointSourceBuilder.BuildHandlerName(entryPoint, x.Model, x.Handler), StringComparer.Ordinal)
+            .ToArray();
+
+        var builder = new SourceBuilder();
+        EntryPointSourceBuilder.Build(builder, entryPoint, handlers);
+        context.AddSource(EntryPointSourceBuilder.HintName, builder);
     }
 }

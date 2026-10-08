@@ -8,6 +8,7 @@ using System.Runtime.Loader;
 
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.Lambda.SQSEvents;
 
@@ -15,6 +16,7 @@ using AmazonLambdaExtension.Annotations;
 using AmazonLambdaExtension.Generator;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyInjection;
 
 using SourceGenerateHelper.Testing;
@@ -29,21 +31,58 @@ internal static class CompilationHelper
         .WithReference(typeof(DefaultLambdaJsonSerializer).Assembly)
         .WithReference(typeof(IServiceCollection).Assembly);
 
-    public static GeneratorResult RunGenerator(string source)
+    // [LambdaEntryPoint] 用: Main が呼ぶ RuntimeSupport を参照し、ハンドラー名に入るアセンブリ名を固定する
+    // For [LambdaEntryPoint]: reference RuntimeSupport called by Main, and fix the assembly name used in handler names
+    private static GeneratorTestRunner EntryPointRunner => Runner
+        .WithReference(typeof(LambdaBootstrapBuilder).Assembly)
+        .WithAssemblyName("TestAssembly");
+
+    public static GeneratorResult RunGenerator(string source) =>
+        RunGenerator(Runner, source);
+
+    public static GeneratorResult RunEntryPointGenerator(string source) =>
+        RunGenerator(EntryPointRunner, source);
+
+    public static IReadOnlyList<string> GetProblemIds(string source) =>
+        [.. Runner.GetProblems(source).Select(static x => x.Id)];
+
+    // テストのプロセスは RuntimeSupport を読み込んでいるため、それを除いた参照でコンパイルを作る
+    // The test process loads RuntimeSupport, so build a compilation whose references exclude it
+    public static IReadOnlyList<string> GetDiagnosticIdsWithoutRuntimeSupport(string source)
     {
-        var result = Runner.Run(source);
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Where(static x => !Path.GetFileName(x).StartsWith("Amazon.Lambda.RuntimeSupport", StringComparison.OrdinalIgnoreCase))
+            .Select(static x => MetadataReference.CreateFromFile(x));
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview))],
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+        Assert.Null(compilation.GetTypeByMetadataName(typeof(LambdaBootstrapBuilder).FullName!));
+
+        var driver = CSharpGeneratorDriver.Create(new LambdaGenerator()).RunGenerators(compilation);
+        return [.. driver.GetRunResult().Diagnostics.Select(static x => x.Id)];
+    }
+
+    public static Assembly LoadAssembly(string source) =>
+        LoadAssembly(Runner, source);
+
+    public static Assembly LoadEntryPointAssembly(string source) =>
+        LoadAssembly(EntryPointRunner.WithOutputKind(OutputKind.ConsoleApplication), source);
+
+    private static GeneratorResult RunGenerator(GeneratorTestRunner runner, string source)
+    {
+        var result = runner.Run(source);
 
         return new GeneratorResult(
             result.GeneratorDiagnostics.ToImmutableArray(),
             result.GeneratedSources);
     }
 
-    public static IReadOnlyList<string> GetProblemIds(string source) =>
-        [.. Runner.GetProblems(source).Select(static x => x.Id)];
-
-    public static Assembly LoadAssembly(string source)
+    private static Assembly LoadAssembly(GeneratorTestRunner runner, string source)
     {
-        var result = Runner.Run(source);
+        var result = runner.Run(source);
         Assert.True(result.Problems.Count == 0, String.Join(Environment.NewLine, result.Problems.Select(static x => x.ToString())));
 
         using var stream = new MemoryStream();

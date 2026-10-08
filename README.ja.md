@@ -17,6 +17,7 @@ HTTP API (API Gateway v2) のパラメータバインド・フィルタパイプ
 - **Authorizer** — `[HttpApiAuthorizer]` によるラムダオーソライザー生成
 - **Filter pipeline** — `ILambdaFilter` を実装したクラスを `[Filter<T>(Order = N)]` で複数チェイン可能
 - **AOT compatible** — `IsAotCompatible=true`、`JsonSerializerContext` ベースの JSON シリアライズで AOT 警告ゼロ
+- **Native AOT entry point** — `[assembly: LambdaEntryPoint]` で、`_HANDLER` で選んだハンドラーを動かす `Main` を生成
 - **Event handler** — SQS など非 HTTP イベントは `[Event]` で対応
 
 ## Installation
@@ -256,6 +257,32 @@ public partial class HealthCheck
 | `JsonBodySerializer(JsonSerializerOptions)` | ❌ | リフレクション使用。`[RequiresDynamicCode]` マーキング済み |
 
 AOT 向けには `ServiceResolver` で `JsonSerializerContext` コンストラクタを使い、`[JsonSerializable(typeof(T))]` を宣言するだけで対応できます（上記 ServiceResolver サンプル参照）。
+
+## Native AOT Entry Point
+
+Native AOT の関数は、カスタムランタイム（`provided.al2023`）で `bootstrap` という名前の実行ファイルとして動くため、Lambda のランタイムクライアントを起動する `Main` が必要です。
+`[assembly: LambdaEntryPoint]` を付けると、Source Generator がアセンブリ内のすべてのハンドラーを対象に `Main` を生成します。
+
+```csharp
+[assembly: LambdaEntryPoint]
+[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AppJsonContext>))]
+```
+
+```xml
+<PropertyGroup>
+  <OutputType>Exe</OutputType>
+  <PublishAot>true</PublishAot>
+</PropertyGroup>
+
+<ItemGroup>
+  <PackageReference Include="Amazon.Lambda.RuntimeSupport" Version="x.x.x" />
+</ItemGroup>
+```
+
+- `Main` は、関数のハンドラー設定が入る環境変数 `_HANDLER` でハンドラーを選びます。名前はマネージドランタイムと同じ（`{Assembly}::{Namespace}.{ClassName}::{Method}_Handler`）のため、Native AOT 用に別の名前をインフラ定義に書く必要はありません。
+- `_HANDLER` がどのハンドラーとも一致しない場合、`Main` は起動時に `InvalidOperationException` を投げます。
+- Lambda ランタイムのシリアライザーは、アセンブリの `[LambdaSerializer]` から生成します。その `JsonSerializerContext` には、すべてのハンドラーの要求と応答の型（例: `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`）を含めてください。
+- プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。
 
 ## Scope / Non-goals
 

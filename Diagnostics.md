@@ -52,3 +52,11 @@
 | ALE0026 | ❌ Error | `[Lambda]` class has required members, and the constructor the generated code calls has no `[SetsRequiredMembers]` | Mark the constructor with `[SetsRequiredMembers]` and set the members in it |
 | ALE0027 | ❌ Error | Class or handler name differs only in case from another one, so the generated file names collide; only the first (in ordinal order) is generated | Rename one of the classes or handlers |
 | ALE0028 | ⚠️ Warning | Handler is declared in a base class, so it is not generated (reported once at the base method) | Declare the handler in the `[Lambda]` class |
+
+## Entry point
+
+| ID | Severity | Description | How to fix |
+|---|---|---|---|
+| ALE0029 | ❌ Error | `[assembly: LambdaEntryPoint]` is used, but `Amazon.Lambda.RuntimeSupport` is not referenced | Add a package reference to `Amazon.Lambda.RuntimeSupport` |
+| ALE0030 | ❌ Error | `[assembly: LambdaEntryPoint]` is used, but the assembly has no `[LambdaSerializer]` | Add `[assembly: LambdaSerializer(typeof(...))]` (for Native AOT, `SourceGeneratorLambdaJsonSerializer<TContext>`) |
+| ALE0031 | ❌ Error | `[LambdaSerializer]` type is abstract or an open generic type, does not implement `ILambdaSerializer`, or has no accessible parameterless constructor | Specify a concrete `ILambdaSerializer` with an accessible parameterless constructor |

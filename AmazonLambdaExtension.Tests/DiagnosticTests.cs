@@ -11,6 +11,9 @@ public class DiagnosticTests
 #pragma warning disable IDE0028
     private static List<string> GetDiagnosticIds(string source)
         => CompilationHelper.RunGenerator(source).Diagnostics.Select(d => d.Id).ToList();
+
+    private static List<string> GetEntryPointDiagnosticIds(string source)
+        => CompilationHelper.RunEntryPointGenerator(source).Diagnostics.Select(d => d.Id).ToList();
 #pragma warning restore IDE0028
 
     // ------------------------------------------------------------
@@ -884,6 +887,96 @@ public class DiagnosticTests
             """;
 
         Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    // ------------------------------------------------------------
+    // ALE0029-ALE0031 (entry point)
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0029MissingRuntimeSupportEmitsDiagnostic()
+    {
+        var ids = CompilationHelper.GetDiagnosticIdsWithoutRuntimeSupport(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Contains("ALE0029", ids);
+    }
+
+    [Fact]
+    public void Ale0029RuntimeSupportReferencedEmitsNoDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Empty(ids);
+    }
+
+    [Fact]
+    public void Ale0030MissingLambdaSerializerEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Contains("ALE0030", ids);
+    }
+
+    [Fact]
+    public void Ale0031SerializerWithoutParameterlessConstructorEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public sealed class Serializer : Amazon.Lambda.Core.ILambdaSerializer
+            {
+                public Serializer(int value) { }
+                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
+                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
+            }
+            """);
+        Assert.Contains("ALE0031", ids);
+    }
+
+    [Fact]
+    public void Ale0031SerializerNotImplementingInterfaceEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public sealed class Serializer { }
+            """);
+        Assert.Contains("ALE0031", ids);
+    }
+
+    [Fact]
+    public void Ale0031AbstractSerializerEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public abstract class Serializer : Amazon.Lambda.Core.ILambdaSerializer
+            {
+                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
+                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
+            }
+            """);
+        Assert.Contains("ALE0031", ids);
     }
 
     // ------------------------------------------------------------

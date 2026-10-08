@@ -17,6 +17,7 @@ It lets you declaratively describe parameter binding, the filter pipeline, and D
 - **Authorizer** — Lambda authorizer generation via `[HttpApiAuthorizer]`.
 - **Filter pipeline** — Chain multiple classes implementing `ILambdaFilter` with `[Filter<T>(Order = N)]`.
 - **AOT compatible** — Zero AOT warnings with `IsAotCompatible=true` and `JsonSerializerContext`-based JSON serialization.
+- **Native AOT entry point** — `[assembly: LambdaEntryPoint]` generates `Main` that runs the handler selected by `_HANDLER`.
 - **Event handler** — Handle non-HTTP events such as SQS with `[Event]`.
 
 ## Installation
@@ -270,6 +271,32 @@ public partial class HealthCheck
 For AOT, just use the `JsonSerializerContext` constructor in your `ServiceResolver` and declare `[JsonSerializable(typeof(T))]` (see the ServiceResolver sample above).
 
 > HTTP handlers return `APIGatewayHttpApiV2ProxyResponse`, and authorizer handlers return `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse`. These are serialized by the Lambda runtime serializer. For AOT, make sure your Lambda serializer's `JsonSerializerContext` also covers those response types (in addition to your DTOs).
+
+## Native AOT Entry Point
+
+A Native AOT function runs on the custom runtime (`provided.al2023`) as an executable named `bootstrap`, so the program needs a `Main` that starts the Lambda runtime client.
+Add `[assembly: LambdaEntryPoint]`, and the Source Generator generates `Main` for all handlers in the assembly.
+
+```csharp
+[assembly: LambdaEntryPoint]
+[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AppJsonContext>))]
+```
+
+```xml
+<PropertyGroup>
+  <OutputType>Exe</OutputType>
+  <PublishAot>true</PublishAot>
+</PropertyGroup>
+
+<ItemGroup>
+  <PackageReference Include="Amazon.Lambda.RuntimeSupport" Version="x.x.x" />
+</ItemGroup>
+```
+
+- `Main` selects the handler by the `_HANDLER` environment variable, which holds the handler setting of the function. The name is the same as the one for the managed runtime (`{Assembly}::{Namespace}.{ClassName}::{Method}_Handler`), so the infrastructure definition does not need another name for Native AOT.
+- If `_HANDLER` matches no handler, `Main` throws `InvalidOperationException` at startup.
+- The Lambda runtime serializer is created from the assembly-level `[LambdaSerializer]`. Its `JsonSerializerContext` must cover the request and response types of every handler (for example, `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`).
+- Do not declare another `Main` or top-level statements in the project.
 
 ## Scope / Non-goals
 

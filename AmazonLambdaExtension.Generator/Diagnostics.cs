@@ -258,4 +258,32 @@ internal static class Diagnostics
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    // Entry point (ALE0029-ALE0031)
+    public static DiagnosticDescriptor MissingRuntimeSupport { get; } = new(
+        id: "ALE0029",
+        title: "Missing Amazon.Lambda.RuntimeSupport",
+        messageFormat: "[LambdaEntryPoint] needs a reference to Amazon.Lambda.RuntimeSupport. assembly=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor MissingLambdaSerializer { get; } = new(
+        id: "ALE0030",
+        title: "Missing LambdaSerializer",
+        messageFormat: "[LambdaEntryPoint] needs an assembly-level [LambdaSerializer]. assembly=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor InvalidLambdaSerializer { get; } = new(
+        id: "ALE0031",
+        title: "Invalid LambdaSerializer type",
+        messageFormat: "[LambdaSerializer] type must be a concrete ILambdaSerializer with an accessible parameterless constructor. type=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 }

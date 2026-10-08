@@ -260,21 +260,10 @@ internal static class LambdaSourceBuilder
 
         // ハンドラー種別と戻り値型に応じた戻り値型文字列を決定
         // Determine the return type string based on handler kind and result type
-        string returnType;
-        if (handler.Type == HandlerType.HttpApiAuthorizer)
-        {
-            returnType = $"global::System.Threading.Tasks.Task<{AuthorizerResponseType(handler)}>";
-        }
-        else if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
-        {
-            returnType = $"global::System.Threading.Tasks.Task<{V2ResponseType}>";
-        }
-        else
-        {
-            returnType = handler.ResultType is not null ?
-                $"global::System.Threading.Tasks.Task<{handler.ResultType.FullName}>"
-                : "global::System.Threading.Tasks.Task";
-        }
+        var resultType = GetEntryResultType(handler);
+        var returnType = resultType is not null
+            ? $"global::System.Threading.Tasks.Task<{resultType}>"
+            : "global::System.Threading.Tasks.Task";
 
         builder.AppendLine($"public static async {returnType} {methodName}_Handler(");
 
@@ -969,7 +958,24 @@ internal static class LambdaSourceBuilder
         return String.Join(", ", argParts);
     }
 
-    private static string GetEntryRequestType(HandlerModel handler)
+    internal static string? GetEntryResultType(HandlerModel handler)
+    {
+        // *_Handler が返す Task<T> の T を決める（結果を返さないイベントハンドラーは null）
+        // Determine T of the Task<T> returned by *_Handler (null for an event handler without a result)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
+        {
+            return AuthorizerResponseType(handler);
+        }
+
+        if ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl))
+        {
+            return V2ResponseType;
+        }
+
+        return handler.ResultType?.FullName;
+    }
+
+    internal static string GetEntryRequestType(HandlerModel handler)
     {
         if (handler.Type == HandlerType.Event)
         {
