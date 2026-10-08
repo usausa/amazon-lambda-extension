@@ -132,6 +132,34 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 - `[ServiceResolver]` の `ConfigureServices()` は **生成コード（Lambda クラス内）から到達可能な `static` メソッド**であれば可（同一アセンブリの `internal` でも可）。同様に、`[ServiceResolver]` なしの本体/Filter の parameterless コンストラクタも「到達可能であること」で判定します。
 - 同一クラス内でハンドラー名は一意である必要があります（同名のオーバーロードは未対応）。
 
+### Binding Errors
+
+バインドや検証に失敗したときは、既定では文字列のメッセージ付きの `400` を返します。
+独自の応答（たとえば RFC 9457 の Problem Details）を返すには、`ServiceResolver` で `IBindingErrorResultFactory` を singleton として登録します。
+
+```csharp
+public sealed class BindingErrorResultFactory : IBindingErrorResultFactory
+{
+    public IHttpResult Create(BindingError bindingError) =>
+        HttpResults.BadRequest(new ErrorResponse(bindingError.Kind.ToString(), bindingError.Name))
+            .AddHeader("content-type", "application/problem+json");
+}
+```
+
+```csharp
+services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
+```
+
+| `BindingError` | 内容 |
+|:-----|:-----|
+| `Kind` | `InvalidValue`（変換の失敗）、`InvalidBody`（JSON の誤り）、`MissingBody`（null 非許容のボディが null）、`ValidationFailed`（`IRequestValidator` の失敗） |
+| `Source` | `Route` / `Query` / `Header` / `Body` / `Authorizer` |
+| `Name` | バインドのキー（ルート・クエリ・ヘッダー・オーソライザーの名前）、またはボディの引数名 |
+| `ValidationResults` | `IRequestValidator` の結果（`ValidationFailed` のときだけ） |
+
+- ファクトリーは、`[ServiceResolver]` を持つクラスの HTTP API / Function URL ハンドラーで使います。登録がない場合は、従来どおり文字列の `400` を返します。
+- ハンドラーが投げた例外はファクトリーに渡しません。フィルター（たとえば一番外側のエラー用フィルター）で扱ってください。
+
 ## Filter Pipeline
 
 `ILambdaFilter` を実装したクラスを `[Filter<T>(Order = N)]` でクラスに付与します。

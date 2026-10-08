@@ -28,6 +28,11 @@ internal static class LambdaSourceBuilder
     private const string RequestValidatorType = "global::AmazonLambdaExtension.Validation.IRequestValidator";
     private const string DefaultRequestValidatorType = "global::AmazonLambdaExtension.Validation.DataAnnotationsRequestValidator";
     private const string ApiExceptionType = "global::AmazonLambdaExtension.ApiException";
+    private const string BindingErrorType = "global::AmazonLambdaExtension.Binders.BindingError";
+    private const string BindingErrorKindType = "global::AmazonLambdaExtension.Binders.BindingErrorKind";
+    private const string BindingSourceType = "global::AmazonLambdaExtension.Binders.BindingSource";
+    private const string BindingErrorResultFactoryType = "global::AmazonLambdaExtension.Binders.IBindingErrorResultFactory";
+    private const string GetService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
     private const string GetRequiredKeyedService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderKeyedServiceExtensions.GetRequiredKeyedService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
@@ -77,7 +82,7 @@ internal static class LambdaSourceBuilder
 
         if (model.Filters.Count > 0)
         {
-            BuildInnerMethod(builder, handler);
+            BuildInnerMethod(builder, model, handler);
             builder.NewLine();
         }
 
@@ -150,6 +155,25 @@ internal static class LambdaSourceBuilder
             }
         }
 
+        if (UsesBindingErrorFactory(model))
+        {
+            // 読み取りと検証の失敗の応答を作る部品を DI から（登録されていれば）解決し、失敗の応答を作るヘルパーを生成
+            // 登録がなければ従来どおり文字列の 400 を返す
+            // Resolve the optional factory for binding and validation failures from DI, and generate helpers that create the failure response
+            // Without the registration, a 400 with a text message is returned as before
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {BindingErrorResultFactoryType}? __bindingErrorResultFactory__ =");
+            builder.AppendLine($"    {GetService}<{BindingErrorResultFactoryType}>(__provider__);");
+            builder.NewLine();
+            builder.AppendLine($"private static {HttpResultType} __BindingErrorResult__({BindingErrorType} error, string message) =>");
+            builder.AppendLine($"    __bindingErrorResultFactory__?.Create(error) ?? {HttpResultsType}.BadRequest(message);");
+            builder.NewLine();
+            builder.AppendLine($"private static {V2ResponseType} __BindingErrorResponse__({BindingErrorType} error, string message) =>");
+            builder.AppendLine("    __bindingErrorResultFactory__ is not null");
+            builder.AppendLine("        ? __bindingErrorResultFactory__.Create(error).ToResponse(__lambdaSerializer__)");
+            builder.AppendLine($"        : new {V2ResponseType} {{ StatusCode = 400, Body = message }};");
+        }
+
         if (hasBodyParam && (model.ServiceResolver is not null))
         {
             // DIから IBodySerializer を解決
@@ -181,7 +205,7 @@ internal static class LambdaSourceBuilder
         }
     }
 
-    private static void BuildInnerMethod(SourceBuilder builder, HandlerModel handler)
+    private static void BuildInnerMethod(SourceBuilder builder, LambdaModel model, HandlerModel handler)
     {
         // フィルターパイプラインの最内部処理となる __Inner__ メソッドを生成
         // Generate the __Inner__ method that is the innermost delegate of the filter pipeline
@@ -208,7 +232,7 @@ internal static class LambdaSourceBuilder
             }
         }
 
-        BuildParameterBindings(builder, handler, hasFilter: true);
+        BuildParameterBindings(builder, model, handler, hasFilter: true);
 
         BuildHandlerInvocation(builder, handler, hasFilter: true);
 
@@ -321,11 +345,11 @@ internal static class LambdaSourceBuilder
             // Without filters: directly execute parameter binding and handler invocation
             if (handler.Type == HandlerType.Event)
             {
-                BuildEventTryCatch(builder, handler);
+                BuildEventTryCatch(builder, model, handler);
             }
             else
             {
-                BuildHttpTryCatch(builder, handler);
+                BuildHttpTryCatch(builder, model, handler);
             }
         }
 
@@ -380,12 +404,12 @@ internal static class LambdaSourceBuilder
         BuildResultExtraction(builder, handler, hasFilter: true);
     }
 
-    private static void BuildHttpTryCatch(SourceBuilder builder, HandlerModel handler)
+    private static void BuildHttpTryCatch(SourceBuilder builder, LambdaModel model, HandlerModel handler)
     {
         builder.AppendLine("try");
         builder.BeginScope();
 
-        BuildParameterBindings(builder, handler, hasFilter: false);
+        BuildParameterBindings(builder, model, handler, hasFilter: false);
         BuildHandlerInvocation(builder, handler, hasFilter: false);
 
         builder.EndScope();
@@ -419,12 +443,12 @@ internal static class LambdaSourceBuilder
         }
     }
 
-    private static void BuildEventTryCatch(SourceBuilder builder, HandlerModel handler)
+    private static void BuildEventTryCatch(SourceBuilder builder, LambdaModel model, HandlerModel handler)
     {
         builder.AppendLine("try");
         builder.BeginScope();
 
-        BuildParameterBindings(builder, handler, hasFilter: false);
+        BuildParameterBindings(builder, model, handler, hasFilter: false);
         BuildHandlerInvocation(builder, handler, hasFilter: false);
 
         builder.EndScope();
@@ -435,7 +459,7 @@ internal static class LambdaSourceBuilder
         builder.EndScope();
     }
 
-    private static void BuildParameterBindings(SourceBuilder builder, HandlerModel handler, bool hasFilter)
+    private static void BuildParameterBindings(SourceBuilder builder, LambdaModel model, HandlerModel handler, bool hasFilter)
     {
         // 全パラメーターを順にバインディングコードを生成
         // Generate binding code for each parameter in order
@@ -443,47 +467,61 @@ internal static class LambdaSourceBuilder
         for (var i = 0; i < parameters.Count; i++)
         {
             var p = parameters[i];
-            BuildParameterBinding(builder, handler, p, i, hasFilter);
+            BuildParameterBinding(builder, model, handler, p, i, hasFilter);
         }
     }
 
-    private static void BuildParameterBinding(SourceBuilder builder, HandlerModel handler, ParameterModel param, int index, bool hasFilter)
+    private static bool UsesBindingErrorFactory(LambdaModel model) =>
+        (model.ServiceResolver is not null) &&
+        model.Handlers.Any(static h => (h.Type == HandlerType.HttpApi) || (h.Type == HandlerType.FunctionUrl));
+
+    private static bool UsesBindingErrorFactory(LambdaModel model, HandlerModel handler) =>
+        (model.ServiceResolver is not null) &&
+        ((handler.Type == HandlerType.HttpApi) || (handler.Type == HandlerType.FunctionUrl));
+
+    private static string NewBindingError(string kind, string source, string name, string? validationResults = null)
+    {
+        // 失敗の内容を応答を作る部品に渡す BindingError の生成式
+        // Expression that creates the BindingError passed to the factory for the failure response
+        var results = validationResults is not null ? $", {validationResults}" : string.Empty;
+        return $"new {BindingErrorType}({BindingErrorKindType}.{kind}, {BindingSourceType}.{source}, {CSharpLiteral.Format(name)}{results})";
+    }
+
+    private static void AppendBindingFailure(SourceBuilder builder, LambdaModel model, HandlerModel handler, bool hasFilter, string error, string message)
+    {
+        // 読み取りと検証の失敗で応答を返す。部品があればそれで作り、なければ従来どおり文字列の 400
+        // フィルター内は ctx.Result に入れて戻り、フィルターなしは応答型に合わせて直接返す
+        // Return the response for a binding or validation failure, using the factory when available or a text 400 as before
+        // Inside filters set ctx.Result and return; without filters return directly in the handler's response type
+        var useFactory = UsesBindingErrorFactory(model, handler);
+        if (hasFilter)
+        {
+            builder.AppendLine(useFactory
+                ? $"ctx.Result = __BindingErrorResult__({error}, {message});"
+                : $"ctx.Result = {HttpResultsType}.BadRequest({message});");
+            builder.AppendLine("return;");
+        }
+        else if (handler.ResponseType == ResponseType.HttpResult)
+        {
+            builder.AppendLine(useFactory
+                ? $"return {ToResponseCall($"__BindingErrorResult__({error}, {message})")};"
+                : $"return {ToResponseCall($"{HttpResultsType}.BadRequest({message})")};");
+        }
+        else
+        {
+            builder.AppendLine(useFactory
+                ? $"return __BindingErrorResponse__({error}, {message});"
+                : $"return new {V2ResponseType} {{ StatusCode = 400, Body = {message} }};");
+        }
+    }
+
+    private static void BuildParameterBinding(SourceBuilder builder, LambdaModel model, HandlerModel handler, ParameterModel param, int index, bool hasFilter)
     {
         var pVar = $"p{index}";
         var pRaw = $"p{index}raw";
         var requestVar = handler.Type == HandlerType.Event ? "ev" : "request";
         var typeName = param.Type.FullName;
         var key = param.Key;
-
-        string BadRequest400(string paramName)
-        {
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest({InvalidParameterMessage(paramName)})")};";
-            }
-            return $"return new {V2ResponseType} {{ StatusCode = 400, " +
-                   $"Body = {InvalidParameterMessage(paramName)} }};";
-        }
-
-        string BadRequestBody(string message)
-        {
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest(\"{message}\")")};";
-            }
-            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = \"{message}\" }};";
-        }
-
-        // メッセージを実行時に組み立てた変数で 400 を返す（検証エラー詳細用）
-        // Returns 400 with a message held in a runtime variable (used for validation details)
-        string BadRequestVar(string variableName)
-        {
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest({variableName})")};";
-            }
-            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = {variableName} }};";
-        }
 
         switch (param.BindingType)
         {
@@ -523,15 +561,7 @@ internal static class LambdaSourceBuilder
                 builder.EndScope();
                 builder.AppendLine("catch (global::System.Text.Json.JsonException)");
                 builder.BeginScope();
-                if (hasFilter)
-                {
-                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Invalid request body.\");");
-                    builder.AppendLine("return;");
-                }
-                else
-                {
-                    builder.AppendLine(BadRequestBody("Invalid request body."));
-                }
+                AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidBody", "Body", key), CSharpLiteral.Format("Invalid request body."));
                 builder.EndScope();
 
                 // null 非許容（NRT 注釈なし・非 Nullable）のボディは必須として 400 を返す
@@ -540,15 +570,7 @@ internal static class LambdaSourceBuilder
                 {
                     builder.AppendLine($"if ({pVar} is null)");
                     builder.BeginScope();
-                    if (hasFilter)
-                    {
-                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest(\"Request body is required.\");");
-                        builder.AppendLine("return;");
-                    }
-                    else
-                    {
-                        builder.AppendLine(BadRequestBody("Request body is required."));
-                    }
+                    AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("MissingBody", "Body", key), CSharpLiteral.Format("Request body is required."));
                     builder.EndScope();
                 }
 
@@ -561,15 +583,7 @@ internal static class LambdaSourceBuilder
                     builder.AppendLine($"var {pVar}errors = new global::System.Collections.Generic.List<global::System.ComponentModel.DataAnnotations.ValidationResult>();");
                     builder.AppendLine($"_ = __requestValidator__.Validate({pVar}, {pVar}errors);");
                     builder.AppendLine($"var {pVar}message = {CSharpLiteral.Format("Validation failed: " + param.Name)} + ({pVar}errors.Count > 0 ? \": \" + global::System.String.Join(\"; \", {pVar}errors) : \"\");");
-                    if (hasFilter)
-                    {
-                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({pVar}message);");
-                        builder.AppendLine("return;");
-                    }
-                    else
-                    {
-                        builder.AppendLine(BadRequestVar($"{pVar}message"));
-                    }
+                    AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("ValidationFailed", "Body", key, $"{pVar}errors"), $"{pVar}message");
                     builder.EndScope();
                 }
                 builder.NewLine();
@@ -593,15 +607,7 @@ internal static class LambdaSourceBuilder
                         : $"{StringConverterType}.{param.ConverterMethod}({AsSpanMethod}({pRaw}ca), out var {pVar}tmp)";
                     builder.AppendLine($"if (!{converterCall})");
                     builder.BeginScope();
-                    if (hasFilter)
-                    {
-                        builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({InvalidParameterMessage(key)});");
-                        builder.AppendLine("return;");
-                    }
-                    else
-                    {
-                        builder.AppendLine(BadRequest400(key));
-                    }
+                    AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", "Authorizer", key), InvalidParameterMessage(key));
                     builder.EndScope();
                     builder.AppendLine($"{pVar} = {pVar}tmp;");
                 }
@@ -614,11 +620,13 @@ internal static class LambdaSourceBuilder
                 // Retrieve and convert value from path parameters dictionary
                 BuildScalarOrArrayBinding(
                     builder,
+                    model,
                     handler,
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.PathParameters");
+                    $"{requestVar}.PathParameters",
+                    "Route");
                 return;
 
             case ParameterBindingType.FromQuery:
@@ -626,11 +634,13 @@ internal static class LambdaSourceBuilder
                 // Retrieve and convert value from query string parameters dictionary
                 BuildScalarOrArrayBinding(
                     builder,
+                    model,
                     handler,
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.QueryStringParameters");
+                    $"{requestVar}.QueryStringParameters",
+                    "Query");
                 return;
 
             case ParameterBindingType.FromHeader:
@@ -638,16 +648,18 @@ internal static class LambdaSourceBuilder
                 // Retrieve and convert value from request headers dictionary
                 BuildScalarOrArrayBinding(
                     builder,
+                    model,
                     handler,
                     param,
                     index,
                     hasFilter,
-                    $"{requestVar}.Headers");
+                    $"{requestVar}.Headers",
+                    "Header");
                 return;
         }
     }
 
-    private static void BuildScalarOrArrayBinding(SourceBuilder builder, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string dictExpr)
+    private static void BuildScalarOrArrayBinding(SourceBuilder builder, LambdaModel model, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string dictExpr, string source)
     {
         // 型に応じて 配列 / Nullable<T> / スカラー のバインディングコードを生成
         // Generate binding code for array, Nullable<T>, or scalar type accordingly
@@ -656,15 +668,6 @@ internal static class LambdaSourceBuilder
         var typeName = param.Type.FullName;
         var key = param.Key;
         var defaultLiteral = param.HasDefault ? (param.DefaultValueLiteral ?? "default") : null;
-
-        string Bad400()
-        {
-            if (handler.ResponseType == ResponseType.HttpResult)
-            {
-                return $"return {ToResponseCall($"{HttpResultsType}.BadRequest({InvalidParameterMessage(key)})")};";
-            }
-            return $"return new {V2ResponseType} {{ StatusCode = 400, Body = {InvalidParameterMessage(key)} }};";
-        }
 
         if (param.Type.IsArray && (param.Type.ElementType is not null))
         {
@@ -694,15 +697,7 @@ internal static class LambdaSourceBuilder
                     : $"!{StringConverterType}.{converterMethod}({AsSpanMethod}({pVar}parts[i]), out var {pVar}elem)";
                 builder.AppendLine($"if ({converterCall})");
                 builder.BeginScope();
-                if (hasFilter)
-                {
-                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({InvalidParameterMessage(key)});");
-                    builder.AppendLine("return;");
-                }
-                else
-                {
-                    builder.AppendLine(Bad400());
-                }
+                AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", source, key), InvalidParameterMessage(key));
                 builder.EndScope();
                 builder.AppendLine($"{pVar}[i] = {pVar}elem;");
             }
@@ -714,15 +709,7 @@ internal static class LambdaSourceBuilder
                     : $"!{StringConverterType}.{converterMethod}({AsSpanMethod}({pVar}parts[i]), out {pVar}[i])";
                 builder.AppendLine($"if ({converterCall})");
                 builder.BeginScope();
-                if (hasFilter)
-                {
-                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({InvalidParameterMessage(key)});");
-                    builder.AppendLine("return;");
-                }
-                else
-                {
-                    builder.AppendLine(Bad400());
-                }
+                AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", source, key), InvalidParameterMessage(key));
                 builder.EndScope();
             }
             builder.EndScope();
@@ -753,15 +740,7 @@ internal static class LambdaSourceBuilder
                     : $"!{StringConverterType}.{converterMethod}({AsSpanMethod}({pRaw}), out var {pVar}tmp)";
                 builder.AppendLine($"if ({converterCall})");
                 builder.BeginScope();
-                if (hasFilter)
-                {
-                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({InvalidParameterMessage(key)});");
-                    builder.AppendLine("return;");
-                }
-                else
-                {
-                    builder.AppendLine(Bad400());
-                }
+                AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", source, key), InvalidParameterMessage(key));
                 builder.EndScope();
                 builder.AppendLine($"{pVar} = {pVar}tmp;");
             }
@@ -799,15 +778,7 @@ internal static class LambdaSourceBuilder
                     : $"!{StringConverterType}.{converterMethod}({AsSpanMethod}({pRaw}), out {pVar})";
                 builder.AppendLine($"if ({converterCall})");
                 builder.BeginScope();
-                if (hasFilter)
-                {
-                    builder.AppendLine($"ctx.Result = {HttpResultsType}.BadRequest({InvalidParameterMessage(key)});");
-                    builder.AppendLine("return;");
-                }
-                else
-                {
-                    builder.AppendLine(Bad400());
-                }
+                AppendBindingFailure(builder, model, handler, hasFilter, NewBindingError("InvalidValue", source, key), InvalidParameterMessage(key));
                 builder.EndScope();
                 builder.EndScope();
                 builder.NewLine();
