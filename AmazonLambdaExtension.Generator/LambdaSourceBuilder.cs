@@ -722,9 +722,9 @@ internal static class LambdaSourceBuilder
 
     private static void BuildReaderBinding(SourceBuilder builder, LambdaModel model, HandlerModel handler, ParameterModel param, int index, bool hasFilter, string tryGetExpression, string source)
     {
-        // 読み取り用ヘルパー（TryGetValue）で値を取り出し、string / Nullable<T> / スカラーに変換（配列は ALE0019 で除外済み）
+        // 読み取り用ヘルパー（TryGetValue）で値を取り出し、string / Nullable<T> / スカラーに変換（配列は ALE0406 で除外済み）
         // 値がなければ既定値（引数のデフォルト値があればそれ）のまま
-        // Read the value with a TryGetValue helper and convert it to string, Nullable<T>, or a scalar (arrays are rejected by ALE0019)
+        // Read the value with a TryGetValue helper and convert it to string, Nullable<T>, or a scalar (arrays are rejected by ALE0406)
         // When the value is missing, keep the default (or the parameter's default value)
         var pVar = $"p{index}";
         var pRaw = $"p{index}raw";

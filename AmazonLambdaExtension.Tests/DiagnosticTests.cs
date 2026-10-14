@@ -17,41 +17,8 @@ public class DiagnosticTests
 #pragma warning restore IDE0028
 
     // ------------------------------------------------------------
-    // ALE0001
+    // Class structure (00xx)
     // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0012NoHandlerAttributeEmitsDiagnostic()
-    {
-        // Arrange
-        const string source =
-            """
-            namespace Test;
-
-            using AmazonLambdaExtension.Annotations;
-
-            public sealed class MyEvent { }
-
-            [Lambda]
-            public sealed partial class Function
-            {
-                [Event]
-                public void Handle(MyEvent ev)
-                {
-                }
-
-                public void Extra()
-                {
-                }
-            }
-            """;
-
-        // Act
-        var diagnostics = CompilationHelper.RunGenerator(source).Diagnostics;
-
-        // Assert
-        Assert.Contains(diagnostics, static x => x.Id == "ALE0012");
-    }
 
     [Fact]
     public void Ale0001NotPartialEmitsDiagnostic()
@@ -87,10 +54,6 @@ public class DiagnosticTests
         Assert.DoesNotContain("ALE0001", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0002
-    // ------------------------------------------------------------
-
     [Fact]
     public void Ale0002LambdaClassIsGenericEmitsDiagnostic()
     {
@@ -107,10 +70,6 @@ public class DiagnosticTests
             """);
         Assert.Contains("ALE0002", ids);
     }
-
-    // ------------------------------------------------------------
-    // ALE0002 / ALE0003 / ALE0004
-    // ------------------------------------------------------------
 
     [Fact]
     public void Ale0002TopLevelNonGenericEmitsNoDiagnostic()
@@ -132,10 +91,6 @@ public class DiagnosticTests
         Assert.DoesNotContain("ALE0004", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0003
-    // ------------------------------------------------------------
-
     [Fact]
     public void Ale0003LambdaClassIsNestedEmitsDiagnostic()
     {
@@ -156,10 +111,6 @@ public class DiagnosticTests
         Assert.Contains("ALE0003", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0004
-    // ------------------------------------------------------------
-
     [Fact]
     public void Ale0004LambdaClassIsRecordEmitsDiagnostic()
     {
@@ -177,10 +128,6 @@ public class DiagnosticTests
             """);
         Assert.Contains("ALE0004", ids);
     }
-
-    // ------------------------------------------------------------
-    // ALE0005
-    // ------------------------------------------------------------
 
     [Fact]
     public void Ale0005LambdaClassIsAbstractEmitsDiagnostic()
@@ -201,11 +148,31 @@ public class DiagnosticTests
     }
 
     // ------------------------------------------------------------
-    // ALE0006
+    // Construction (01xx)
     // ------------------------------------------------------------
 
     [Fact]
-    public void Ale0006ServiceResolverMissingConfigureServicesEmitsDiagnostic()
+    public void Ale0101CtorParamsButNoServiceResolverEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            public interface IService { }
+            [Lambda]
+            public sealed partial class Function
+            {
+                private readonly IService svc;
+                public Function(IService svc) { this.svc = svc; }
+                [Event]
+                public void Handle() { }
+            }
+            """);
+        Assert.Contains("ALE0101", ids);
+    }
+
+    [Fact]
+    public void Ale0102ServiceResolverMissingConfigureServicesEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -220,11 +187,11 @@ public class DiagnosticTests
             }
             public sealed class BadResolver { }
             """);
-        Assert.Contains("ALE0006", ids);
+        Assert.Contains("ALE0102", ids);
     }
 
     [Fact]
-    public void Ale0006InternalResolverWithAccessibleConfigureServicesEmitsNoDiagnostic()
+    public void Ale0102InternalResolverWithAccessibleConfigureServicesEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -244,39 +211,11 @@ public class DiagnosticTests
                 internal static IServiceCollection ConfigureServices() => new ServiceCollection();
             }
             """);
-        Assert.DoesNotContain("ALE0006", ids);
+        Assert.DoesNotContain("ALE0102", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0007
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0007CtorParamsButNoServiceResolverEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            public interface IService { }
-            [Lambda]
-            public sealed partial class Function
-            {
-                private readonly IService svc;
-                public Function(IService svc) { this.svc = svc; }
-                [Event]
-                public void Handle() { }
-            }
-            """);
-        Assert.Contains("ALE0007", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0008
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0008NoParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
+    public void Ale0103NoParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -291,15 +230,11 @@ public class DiagnosticTests
                 public void Handle(MyEvent ev) { }
             }
             """);
-        Assert.Contains("ALE0008", ids);
+        Assert.Contains("ALE0103", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0008 / ALE0011
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0008ParameterlessCtorsWithoutServiceResolverEmitsNoDiagnostic()
+    public void Ale0103ParameterlessCtorsWithoutServiceResolverEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -320,16 +255,35 @@ public class DiagnosticTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.DoesNotContain("ALE0008", ids);
-        Assert.DoesNotContain("ALE0011", ids);
+        Assert.DoesNotContain("ALE0103", ids);
+        Assert.DoesNotContain("ALE0203", ids);
+    }
+
+    [Fact]
+    public void Ale0105FromServicesWithoutServiceResolverEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            public interface IService { }
+            public sealed class MyEvent { }
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle(MyEvent ev, [FromServices] IService service) { }
+            }
+            """);
+        Assert.Contains("ALE0105", ids);
     }
 
     // ------------------------------------------------------------
-    // ALE0009
+    // Filter (02xx)
     // ------------------------------------------------------------
 
     [Fact]
-    public void Ale0009FilterTypeNotImplementILambdaFilterEmitsDiagnostic()
+    public void Ale0201FilterTypeNotImplementILambdaFilterEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -345,15 +299,11 @@ public class DiagnosticTests
                 public IHttpResult Handle() => HttpResults.Ok(new { });
             }
             """);
-        Assert.Contains("ALE0009", ids);
+        Assert.Contains("ALE0201", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0010
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0010AbstractFilterWithoutServiceResolverEmitsDiagnostic()
+    public void Ale0202AbstractFilterWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -374,15 +324,11 @@ public class DiagnosticTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0010", ids);
+        Assert.Contains("ALE0202", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0011
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0011FilterHasNoPublicParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
+    public void Ale0203FilterHasNoPublicParameterlessCtorWithoutServiceResolverEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -404,11 +350,11 @@ public class DiagnosticTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0011", ids);
+        Assert.Contains("ALE0203", ids);
     }
 
     [Fact]
-    public void Ale0011InternalFilterWithAccessibleCtorEmitsNoDiagnostic()
+    public void Ale0203InternalFilterWithAccessibleCtorEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -429,15 +375,15 @@ public class DiagnosticTests
                 public IHttpResult Handle() => HttpResults.Ok();
             }
             """);
-        Assert.DoesNotContain("ALE0011", ids);
+        Assert.DoesNotContain("ALE0203", ids);
     }
 
     // ------------------------------------------------------------
-    // ALE0013
+    // Handler (03xx)
     // ------------------------------------------------------------
 
     [Fact]
-    public void Ale0013MultipleHandlerAttributesEmitsDiagnostic()
+    public void Ale0301MultipleHandlerAttributesEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -452,145 +398,29 @@ public class DiagnosticTests
                 public void Handle() { }
             }
             """);
-        Assert.Contains("ALE0013", ids);
+        Assert.Contains("ALE0301", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0014
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0014AuthorizerMethodMissingEmitsDiagnostic()
+    public void Ale0302GenericHandlerEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApi(LambdaHttpMethod.Get, "/a", Authorizer = nameof(Authorize))]
-                public IHttpResult Handle() => HttpResults.Ok();
-            }
-            """);
-        Assert.Contains("ALE0014", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0015
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0015MultipleBindingAttributesEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Handle([FromQuery][FromRoute] string id) => HttpResults.Ok();
-            }
-            """);
-        Assert.Contains("ALE0015", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0016
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0016FromBodyOnEventHandlerEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
+            public sealed class MyEvent { }
             [Lambda]
             public sealed partial class Function
             {
                 [Event]
-                public void Handle([FromBody] string body) { }
+                public void Handle<T>(MyEvent ev) { }
             }
             """);
-        Assert.Contains("ALE0016", ids);
+        Assert.Equal(["ALE0302"], ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0017
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0017InvalidBindingOnEventHandlerEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [Event]
-                public void Handle([FromQuery] int value) { }
-            }
-            """);
-        Assert.Contains("ALE0017", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0018
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0018FromAuthorizerOutsideHttpApiEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [FunctionUrl]
-                public string Handle([FromAuthorizer("role")] string role) => role;
-            }
-            """);
-        Assert.Contains("ALE0018", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0019
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0019UnsupportedBindingTypeEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            public sealed class Input { public string? Name { get; set; } }
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Handle([FromQuery] Input input) => HttpResults.Ok();
-            }
-            """);
-        Assert.Contains("ALE0019", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0020
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0020EventHandlerHasNoPayloadEmitsDiagnostic()
+    public void Ale0303EventHandlerHasNoPayloadEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -604,15 +434,11 @@ public class DiagnosticTests
                 public void Handle(ILambdaContext context) { }
             }
             """);
-        Assert.Contains("ALE0020", ids);
+        Assert.Contains("ALE0303", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0020 / ALE0021
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0020EventHandlerHasSinglePayloadEmitsNoDiagnostic()
+    public void Ale0303EventHandlerHasSinglePayloadEmitsNoDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -627,16 +453,12 @@ public class DiagnosticTests
                 public void Handle(MyEvent ev, ILambdaContext context) { }
             }
             """);
-        Assert.DoesNotContain("ALE0020", ids);
-        Assert.DoesNotContain("ALE0021", ids);
+        Assert.DoesNotContain("ALE0303", ids);
+        Assert.DoesNotContain("ALE0304", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0021
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0021EventHandlerHasMultiplePayloadsEmitsDiagnostic()
+    public void Ale0304EventHandlerHasMultiplePayloadsEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -651,15 +473,11 @@ public class DiagnosticTests
                 public void Handle(EventA a, EventB b) { }
             }
             """);
-        Assert.Contains("ALE0021", ids);
+        Assert.Contains("ALE0304", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0022
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0022AuthorizerInvalidReturnTypeEmitsDiagnostic()
+    public void Ale0305AuthorizerInvalidReturnTypeEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -672,38 +490,11 @@ public class DiagnosticTests
                 public void Authorize() { }
             }
             """);
-        Assert.Contains("ALE0022", ids);
+        Assert.Contains("ALE0305", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0023
-    // ------------------------------------------------------------
-
     [Fact]
-    public void Ale0023FromServicesWithoutServiceResolverEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            public interface IService { }
-            public sealed class MyEvent { }
-            [Lambda]
-            public sealed partial class Function
-            {
-                [Event]
-                public void Handle(MyEvent ev, [FromServices] IService service) { }
-            }
-            """);
-        Assert.Contains("ALE0023", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0024
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0024HandlerIsOverloadedEmitsDiagnostic()
+    public void Ale0306HandlerIsOverloadedEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -720,37 +511,211 @@ public class DiagnosticTests
                 public IHttpResult Get(string id) => HttpResults.Ok();
             }
             """);
-        Assert.Contains("ALE0024", ids);
+        Assert.Contains("ALE0306", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0025
-    // ------------------------------------------------------------
+    [Fact]
+    public void Ale0307NoHandlerAttributeEmitsDiagnostic()
+    {
+        // Arrange
+        const string source =
+            """
+            namespace Test;
+
+            using AmazonLambdaExtension.Annotations;
+
+            public sealed class MyEvent { }
+
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle(MyEvent ev)
+                {
+                }
+
+                public void Extra()
+                {
+                }
+            }
+            """;
+
+        // Act
+        var diagnostics = CompilationHelper.RunGenerator(source).Diagnostics;
+
+        // Assert
+        Assert.Contains(diagnostics, static x => x.Id == "ALE0307");
+    }
 
     [Fact]
-    public void Ale0025GenericHandlerEmitsDiagnostic()
+    public void Ale0308AuthorizerMethodMissingEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
-            public sealed class MyEvent { }
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a", Authorizer = nameof(Authorize))]
+                public IHttpResult Handle() => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0308", ids);
+    }
+
+    // ------------------------------------------------------------
+    // Parameter (04xx)
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0401MultipleBindingAttributesEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Handle([FromQuery][FromRoute] string id) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0401", ids);
+    }
+
+    [Fact]
+    public void Ale0402FromBodyOnEventHandlerEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
             [Lambda]
             public sealed partial class Function
             {
                 [Event]
-                public void Handle<T>(MyEvent ev) { }
+                public void Handle([FromBody] string body) { }
             }
             """);
-        Assert.Equal(["ALE0025"], ids);
+        Assert.Contains("ALE0402", ids);
     }
 
-    // ------------------------------------------------------------
-    // ALE0019 (FromAuthorizer)
-    // ------------------------------------------------------------
+    [Fact]
+    public void Ale0403InvalidBindingOnEventHandlerEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [Event]
+                public void Handle([FromQuery] int value) { }
+            }
+            """);
+        Assert.Contains("ALE0403", ids);
+    }
 
     [Fact]
-    public void Ale0019FromAuthorizerArrayEmitsDiagnostic()
+    public void Ale0404FromClaimOnFunctionUrlEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public IHttpResult Ping([FromClaim("sub")] string subject) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0404", ids);
+    }
+
+    [Fact]
+    public void Ale0404FromClaimOnHttpApiEmitsNoDiagnostic()
+    {
+        var source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([FromClaim("sub")] string subject) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void Ale0405FromCookieOnAuthorizerEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApiAuthorizer]
+                public IAuthorizerResult Authorize([FromCookie("rt")] string? token) => AuthorizerResults.Allow();
+            }
+            """);
+        Assert.Contains("ALE0405", ids);
+    }
+
+    [Fact]
+    public void Ale0405FromCookieOnFunctionUrlEmitsNoDiagnostic()
+    {
+        var source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public IHttpResult Ping([FromCookie("rt")] string? token) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void Ale0406UnsupportedBindingTypeEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            public sealed class Input { public string? Name { get; set; } }
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Handle([FromQuery] Input input) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0406", ids);
+    }
+
+    [Fact]
+    public void Ale0406FromAuthorizerArrayEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
             """
@@ -764,11 +729,138 @@ public class DiagnosticTests
                 public IHttpResult Get([FromAuthorizer("ids")] int[] ids) => HttpResults.Ok();
             }
             """);
-        Assert.Equal(["ALE0019"], ids);
+        Assert.Equal(["ALE0406"], ids);
+    }
+
+    [Theory]
+    [InlineData("FromClaim")]
+    [InlineData("FromCookie")]
+    public void Ale0406ArrayOnSingleValueBindingEmitsDiagnostic(string attribute)
+    {
+        var ids = GetDiagnosticIds(
+            $$"""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public IHttpResult Get([{{attribute}}("roles")] string[] roles) => HttpResults.Ok();
+            }
+            """);
+        Assert.Contains("ALE0406", ids);
+    }
+
+    [Fact]
+    public void Ale0407FromAuthorizerOutsideHttpApiEmitsDiagnostic()
+    {
+        var ids = GetDiagnosticIds(
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [FunctionUrl]
+                public string Handle([FromAuthorizer("role")] string role) => role;
+            }
+            """);
+        Assert.Contains("ALE0407", ids);
     }
 
     // ------------------------------------------------------------
-    // Valid declarations
+    // Entry point (06xx)
+    // ------------------------------------------------------------
+
+    [Fact]
+    public void Ale0601MissingRuntimeSupportEmitsDiagnostic()
+    {
+        var ids = CompilationHelper.GetDiagnosticIdsWithoutRuntimeSupport(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Contains("ALE0601", ids);
+    }
+
+    [Fact]
+    public void Ale0601RuntimeSupportReferencedEmitsNoDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Empty(ids);
+    }
+
+    [Fact]
+    public void Ale0602MissingLambdaSerializerEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            namespace Test;
+            public sealed class Placeholder { }
+            """);
+        Assert.Contains("ALE0602", ids);
+    }
+
+    [Fact]
+    public void Ale0603SerializerWithoutParameterlessConstructorEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public sealed class Serializer : Amazon.Lambda.Core.ILambdaSerializer
+            {
+                public Serializer(int value) { }
+                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
+                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
+            }
+            """);
+        Assert.Contains("ALE0603", ids);
+    }
+
+    [Fact]
+    public void Ale0603SerializerNotImplementingInterfaceEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public sealed class Serializer { }
+            """);
+        Assert.Contains("ALE0603", ids);
+    }
+
+    [Fact]
+    public void Ale0603AbstractSerializerEmitsDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
+            namespace Test;
+            public abstract class Serializer : Amazon.Lambda.Core.ILambdaSerializer
+            {
+                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
+                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
+            }
+            """);
+        Assert.Contains("ALE0603", ids);
+    }
+
+    // ------------------------------------------------------------
+    // Valid
     // ------------------------------------------------------------
 
     [Fact]
@@ -887,194 +979,6 @@ public class DiagnosticTests
             """;
 
         Assert.Empty(CompilationHelper.GetProblemIds(source));
-    }
-
-    // ------------------------------------------------------------
-    // ALE0029-ALE0031 (entry point)
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0029MissingRuntimeSupportEmitsDiagnostic()
-    {
-        var ids = CompilationHelper.GetDiagnosticIdsWithoutRuntimeSupport(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
-            namespace Test;
-            public sealed class Placeholder { }
-            """);
-        Assert.Contains("ALE0029", ids);
-    }
-
-    [Fact]
-    public void Ale0029RuntimeSupportReferencedEmitsNoDiagnostic()
-    {
-        var ids = GetEntryPointDiagnosticIds(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
-            namespace Test;
-            public sealed class Placeholder { }
-            """);
-        Assert.Empty(ids);
-    }
-
-    [Fact]
-    public void Ale0030MissingLambdaSerializerEmitsDiagnostic()
-    {
-        var ids = GetEntryPointDiagnosticIds(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            namespace Test;
-            public sealed class Placeholder { }
-            """);
-        Assert.Contains("ALE0030", ids);
-    }
-
-    [Fact]
-    public void Ale0031SerializerWithoutParameterlessConstructorEmitsDiagnostic()
-    {
-        var ids = GetEntryPointDiagnosticIds(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
-            namespace Test;
-            public sealed class Serializer : Amazon.Lambda.Core.ILambdaSerializer
-            {
-                public Serializer(int value) { }
-                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
-                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
-            }
-            """);
-        Assert.Contains("ALE0031", ids);
-    }
-
-    [Fact]
-    public void Ale0031SerializerNotImplementingInterfaceEmitsDiagnostic()
-    {
-        var ids = GetEntryPointDiagnosticIds(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
-            namespace Test;
-            public sealed class Serializer { }
-            """);
-        Assert.Contains("ALE0031", ids);
-    }
-
-    [Fact]
-    public void Ale0031AbstractSerializerEmitsDiagnostic()
-    {
-        var ids = GetEntryPointDiagnosticIds(
-            """
-            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
-            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Test.Serializer))]
-            namespace Test;
-            public abstract class Serializer : Amazon.Lambda.Core.ILambdaSerializer
-            {
-                public T Deserialize<T>(System.IO.Stream requestStream) => throw new System.NotSupportedException();
-                public void Serialize<T>(T response, System.IO.Stream responseStream) => throw new System.NotSupportedException();
-            }
-            """);
-        Assert.Contains("ALE0031", ids);
-    }
-
-    // ------------------------------------------------------------
-    // ALE0032-ALE0033 (claim / cookie binding)
-    // ------------------------------------------------------------
-
-    [Fact]
-    public void Ale0032FromClaimOnFunctionUrlEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [FunctionUrl]
-                public IHttpResult Ping([FromClaim("sub")] string subject) => HttpResults.Ok();
-            }
-            """);
-        Assert.Contains("ALE0032", ids);
-    }
-
-    [Fact]
-    public void Ale0032FromClaimOnHttpApiEmitsNoDiagnostic()
-    {
-        var source =
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Get([FromClaim("sub")] string subject) => HttpResults.Ok();
-            }
-            """;
-
-        Assert.Empty(CompilationHelper.GetProblemIds(source));
-    }
-
-    [Fact]
-    public void Ale0033FromCookieOnAuthorizerEmitsDiagnostic()
-    {
-        var ids = GetDiagnosticIds(
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApiAuthorizer]
-                public IAuthorizerResult Authorize([FromCookie("rt")] string? token) => AuthorizerResults.Allow();
-            }
-            """);
-        Assert.Contains("ALE0033", ids);
-    }
-
-    [Fact]
-    public void Ale0033FromCookieOnFunctionUrlEmitsNoDiagnostic()
-    {
-        var source =
-            """
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [FunctionUrl]
-                public IHttpResult Ping([FromCookie("rt")] string? token) => HttpResults.Ok();
-            }
-            """;
-
-        Assert.Empty(CompilationHelper.GetProblemIds(source));
-    }
-
-    [Theory]
-    [InlineData("FromClaim")]
-    [InlineData("FromCookie")]
-    public void Ale0019ArrayOnSingleValueBindingEmitsDiagnostic(string attribute)
-    {
-        var ids = GetDiagnosticIds(
-            $$"""
-            namespace Test;
-            using AmazonLambdaExtension.Annotations;
-            using AmazonLambdaExtension.APIGateway;
-            [Lambda]
-            public sealed partial class Function
-            {
-                [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Get([{{attribute}}("roles")] string[] roles) => HttpResults.Ok();
-            }
-            """);
-        Assert.Contains("ALE0019", ids);
     }
 
     // ------------------------------------------------------------

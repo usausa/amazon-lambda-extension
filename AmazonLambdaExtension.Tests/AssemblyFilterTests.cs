@@ -127,7 +127,7 @@ public sealed class AssemblyFilterTests
             }
             """).Diagnostics;
 
-        var diagnostic = Assert.Single(diagnostics, static x => x.Id == "ALE0011");
+        var diagnostic = Assert.Single(diagnostics, static x => x.Id == "ALE0203");
         Assert.True(diagnostic.Location.IsInSource);
     }
 

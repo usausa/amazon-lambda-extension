@@ -63,7 +63,7 @@ public sealed class GeneratedCodeTests
     }
 
     [Fact]
-    public void Ale0027HandlersDifferingOnlyInCaseGenerateTheFirstOnly()
+    public void Ale0501HandlersDifferingOnlyInCaseGenerateTheFirstOnly()
     {
         const string source =
             """
@@ -85,7 +85,7 @@ public sealed class GeneratedCodeTests
 
         var sources = CompilationHelper.RunGenerator(source).Sources.Values.ToList();
 
-        Assert.Equal(["ALE0027"], CompilationHelper.GetProblemIds(source));
+        Assert.Equal(["ALE0501"], CompilationHelper.GetProblemIds(source));
         Assert.Contains(sources, static x => x.Contains("Get_Handler(", StringComparison.Ordinal));
         Assert.DoesNotContain(sources, static x => x.Contains("get_Handler(", StringComparison.Ordinal));
     }
@@ -127,7 +127,7 @@ public sealed class GeneratedCodeTests
     }
 
     [Fact]
-    public void Ale0027ClassNamesDifferingOnlyInCaseGenerateTheFirstOnly()
+    public void Ale0501ClassNamesDifferingOnlyInCaseGenerateTheFirstOnly()
     {
         const string source =
             """
@@ -153,12 +153,12 @@ public sealed class GeneratedCodeTests
 
         var problems = CompilationHelper.GetProblemIds(source);
 
-        Assert.Contains("ALE0027", problems);
+        Assert.Contains("ALE0501", problems);
         Assert.DoesNotContain("CS8785", problems);
     }
 
     [Fact]
-    public void Ale0028BaseClassHandlerIsReportedOnce()
+    public void Ale0309BaseClassHandlerIsReportedOnce()
     {
         const string source =
             """
@@ -188,13 +188,13 @@ public sealed class GeneratedCodeTests
             }
             """;
 
-        Assert.Equal(["ALE0028"], CompilationHelper.GetProblemIds(source));
+        Assert.Equal(["ALE0309"], CompilationHelper.GetProblemIds(source));
     }
 
     [Theory]
     [InlineData("public required string Name { get; init; }", "")]
     [InlineData("public required string Name { get; init; }", "[System.Diagnostics.CodeAnalysis.SetsRequiredMembers] public Function() { Name = string.Empty; }")]
-    public void Ale0026RequiredMembersNeedSetsRequiredMembers(string member, string constructor)
+    public void Ale0104RequiredMembersNeedSetsRequiredMembers(string member, string constructor)
     {
         var source = $$"""
             namespace Test;
@@ -218,7 +218,7 @@ public sealed class GeneratedCodeTests
 
         if (constructor.Length == 0)
         {
-            Assert.Contains("ALE0026", problems);
+            Assert.Contains("ALE0104", problems);
         }
         else
         {
