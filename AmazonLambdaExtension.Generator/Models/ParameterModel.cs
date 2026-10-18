@@ -5,13 +5,13 @@ internal enum ParameterBindingType
     Request,
     Context,
     CancellationToken,
+    User,
     FromQuery,
     FromHeader,
     FromRoute,
     FromBody,
     FromServices,
     FromAuthorizer,
-    FromClaim,
     FromCookie
 }
 

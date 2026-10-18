@@ -12,7 +12,7 @@ HTTP API (API Gateway v2) のパラメータバインド・フィルタパイプ
 ## Features
 
 - **Dependency Injection** — `[ServiceResolver]` 属性で DI コンテナを宣言するだけでコンストラクタ引数を自動解決
-- **Parameter binding** — `[FromRoute]` / `[FromQuery]` / `[FromHeader]` / `[FromBody]` / `[FromServices]` / `[FromAuthorizer]` / `[FromClaim]` / `[FromCookie]`
+- **Parameter binding** — `[FromRoute]` / `[FromQuery]` / `[FromHeader]` / `[FromBody]` / `[FromServices]` / `[FromAuthorizer]` / `[FromCookie]` / `ClaimsPrincipal`
 - **HTTP results** — `IHttpResult` / `HttpResults` によるステータスコード付きレスポンス生成
 - **Authorizer** — `[HttpApiAuthorizer]` によるラムダオーソライザー生成
 - **Filter pipeline** — `ILambdaFilter` を実装したクラスを `[Filter<T>(Order = N)]` で複数チェイン可能
@@ -100,6 +100,7 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;
 ### 3. Lambda Handler の設定
 
 Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Method}_Handler` です。
+Lambda は関数の設定にあるハンドラーを呼ぶので、コードで登録するものはありません（AzureFunctionsExtension との違い: Azure Functions は Functions のホストを通して関数を見つけるため、あちらの Source Generator はホスト向けの関数のメタデータも生成します）。
 
 ```yaml
 "CrudGet":
@@ -118,30 +119,59 @@ Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Me
 | `[FromBody]` | リクエストボディ (JSON) | ✅ | |
 | `[FromServices]` / `[FromServices("key")]` | DI コンテナ | ✅ | ✅ |
 | `[FromAuthorizer("key")]` | ラムダオーソライザーコンテキスト | ✅ | |
-| `[FromClaim("name")]` | JWT オーソライザーのクレーム | ✅ | |
 | `[FromCookie("name")]` | Cookie | ✅ | |
+| `ClaimsPrincipal`（属性なし） | JWT オーソライザーのクレーム | ✅ | |
 
 - `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーション。失敗時は 400 を返します。
 - `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます。
+- HTTP API の要求の本文はイベントの中の文字列なので、`IBodySerializer` は文字列で読み書きします。AzureFunctionsExtension との違い: Azure Functions は本文をストリームで渡すため、あちらのシリアライザーは非同期で読みます（`DeserializeAsync`）。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
 - `[FromServices("key")]` は keyed service（`GetRequiredKeyedService`）を解決します。キー未指定時は既定のサービス（`GetRequiredService`）を解決します。
 - `[FromAuthorizer("key")]` は Lambda オーソライザーが返したコンテキスト（`requestContext.authorizer.lambda`）から読みます。文字列・数値・真偽値を引数の型に変換します。配列は未対応です。
-- `[FromClaim("name")]` は HTTP API の JWT オーソライザーが検証したクレーム（`requestContext.authorizer.jwt.claims`）から読みます。`[HttpApi]` ハンドラーでだけ使えます。
-- `[FromCookie("name")]` は payload v2 の `cookies` の配列（`name=value`。HTTP API は Cookie をヘッダーに入れません）から読みます。`[HttpApi]` と `[FunctionUrl]` のハンドラーで使えます。名前は大文字と小文字を区別し、値はそのまま使います（デコードしません）。
-- `[FromClaim]` と `[FromCookie]` は `[FromQuery]` と同じく値を変換します。値がなければ既定値（または `null`）になり、配列は未対応です。
+- `[FromCookie("name")]` は payload v2 の `cookies` の配列（HTTP API は Cookie をヘッダーに入れません）から、ASP.NET Core と同じ規則で読みます（[Claims and Cookies](#claims-and-cookies) を参照）。`[HttpApi]` と `[FunctionUrl]` のハンドラーで使えます。
+- `[FromCookie]` は `[FromQuery]` と同じく値を変換します。値がなければ既定値（または `null`）になり、配列は未対応です。
 - **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
 - `ILambdaContext` はどこでも引数に追加できます（バインド属性不要）。
 - `CancellationToken` も同じく引数に追加できます（[Cancellation](#cancellation) を参照）。
+- `ClaimsPrincipal` は `[HttpApi]` と `[FunctionUrl]` のハンドラーで引数に追加できます（[Claims and Cookies](#claims-and-cookies) を参照）。
 - `[Lambda]` クラスはトップレベルの非ジェネリックな非 `abstract` の `partial class` である必要があります（ジェネリック型・ネストされた型・record・`abstract` は未対応。`struct`/`record struct` は `[Lambda]` 自体が付与不可）。Filter も `[ServiceResolver]` なしでは `abstract` 不可。
 - `[ServiceResolver]` の `ConfigureServices()` は **生成コード（Lambda クラス内）から到達可能な `static` メソッド**であれば可（同一アセンブリの `internal` でも可）。同様に、`[ServiceResolver]` なしの本体/Filter の parameterless コンストラクタも「到達可能であること」で判定します。
 - 同一クラス内でハンドラー名は一意である必要があります（同名のオーバーロードは未対応）。
 
+### Claims and Cookies
+
+呼び出し元は、ASP.NET Core の最小 API と同じく `ClaimsPrincipal` の引数（属性なし）で受け取ります。
+
+```csharp
+[HttpApi(LambdaHttpMethod.Get, "/me")]
+public IHttpResult GetMe(ClaimsPrincipal user, [FromCookie("theme")] string? theme)
+    => user.Identity?.IsAuthenticated == true
+        ? HttpResults.Ok(new { id = user.FindFirst("sub")?.Value, admin = user.IsInRole("admin"), theme })
+        : HttpResults.Unauthorized();
+```
+
+- `[HttpApi]` のハンドラーでは、HTTP API の JWT オーソライザーが検証したクレーム（`requestContext.authorizer.jwt.claims`）から `ClaimsPrincipal` を作ります。API Gateway はクレームをすべて文字列にして渡します。`[ ]` で囲まれた値（配列。`[admin user]` など）は空白で分けて同じ名前の複数のクレームにし、`map[...]` の値（オブジェクト）は分けず、`[]` はクレームを足しません。
+- `Identity.Name` と `IsInRole` は、既定では `name` と `role` のクレームを使います。ほかのクレームを使うときは、`ServiceResolver` で `LambdaClaimsOptions` を singleton として登録します。
+
+```csharp
+services.AddSingleton(new LambdaClaimsOptions { NameClaimType = "preferred_username", RoleClaimType = "roles" });
+```
+
+- クレームがあれば、認証済みの `ClaimsPrincipal` になります。ASP.NET Core の JwtBearer と同じく、`AuthenticationType` は `AuthenticationTypes.Federation`、各クレームの `Issuer` は `iss` のクレーム（なければ `LOCAL AUTHORITY`）です。クレームがなければ（JWT オーソライザーがないときなど）、空の未認証の `ClaimsPrincipal` になります。
+- フィルターは `LambdaInvocationContext.User` で呼び出し元を読み、差し替えられます。最初に読んだときに作り、ハンドラーには差し替えた後のものが渡ります。たとえば、独自の認証をするフィルターが `User` を入れられます。
+- `[FunctionUrl]` のハンドラーでは、フィルターがあれば `LambdaInvocationContext.User`、なければ未認証の `ClaimsPrincipal` が渡ります（Function URL には JWT オーソライザーがありません）。`[HttpApiAuthorizer]` と `[Event]` のハンドラーでは使えません（ALE0404）。
+- `[FromCookie]` は、ASP.NET Core の `HttpRequest.Cookies` と同じ規則で Cookie を読みます。名前の大文字と小文字は区別せず、値は URL デコードし（`+` はそのまま）、同じ名前が複数あれば最後のものを使います。空の値は無視します（前の値が残ります）。使えない文字（空白、`"`、`,`、`;`、`\`、ASCII 以外）を含む項目と、`=` の前に空白がある項目は無視します。引用符で囲んだ値は、引用符ごと値になります。
+- AzureFunctionsExtension との違い: あちらの `User` は、アプリが `HttpContext.User` に入れたもの（JwtBearer など）です。JwtBearer で `MapInboundClaims = false` にし、`NameClaimType` / `RoleClaimType` をここと同じにすれば、同じクレームになります。ただし、API Gateway の文字列から作るため、次の点が違います。
+  - 要素に空白を含む配列は、ここでは分かれます。文字列では区切りが失われるためです（`["a b","c"]` は `[a b c]` で届きます）。
+  - オブジェクトのクレームは、ここでは `map[...]` の文字列、あちらでは JSON です。
+  - クレームの `ValueType` は、ここではいつも `string` です。
+
 ### Binding Errors
 
 バインドや検証に失敗したときは、既定では文字列のメッセージ付きの `400` を返します。
-独自の応答（たとえば RFC 9457 の Problem Details）を返すには、`ServiceResolver` で `IBindingErrorResultFactory` を singleton として登録します。
+独自の応答（たとえば RFC 9457 の Problem Details）を返すには、`ServiceResolver` で `IBindingErrorResultFactory` を singleton として登録します（ほかの寿命には対応しません）。
 
 ```csharp
 public sealed class BindingErrorResultFactory : IBindingErrorResultFactory
@@ -159,12 +189,14 @@ services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
 | `BindingError` | 内容 |
 |:-----|:-----|
 | `Kind` | `InvalidValue`（変換の失敗）、`InvalidBody`（JSON の誤り）、`MissingBody`（null 非許容のボディが null）、`ValidationFailed`（`IRequestValidator` の失敗） |
-| `Source` | `Route` / `Query` / `Header` / `Body` / `Authorizer` / `Claim` / `Cookie` |
-| `Name` | バインドのキー（ルート・クエリ・ヘッダー・オーソライザー・クレーム・Cookie の名前）、またはボディの引数名 |
+| `Source` | `Route` / `Query` / `Header` / `Body` / `Authorizer` / `Cookie` |
+| `Name` | バインドのキー（ルート・クエリ・ヘッダー・オーソライザー・Cookie の名前）、またはボディの引数名 |
 | `ValidationResults` | `IRequestValidator` の結果（`ValidationFailed` のときだけ） |
 
 - ファクトリーは、`[ServiceResolver]` を持つクラスの HTTP API / Function URL ハンドラーで使います。登録がない場合は、従来どおり文字列の `400` を返します。
 - ハンドラーが投げた例外はファクトリーに渡しません。フィルター（たとえば一番外側のエラー用フィルター）で扱ってください。
+- フィルターがあるときは、引数の読み取りをパイプラインの内側で行うため、失敗の応答（`context.Result`）も外側のフィルターを通ります。たとえば一番外側のエラー用フィルターで、応答に要求の ID を入れたり、ログを書いたりできます。
+- `BindingError`・`BindingErrorKind`・`BindingSource` の名前は AzureFunctionsExtension と同じです。あちらには `BindingSource.Authorizer` がないため、`Cookie` の数値は違います（ここでは 5、あちらでは 4）。名前で比べるか、文字列で書き出してください（たとえば `JsonStringEnumConverter` で）。
 
 ## Filter Pipeline
 
@@ -186,7 +218,7 @@ public sealed class ApiKeyFilter : ILambdaFilter
 {
     public ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next)
     {
-        var req = context.GetRequest<APIGatewayHttpApiV2ProxyRequest>();
+        var req = context.GetRequestAs<APIGatewayHttpApiV2ProxyRequest>();
         if (!req.Headers.TryGetValue("x-api-key", out var key) || key != "expected")
         {
             context.Result = HttpResults.Unauthorized();
@@ -219,6 +251,30 @@ public partial class SecureFunctions
 
 - アセンブリとクラスのフィルターは、まとめて `Order` 昇順でチェインされます。`Order` が同じなら、アセンブリのフィルターが外側になります。
 - 同じフィルターの型をアセンブリとクラスの両方に付けると、2 回実行されます。
+- アセンブリのフィルターは、`[Event]`・`[HttpApiAuthorizer]` を含む、アセンブリ内のすべてのハンドラーに掛かります。HTTP API の要求に働くフィルターは、`context.Request` の型を見て、ほかの呼び出しはそのまま通します（`[HttpApi]` と `[FunctionUrl]` のハンドラーが受け取るのは `APIGatewayHttpApiV2ProxyRequest` です）。
+
+```csharp
+public sealed class ApiKeyFilter : ILambdaFilter
+{
+    public ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next)
+    {
+        if (context.Request is not APIGatewayHttpApiV2ProxyRequest request)
+        {
+            return next(context);
+        }
+
+        if (!request.Headers.TryGetValue("x-api-key", out var key) || (key != "expected"))
+        {
+            context.Result = HttpResults.Unauthorized();
+            return default;
+        }
+
+        return next(context);
+    }
+}
+```
+
+- `[HttpApiAuthorizer]` のハンドラーを `APIGatewayHttpApiV2ProxyRequest` で受け取ると、この確かめでは見分けられません。フィルターが `IHttpResult` を入れると、呼び出しは `InvalidCastException` で失敗します。オーソライザーは `APIGatewayCustomAuthorizerV2Request` で受け取ってください（[Authorizer](#authorizer) を参照）。
 
 ### Cancellation
 
@@ -236,6 +292,7 @@ services.AddSingleton(new LambdaCancellationOptions { Margin = TimeSpan.FromSeco
 
 - トークンは、クラスにフィルターがあるか、ハンドラーが `CancellationToken` を受け取るときだけ作ります。
 - `ILambdaContext.RemainingTime` が 0 のとき（テストの文脈など）は取り消しません。
+- AzureFunctionsExtension との違い: あちらのトークンは Functions のホストから来て（要求元の切断など）、上限の時間（`FunctionCancellationOptions.Timeout`）は登録したときだけ足されます。Lambda はそれらを知らせない代わりに呼び出しの残り時間が分かるので、ここでは残り時間を基準にし、既定で効きます。
 
 ## Authorizer
 
@@ -256,7 +313,7 @@ public partial class CrudFunctions
 
     [HttpApiAuthorizer(EnableSimpleResponses = true)]
     public async ValueTask<IAuthorizerResult> Authorize(
-        APIGatewayHttpApiV2ProxyRequest request,
+        APIGatewayCustomAuthorizerV2Request request,
         ILambdaContext context)
     {
         if (!request.Headers.TryGetValue("authorization", out var token))
@@ -269,6 +326,7 @@ public partial class CrudFunctions
 ```
 
 - `Authorizer = nameof(Authorize)` を使う場合、参照先は同じクラス内の `[HttpApiAuthorizer]` メソッドである必要があります。
+- 要求は、HTTP API の Lambda オーソライザーのペイロードである `APIGatewayCustomAuthorizerV2Request` で受け取ります。フィルターがオーソライザーを HTTP のハンドラーと見分けられます（[Assembly-level Filters](#assembly-level-filters) を参照）。
 - `EnableSimpleResponses = false` で IAM policy 形式を返す場合は、`APIGatewayCustomAuthorizerV2Request` を受けると `RouteArn` が自動的に反映されます。
 
 ## Event Handler

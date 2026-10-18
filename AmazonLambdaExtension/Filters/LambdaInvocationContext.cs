@@ -1,7 +1,9 @@
 namespace AmazonLambdaExtension.Filters;
 
+using System.Security.Claims;
 using System.Threading;
 
+using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 
 public sealed class LambdaInvocationContext
@@ -14,7 +16,15 @@ public sealed class LambdaInvocationContext
 
     public CancellationToken CancellationToken { get; init; }
 
+    public LambdaClaimsOptions ClaimsOptions { get; init; } = LambdaClaimsOptions.Default;
+
     public object? Result { get; set; }
+
+    public ClaimsPrincipal User
+    {
+        get => field ??= ClaimsOptions.CreatePrincipal((Request as APIGatewayHttpApiV2ProxyRequest)?.RequestContext?.Authorizer?.Jwt?.Claims);
+        set;
+    }
 
     private Dictionary<string, object?>? items;
 

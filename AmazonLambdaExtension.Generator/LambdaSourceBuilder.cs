@@ -21,7 +21,6 @@ internal static class LambdaSourceBuilder
     private const string AuthorizerIamResponseType = "global::Amazon.Lambda.APIGatewayEvents.APIGatewayCustomAuthorizerV2IamResponse";
     private const string StringConverterType = "global::AmazonLambdaExtension.Binders.StringConverter";
     private const string AuthorizerContextReaderType = "global::AmazonLambdaExtension.Binders.AuthorizerContextReader";
-    private const string ClaimReaderType = "global::AmazonLambdaExtension.Binders.ClaimReader";
     private const string CookieReaderType = "global::AmazonLambdaExtension.Binders.CookieReader";
     private const string AsSpanMethod = "global::System.MemoryExtensions.AsSpan";
     private const string InvalidOperationExceptionType = "global::System.InvalidOperationException";
@@ -36,6 +35,7 @@ internal static class LambdaSourceBuilder
     private const string BindingErrorResultFactoryType = "global::AmazonLambdaExtension.Binders.IBindingErrorResultFactory";
     private const string GetService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService";
     private const string CancellationOptionsType = "global::AmazonLambdaExtension.LambdaCancellationOptions";
+    private const string ClaimsOptionsType = "global::AmazonLambdaExtension.LambdaClaimsOptions";
     private const string GetRequiredService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService";
     private const string GetRequiredKeyedService = "global::Microsoft.Extensions.DependencyInjection.ServiceProviderKeyedServiceExtensions.GetRequiredKeyedService";
     private const string BuildServiceProvider = "global::Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider";
@@ -167,6 +167,17 @@ internal static class LambdaSourceBuilder
             builder.AppendLine(model.ServiceResolver is not null
                 ? $"    {GetService}<{CancellationOptionsType}>(__provider__) ?? {CancellationOptionsType}.Default;"
                 : $"    {CancellationOptionsType}.Default;");
+        }
+
+        if (UsesClaimsOptions(model))
+        {
+            // User を作るときのクレームの設定（DI に登録されていればそれ、なければ既定）
+            // Settings of the claims used to create the User (from DI when registered, otherwise the default)
+            builder.NewLine();
+            builder.AppendLine($"private static readonly {ClaimsOptionsType} __claimsOptions__ =");
+            builder.AppendLine(model.ServiceResolver is not null
+                ? $"    {GetService}<{ClaimsOptionsType}>(__provider__) ?? {ClaimsOptionsType}.Default;"
+                : $"    {ClaimsOptionsType}.Default;");
         }
 
         if (UsesBindingErrorFactory(model))
@@ -352,6 +363,7 @@ internal static class LambdaSourceBuilder
             if (model.ServiceResolver is not null)
             {
                 builder.AppendLine("ServiceProvider = __sp__,");
+                builder.AppendLine("ClaimsOptions = __claimsOptions__,");
             }
             builder.EndScope(semicolon: true);
             builder.NewLine();
@@ -499,6 +511,12 @@ internal static class LambdaSourceBuilder
         (model.Filters.Count > 0) ||
         handler.Parameters.Any(static p => p.BindingType == ParameterBindingType.CancellationToken);
 
+    private static bool UsesClaimsOptions(LambdaModel model) =>
+        // ClaimsPrincipal を受け取るハンドラーがあるか、DI の設定をフィルターの文脈に渡すときだけ取り出す
+        // Resolve it only when a handler takes a ClaimsPrincipal, or when the DI settings are passed to the filter context
+        ((model.ServiceResolver is not null) && (model.Filters.Count > 0)) ||
+        model.Handlers.Any(static h => h.Parameters.Any(static p => p.BindingType == ParameterBindingType.User));
+
     private static bool UsesBindingErrorFactory(LambdaModel model) =>
         (model.ServiceResolver is not null) &&
         model.Handlers.Any(static h => (h.Type == HandlerType.HttpApi) || (h.Type == HandlerType.FunctionUrl));
@@ -566,6 +584,17 @@ internal static class LambdaSourceBuilder
             case ParameterBindingType.CancellationToken:
                 // 打ち切りのトークンは呼び出しの先頭で作成済み
                 // The cancellation token is already created at the start of the invocation
+                return;
+
+            case ParameterBindingType.User:
+                // フィルターがあれば ctx.User を渡し、なければ JWT オーソライザーのクレームから作る
+                // Pass ctx.User with filters, otherwise create it from the claims of the JWT authorizer
+                if (!hasFilter)
+                {
+                    builder.AppendLine($"var {pVar} = __claimsOptions__.CreatePrincipal({requestVar}.RequestContext?.Authorizer?.Jwt?.Claims);");
+                    builder.NewLine();
+                }
+
                 return;
 
             case ParameterBindingType.FromServices:
@@ -646,20 +675,6 @@ internal static class LambdaSourceBuilder
                 }
                 builder.EndScope();
                 builder.NewLine();
-                return;
-
-            case ParameterBindingType.FromClaim:
-                // JWT オーソライザーが検証したクレームから値を取り出して変換
-                // Extract and convert the value from the claims validated by the JWT authorizer
-                BuildReaderBinding(
-                    builder,
-                    model,
-                    handler,
-                    param,
-                    index,
-                    hasFilter,
-                    $"{ClaimReaderType}.TryGetValue({requestVar}.RequestContext?.Authorizer?.Jwt?.Claims, {CSharpLiteral.Format(key)}, out var {pRaw})",
-                    "Claim");
                 return;
 
             case ParameterBindingType.FromCookie:
@@ -1034,6 +1049,9 @@ internal static class LambdaSourceBuilder
                     break;
                 case ParameterBindingType.CancellationToken:
                     argParts.Add(hasFilter ? "ctx.CancellationToken" : "__cts__.Token");
+                    break;
+                case ParameterBindingType.User:
+                    argParts.Add(hasFilter ? "ctx.User" : $"p{i}");
                     break;
                 default:
                     argParts.Add($"p{i}!");

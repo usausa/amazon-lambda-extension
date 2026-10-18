@@ -621,37 +621,44 @@ public class DiagnosticTests
         Assert.Contains("ALE0403", ids);
     }
 
-    [Fact]
-    public void Ale0404FromClaimOnFunctionUrlEmitsDiagnostic()
+    [Theory]
+    [InlineData("[Event]", "public void Handle(SQSEvent ev, ClaimsPrincipal user) { }")]
+    [InlineData("[HttpApiAuthorizer]", "public IAuthorizerResult Authorize(ClaimsPrincipal user) => AuthorizerResults.Allow();")]
+    public void Ale0404ClaimsPrincipalOutsideHttpHandlerEmitsDiagnostic(string attribute, string method)
     {
         var ids = GetDiagnosticIds(
-            """
+            $$"""
             namespace Test;
+            using System.Security.Claims;
+            using Amazon.Lambda.SQSEvents;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
             [Lambda]
             public sealed partial class Function
             {
-                [FunctionUrl]
-                public IHttpResult Ping([FromClaim("sub")] string subject) => HttpResults.Ok();
+                {{attribute}}
+                {{method}}
             }
             """);
-        Assert.Contains("ALE0404", ids);
+        Assert.Equal(["ALE0404"], ids);
     }
 
-    [Fact]
-    public void Ale0404FromClaimOnHttpApiEmitsNoDiagnostic()
+    [Theory]
+    [InlineData("[HttpApi(LambdaHttpMethod.Get, \"/a\")]")]
+    [InlineData("[FunctionUrl]")]
+    public void Ale0404ClaimsPrincipalOnHttpHandlerEmitsNoDiagnostic(string attribute)
     {
         var source =
-            """
+            $$"""
             namespace Test;
+            using System.Security.Claims;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
             [Lambda]
             public sealed partial class Function
             {
-                [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Get([FromClaim("sub")] string subject) => HttpResults.Ok();
+                {{attribute}}
+                public IHttpResult Get(ClaimsPrincipal user) => HttpResults.Ok();
             }
             """;
 
@@ -732,13 +739,11 @@ public class DiagnosticTests
         Assert.Equal(["ALE0406"], ids);
     }
 
-    [Theory]
-    [InlineData("FromClaim")]
-    [InlineData("FromCookie")]
-    public void Ale0406ArrayOnSingleValueBindingEmitsDiagnostic(string attribute)
+    [Fact]
+    public void Ale0406FromCookieArrayEmitsDiagnostic()
     {
         var ids = GetDiagnosticIds(
-            $$"""
+            """
             namespace Test;
             using AmazonLambdaExtension.Annotations;
             using AmazonLambdaExtension.APIGateway;
@@ -746,7 +751,7 @@ public class DiagnosticTests
             public sealed partial class Function
             {
                 [HttpApi(LambdaHttpMethod.Get, "/a")]
-                public IHttpResult Get([{{attribute}}("roles")] string[] roles) => HttpResults.Ok();
+                public IHttpResult Get([FromCookie("roles")] string[] roles) => HttpResults.Ok();
             }
             """);
         Assert.Contains("ALE0406", ids);

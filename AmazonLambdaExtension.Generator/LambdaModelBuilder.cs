@@ -25,7 +25,6 @@ internal static class LambdaModelBuilder
     private const string FromRouteAttributeName = "AmazonLambdaExtension.Annotations.FromRouteAttribute";
     private const string FromServicesAttributeName = "AmazonLambdaExtension.Annotations.FromServicesAttribute";
     private const string FromAuthorizerAttributeName = "AmazonLambdaExtension.Annotations.FromAuthorizerAttribute";
-    private const string FromClaimAttributeName = "AmazonLambdaExtension.Annotations.FromClaimAttribute";
     private const string FromCookieAttributeName = "AmazonLambdaExtension.Annotations.FromCookieAttribute";
 
     private const string IHttpResultFullName = "AmazonLambdaExtension.APIGateway.IHttpResult";
@@ -37,6 +36,7 @@ internal static class LambdaModelBuilder
     private const string HttpApiResponseFullName = "Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse";
     private const string LambdaContextFullName = "Amazon.Lambda.Core.ILambdaContext";
     private const string CancellationTokenFullName = "System.Threading.CancellationToken";
+    private const string ClaimsPrincipalFullName = "System.Security.Claims.ClaimsPrincipal";
     private const string SetsRequiredMembersAttributeName = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
     // ReSharper restore InconsistentNaming
 
@@ -538,6 +538,13 @@ internal static class LambdaModelBuilder
                 bindingType = ParameterBindingType.CancellationToken;
                 converterMethod = string.Empty;
             }
+            else if (param.Type.HasFullyQualifiedMetadataName(ClaimsPrincipalFullName))
+            {
+                // 呼び出し元の User（[Event] の payload より先に判定する）
+                // The caller's User (checked before the [Event] payload)
+                bindingType = ParameterBindingType.User;
+                converterMethod = string.Empty;
+            }
             else if (handlerType == HandlerType.Event)
             {
                 bindingType = ParameterBindingType.Request;
@@ -573,20 +580,20 @@ internal static class LambdaModelBuilder
                 method.Name));
         }
 
-        // [FromClaim] は JWT オーソライザーのクレーム、[FromCookie] は v2 形式の Cookie を読むため、
-        // 読み先を持たない種別のハンドラーでは生成できない（[Event] は ALE0403 で扱う）
-        // [FromClaim] reads JWT authorizer claims and [FromCookie] reads payload v2 cookies,
-        // so they cannot be generated for handler kinds without that source ([Event] is covered by ALE0403)
-        if ((bindingType == ParameterBindingType.FromClaim) &&
+        // ClaimsPrincipal は HTTP のハンドラーだけで受け取れる（[HttpApi] は JWT オーソライザーのクレーム、[FunctionUrl] はフィルターが入れた User）
+        // ClaimsPrincipal is available only in HTTP handlers ([HttpApi] from the JWT authorizer claims, [FunctionUrl] from the User set by filters)
+        if ((bindingType == ParameterBindingType.User) &&
             (handlerType != HandlerType.HttpApi) &&
-            (handlerType != HandlerType.Event))
+            (handlerType != HandlerType.FunctionUrl))
         {
             diagnostics.Add(new DiagnosticInfo(
-                Diagnostics.FromClaimOutsideHttpApi,
+                Diagnostics.ClaimsPrincipalOutsideHttpHandler,
                 GetLocation(param),
                 method.Name));
         }
 
+        // [FromCookie] は v2 形式の Cookie を読むため、読み先を持たない種別のハンドラーでは生成できない（[Event] は ALE0403 で扱う）
+        // [FromCookie] reads payload v2 cookies, so it cannot be generated for handler kinds without that source ([Event] is covered by ALE0403)
         if ((bindingType == ParameterBindingType.FromCookie) &&
             (handlerType != HandlerType.HttpApi) &&
             (handlerType != HandlerType.FunctionUrl) &&
@@ -692,13 +699,6 @@ internal static class LambdaModelBuilder
             return;
         }
 
-        if (attrClass.HasFullyQualifiedMetadataName(FromClaimAttributeName))
-        {
-            bindingType = ParameterBindingType.FromClaim;
-            ApplyKeyOverride(attr, ref key);
-            return;
-        }
-
         if (attrClass.HasFullyQualifiedMetadataName(FromCookieAttributeName))
         {
             bindingType = ParameterBindingType.FromCookie;
@@ -743,7 +743,6 @@ internal static class LambdaModelBuilder
         // 1つの値だけを読む binding（カンマ区切りの配列に対応しない）
         // Bindings that read a single value (comma-separated arrays are not supported)
         return (bindingType == ParameterBindingType.FromAuthorizer) ||
-               (bindingType == ParameterBindingType.FromClaim) ||
                (bindingType == ParameterBindingType.FromCookie);
     }
 
@@ -886,7 +885,6 @@ internal static class LambdaModelBuilder
                attrClass.HasFullyQualifiedMetadataName(FromRouteAttributeName) ||
                attrClass.HasFullyQualifiedMetadataName(FromServicesAttributeName) ||
                attrClass.HasFullyQualifiedMetadataName(FromAuthorizerAttributeName) ||
-               attrClass.HasFullyQualifiedMetadataName(FromClaimAttributeName) ||
                attrClass.HasFullyQualifiedMetadataName(FromCookieAttributeName);
     }
 

@@ -238,10 +238,10 @@ internal static class Diagnostics
         isEnabledByDefault: true,
         customTags: DiagnosticTags.NotSuppressible);
 
-    public static DiagnosticDescriptor FromClaimOutsideHttpApi { get; } = new(
+    public static DiagnosticDescriptor ClaimsPrincipalOutsideHttpHandler { get; } = new(
         id: "ALE0404",
-        title: "[FromClaim] outside HTTP API",
-        messageFormat: "[FromClaim] needs an HTTP API handler. handler=[{0}]",
+        title: "ClaimsPrincipal outside HTTP handler",
+        messageFormat: "ClaimsPrincipal parameter needs an HTTP API or Function URL handler. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,

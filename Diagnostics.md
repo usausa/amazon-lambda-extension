@@ -49,10 +49,12 @@
 | ALE0401 | ❌ Error | Parameter has multiple binding attributes | Leave a single binding attribute on the parameter |
 | ALE0402 | ❌ Error | `[FromBody]` is applied to an `[Event]` handler | Remove `[FromBody]`, or use an HTTP handler |
 | ALE0403 | ❌ Error | Binding attribute is not supported on an `[Event]` handler | Remove the binding attribute, or use an HTTP handler |
-| ALE0404 | ❌ Error | `[FromClaim]` is used outside an `[HttpApi]` handler | Remove `[FromClaim]`, or use an `[HttpApi]` handler |
+| ALE0404 | ❌ Error | `ClaimsPrincipal` parameter is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove the `ClaimsPrincipal` parameter, or use an `[HttpApi]` / `[FunctionUrl]` handler |
 | ALE0405 | ❌ Error | `[FromCookie]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove `[FromCookie]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |
-| ALE0406 | ❌ Error | Parameter type is not supported by binding (`[FromAuthorizer]` / `[FromClaim]` / `[FromCookie]` do not bind arrays, and an array bound with `[FromQuery]` / `[FromHeader]` / `[FromRoute]` must be one-dimensional; jagged and multidimensional arrays are not supported) | Use a supported parameter type |
+| ALE0406 | ❌ Error | Parameter type is not supported by binding (`[FromAuthorizer]` / `[FromCookie]` do not bind arrays, and an array bound with `[FromQuery]` / `[FromHeader]` / `[FromRoute]` must be one-dimensional; jagged and multidimensional arrays are not supported) | Use a supported parameter type |
 | ALE0407 | ⚠️ Warning | `[FromAuthorizer]` is used outside an HTTP API handler | Remove `[FromAuthorizer]`, or use an HTTP API handler |
+
+> Up to 2.0.0-beta9, ALE0404 reported `[FromClaim]` outside an `[HttpApi]` handler. `[FromClaim]` was removed in favor of the `ClaimsPrincipal` parameter, and the ID is reused for it.
 
 ## Generation
 
