@@ -51,7 +51,7 @@
 | ALE0403 | ❌ Error | Binding attribute is not supported on an `[Event]` handler | Remove the binding attribute, or use an HTTP handler |
 | ALE0404 | ❌ Error | `[FromClaim]` is used outside an `[HttpApi]` handler | Remove `[FromClaim]`, or use an `[HttpApi]` handler |
 | ALE0405 | ❌ Error | `[FromCookie]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove `[FromCookie]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |
-| ALE0406 | ❌ Error | Parameter type is not supported by binding (`[FromAuthorizer]` does not bind arrays) | Use a supported parameter type |
+| ALE0406 | ❌ Error | Parameter type is not supported by binding (`[FromAuthorizer]` / `[FromClaim]` / `[FromCookie]` do not bind arrays, and an array bound with `[FromQuery]` / `[FromHeader]` / `[FromRoute]` must be one-dimensional; jagged and multidimensional arrays are not supported) | Use a supported parameter type |
 | ALE0407 | ⚠️ Warning | `[FromAuthorizer]` is used outside an HTTP API handler | Remove `[FromAuthorizer]`, or use an HTTP API handler |
 
 ## Generation

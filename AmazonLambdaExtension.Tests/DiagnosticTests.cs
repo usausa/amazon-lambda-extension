@@ -752,6 +752,31 @@ public class DiagnosticTests
         Assert.Contains("ALE0406", ids);
     }
 
+    [Theory]
+    [InlineData("/a", "[FromQuery] int[][] ids")]
+    [InlineData("/a", "[FromQuery] int[,] ids")]
+    [InlineData("/a", "[FromHeader(\"x-ids\")] int[][] ids")]
+    [InlineData("/a", "[FromHeader(\"x-ids\")] int[,] ids")]
+    [InlineData("/a/{ids}", "[FromRoute] int[][] ids")]
+    [InlineData("/a/{ids}", "[FromRoute] int[,] ids")]
+    public void Ale0406JaggedOrMultidimensionalArrayEmitsDiagnostic(string route, string parameter)
+    {
+        var source =
+            $$"""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "{{route}}")]
+                public IHttpResult Get({{parameter}}) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Equal(["ALE0406"], CompilationHelper.GetProblemIds(source));
+    }
+
     [Fact]
     public void Ale0407FromAuthorizerOutsideHttpApiEmitsDiagnostic()
     {

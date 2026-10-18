@@ -58,7 +58,7 @@ internal static class EntryPointSourceBuilder
         return $"{entryPoint.AssemblyName}::{typeName}::{handler.MethodName}_Handler";
     }
 
-    private static void BuildMainMethod(SourceBuilder builder, EntryPointModel entryPoint, IReadOnlyList<(LambdaModel Model, HandlerModel Handler)> handlers)
+    private static void BuildMainMethod(SourceBuilder builder, EntryPointModel entryPoint, IEnumerable<(LambdaModel Model, HandlerModel Handler)> handlers)
     {
         builder.AppendLine($"public static async {TaskType} Main()");
         builder.BeginScope();

@@ -121,11 +121,11 @@ public sealed class BindingErrorTests
     [Theory]
     [InlineData("")]
     [InlineData("[Filter<PassFilter>]")]
-    public async Task PocoHandlerUsesFactory(string filter)
+    public Task PocoHandlerUsesFactory(string filter)
     {
         var assembly = CompilationHelper.LoadAssembly(Head + Resolver(registerFactory: true) + Function(filter));
 
-        await AssertFactoryResult(assembly, "Poco_Handler", new APIGatewayHttpApiV2ProxyRequest { QueryStringParameters = new Dictionary<string, string> { ["page"] = "x" } }, "InvalidValue:Query:page:0");
+        return AssertFactoryResult(assembly, "Poco_Handler", new APIGatewayHttpApiV2ProxyRequest { QueryStringParameters = new Dictionary<string, string> { ["page"] = "x" } }, "InvalidValue:Query:page:0");
     }
 
     //--------------------------------------------------------------------------------

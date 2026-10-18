@@ -753,7 +753,9 @@ internal static class LambdaModelBuilder
         // Unwrap arrays / Nullable<T> and determine whether scalar binding supports the type
         if (type is IArrayTypeSymbol arrayType)
         {
-            return IsSupportedBindingType(arrayType.ElementType);
+            return (arrayType.Rank == 1) &&
+                   (arrayType.ElementType is not IArrayTypeSymbol) &&
+                   IsSupportedBindingType(arrayType.ElementType);
         }
 
         if ((type is INamedTypeSymbol namedType) &&
