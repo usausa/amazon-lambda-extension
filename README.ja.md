@@ -25,12 +25,10 @@ HTTP API (API Gateway v2) のパラメータバインド・フィルタパイプ
 ```xml
 <ItemGroup>
   <PackageReference Include="AmazonLambdaExtension" Version="x.x.x" />
-  <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="x.x.x">
-    <PrivateAssets>all</PrivateAssets>
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-  </PackageReference>
 </ItemGroup>
 ```
+
+Source Generator は、このパッケージに含まれています。
 
 ## Basic Usage
 

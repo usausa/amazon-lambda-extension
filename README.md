@@ -25,12 +25,10 @@ It lets you declaratively describe parameter binding, the filter pipeline, and D
 ```xml
 <ItemGroup>
   <PackageReference Include="AmazonLambdaExtension" Version="x.x.x" />
-  <PackageReference Include="AmazonLambdaExtension.SourceGenerator" Version="x.x.x">
-    <PrivateAssets>all</PrivateAssets>
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-  </PackageReference>
 </ItemGroup>
 ```
+
+The package includes the Source Generator.
 
 ## Basic Usage
 
