@@ -220,10 +220,10 @@ internal static class Diagnostics
         isEnabledByDefault: true,
         customTags: DiagnosticTags.NotSuppressible);
 
-    public static DiagnosticDescriptor FromBodyOnEventHandler { get; } = new(
+    public static DiagnosticDescriptor FromBodyOutsideHttpHandler { get; } = new(
         id: "ALE0402",
-        title: "[FromBody] on [Event] handler",
-        messageFormat: "[FromBody] cannot be used with [Event]. handler=[{0}]",
+        title: "[FromBody] outside HTTP handler",
+        messageFormat: "[FromBody] needs an HTTP API or Function URL handler. handler=[{0}]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,

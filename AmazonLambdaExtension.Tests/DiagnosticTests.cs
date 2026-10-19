@@ -604,6 +604,27 @@ public class DiagnosticTests
         Assert.Contains("ALE0402", ids);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("APIGatewayHttpApiV2ProxyRequest request, ")]
+    public void Ale0402FromBodyOnAuthorizerEmitsDiagnostic(string request)
+    {
+        var source = $$"""
+            namespace Test;
+            using Amazon.Lambda.APIGatewayEvents;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApiAuthorizer]
+                public IAuthorizerResult Authorize({{request}}[FromBody] string? body) => AuthorizerResults.Allow();
+            }
+            """;
+
+        Assert.Equal(["ALE0402"], CompilationHelper.GetProblemIds(source));
+    }
+
     [Fact]
     public void Ale0403InvalidBindingOnEventHandlerEmitsDiagnostic()
     {

@@ -174,11 +174,65 @@ public sealed class BindingErrorTests
         Assert.DoesNotContain(result.Sources.Values, static s => s.Contains("__bindingErrorResultFactory__", StringComparison.Ordinal));
     }
 
+    //--------------------------------------------------------------------------------
+    // Authorizer
+    //--------------------------------------------------------------------------------
+
+    private static string Authorizer(string attributes) =>
+        $$"""
+        [Lambda]
+        {{attributes}}
+        public sealed partial class Function
+        {
+            [HttpApiAuthorizer]
+            public IAuthorizerResult Simple([FromQuery] int page, [FromQuery] int? size, [FromQuery] int[] ids, [FromHeader("x-n")] int n, [FromRoute] int id) => AuthorizerResults.Allow();
+
+            [HttpApiAuthorizer(EnableSimpleResponses = false)]
+            public IAuthorizerResult Iam([FromQuery] int page) => AuthorizerResults.Allow();
+        }
+        """;
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("[Filter<PassFilter>]")]
+    [InlineData("[ServiceResolver(typeof(Resolver))]")]
+    [InlineData("[ServiceResolver(typeof(Resolver))][Filter<PassFilter>]")]
+    public async Task AuthorizerReturnsDenyOnInvalidValue(string attributes)
+    {
+        var assembly = CompilationHelper.LoadAssembly(Head + Resolver(registerFactory: true) + Authorizer(attributes));
+
+        Assert.True(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request
+        {
+            QueryStringParameters = new Dictionary<string, string> { ["page"] = "1", ["size"] = "2", ["ids"] = "1,2" },
+            Headers = new Dictionary<string, string> { ["x-n"] = "3" },
+            PathParameters = new Dictionary<string, string> { ["id"] = "4" }
+        }));
+        Assert.False(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request { QueryStringParameters = new Dictionary<string, string> { ["page"] = "x" } }));
+        Assert.False(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request { QueryStringParameters = new Dictionary<string, string> { ["size"] = "x" } }));
+        Assert.False(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request { QueryStringParameters = new Dictionary<string, string> { ["ids"] = "1,x" } }));
+        Assert.False(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request { Headers = new Dictionary<string, string> { ["x-n"] = "x" } }));
+        Assert.False(await IsAuthorizedAsync(assembly, new APIGatewayCustomAuthorizerV2Request { PathParameters = new Dictionary<string, string> { ["id"] = "x" } }));
+
+        var allow = await CompilationHelper.InvokeAuthorizerAsync<APIGatewayCustomAuthorizerV2IamResponse>(assembly, "Iam_Handler", new APIGatewayCustomAuthorizerV2Request { QueryStringParameters = new Dictionary<string, string> { ["page"] = "1" } });
+        Assert.Equal("Allow", Assert.Single(allow.PolicyDocument.Statement).Effect);
+
+        var deny = await CompilationHelper.InvokeAuthorizerAsync<APIGatewayCustomAuthorizerV2IamResponse>(assembly, "Iam_Handler", new APIGatewayCustomAuthorizerV2Request { QueryStringParameters = new Dictionary<string, string> { ["page"] = "x" }, RouteArn = "arn:route" });
+        var statement = Assert.Single(deny.PolicyDocument.Statement);
+        Assert.Equal("Deny", statement.Effect);
+        Assert.Equal("arn:route", Assert.Single(statement.Resource));
+    }
+
     private static async Task AssertFactoryResult(System.Reflection.Assembly assembly, string handler, APIGatewayHttpApiV2ProxyRequest request, string expected)
     {
         var response = await CompilationHelper.InvokeAsync(assembly, handler, request).ConfigureAwait(false);
 
         Assert.Equal(422, response.StatusCode);
         Assert.Equal(expected, response.Body);
+    }
+
+    private static async Task<bool> IsAuthorizedAsync(System.Reflection.Assembly assembly, APIGatewayCustomAuthorizerV2Request request)
+    {
+        var response = await CompilationHelper.InvokeAuthorizerAsync<APIGatewayCustomAuthorizerV2SimpleResponse>(assembly, "Simple_Handler", request).ConfigureAwait(false);
+        return response.IsAuthorized;
     }
 }

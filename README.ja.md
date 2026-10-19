@@ -194,6 +194,7 @@ services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
 | `ValidationResults` | `IRequestValidator` の結果（`ValidationFailed` のときだけ） |
 
 - ファクトリーは、`[ServiceResolver]` を持つクラスの HTTP API / Function URL ハンドラーで使います。登録がない場合は、従来どおり文字列の `400` を返します。
+- `[HttpApiAuthorizer]` のハンドラーでは、オーソライザーは `400` を返せないため、バインドに失敗すると `AuthorizerResults.Deny()` を返します。ファクトリーは使いません（[Authorizer](#authorizer) を参照）。
 - ハンドラーが投げた例外はファクトリーに渡しません。フィルター（たとえば一番外側のエラー用フィルター）で扱ってください。
 - フィルターがあるときは、引数の読み取りをパイプラインの内側で行うため、失敗の応答（`context.Result`）も外側のフィルターを通ります。たとえば一番外側のエラー用フィルターで、応答に要求の ID を入れたり、ログを書いたりできます。
 - `BindingError`・`BindingErrorKind`・`BindingSource` の名前は AzureFunctionsExtension と同じです。あちらには `BindingSource.Authorizer` がないため、`Cookie` の数値は違います（ここでは 5、あちらでは 4）。名前で比べるか、文字列で書き出してください（たとえば `JsonStringEnumConverter` で）。
@@ -328,6 +329,8 @@ public partial class CrudFunctions
 - `Authorizer = nameof(Authorize)` を使う場合、参照先は同じクラス内の `[HttpApiAuthorizer]` メソッドである必要があります。
 - 要求は、HTTP API の Lambda オーソライザーのペイロードである `APIGatewayCustomAuthorizerV2Request` で受け取ります。フィルターがオーソライザーを HTTP のハンドラーと見分けられます（[Assembly-level Filters](#assembly-level-filters) を参照）。
 - `EnableSimpleResponses = false` で IAM policy 形式を返す場合は、`APIGatewayCustomAuthorizerV2Request` を受けると `RouteArn` が自動的に反映されます。
+- 引数の読み取りに失敗すると（たとえば `[FromQuery] int page` に `page=x`）、ハンドラーは呼ばれず、ハンドラーが例外を投げたときと同じく `AuthorizerResults.Deny()` を返します。
+- Lambda オーソライザーの要求には本文がないため、`[FromBody]` は使えません（ALE0402）。
 
 ## Event Handler
 

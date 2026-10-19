@@ -47,7 +47,7 @@
 | ID | Severity | Description | How to fix |
 |---|---|---|---|
 | ALE0401 | ❌ Error | Parameter has multiple binding attributes | Leave a single binding attribute on the parameter |
-| ALE0402 | ❌ Error | `[FromBody]` is applied to an `[Event]` handler | Remove `[FromBody]`, or use an HTTP handler |
+| ALE0402 | ❌ Error | `[FromBody]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler (the request of an `[HttpApiAuthorizer]` handler has no body) | Remove `[FromBody]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |
 | ALE0403 | ❌ Error | Binding attribute is not supported on an `[Event]` handler | Remove the binding attribute, or use an HTTP handler |
 | ALE0404 | ❌ Error | `ClaimsPrincipal` parameter is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove the `ClaimsPrincipal` parameter, or use an `[HttpApi]` / `[FunctionUrl]` handler |
 | ALE0405 | ❌ Error | `[FromCookie]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove `[FromCookie]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |

@@ -206,6 +206,7 @@ services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
 | `ValidationResults` | Results of `IRequestValidator` (only for `ValidationFailed`) |
 
 - The factory is used by HTTP API / Function URL handlers in a class with `[ServiceResolver]`. Without the registration, the response is the same text `400` as before.
+- In `[HttpApiAuthorizer]` handlers, a binding failure returns `AuthorizerResults.Deny()`, because an authorizer cannot return a `400`. The factory is not used (see [Authorizer](#authorizer)).
 - Exceptions thrown by handlers are not passed to the factory. Handle them in a filter (for example, an outermost error filter).
 - With filters, parameters are bound inside the pipeline, so a failure response (`context.Result`) also passes through the outer filters. For example, an outermost error filter can add a request ID to it or write a log.
 - `BindingError`, `BindingErrorKind`, and `BindingSource` have the same names as in AzureFunctionsExtension, which does not have `BindingSource.Authorizer`, so the numeric value of `Cookie` differs (5 here, 4 there). Compare them by name, or write them as strings (for example, with `JsonStringEnumConverter`).
@@ -340,6 +341,8 @@ public partial class CrudFunctions
 - When using `Authorizer = nameof(Authorize)`, the target must be a `[HttpApiAuthorizer]` method in the same class.
 - Take the request as `APIGatewayCustomAuthorizerV2Request`, the payload of an HTTP API Lambda authorizer. Filters can then tell the authorizer apart from HTTP handlers (see [Assembly-level Filters](#assembly-level-filters)).
 - When returning the IAM policy format with `EnableSimpleResponses = false`, receiving an `APIGatewayCustomAuthorizerV2Request` automatically populates `RouteArn`.
+- When a parameter fails to bind (for example, `[FromQuery] int page` with `page=x`), the handler is not called, and `AuthorizerResults.Deny()` is returned, as when the handler throws an exception.
+- `[FromBody]` cannot be used, because the request of a Lambda authorizer has no body (ALE0402).
 
 ## Event Handler
 

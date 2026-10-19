@@ -554,21 +554,24 @@ internal static class LambdaModelBuilder
 
         // フェーズ3: ハンドラー種別ごとの binding 制約を検証
         // Phase 3: Validate binding restrictions that depend on the handler kind
-        if ((handlerType == HandlerType.Event) && (explicitBinding is not null))
+        if ((bindingType == ParameterBindingType.FromBody) &&
+            (handlerType != HandlerType.HttpApi) &&
+            (handlerType != HandlerType.FunctionUrl))
         {
-            if (explicitBinding.AttributeClass.HasFullyQualifiedMetadataName(FromBodyAttributeName))
-            {
-                diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOnEventHandler, GetLocation(method), method.Name));
-            }
-            else if (bindingType != ParameterBindingType.FromServices)
-            {
-                diagnostics.Add(new DiagnosticInfo(
-                    Diagnostics.InvalidEventBinding,
-                    GetLocation(param),
-                    method.Name,
-                    GetAttributeDisplayName(explicitBinding),
-                    param.Name));
-            }
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.FromBodyOutsideHttpHandler, GetLocation(method), method.Name));
+        }
+
+        if ((handlerType == HandlerType.Event) &&
+            (explicitBinding is not null) &&
+            (bindingType != ParameterBindingType.FromBody) &&
+            (bindingType != ParameterBindingType.FromServices))
+        {
+            diagnostics.Add(new DiagnosticInfo(
+                Diagnostics.InvalidEventBinding,
+                GetLocation(param),
+                method.Name,
+                GetAttributeDisplayName(explicitBinding),
+                param.Name));
         }
 
         if ((bindingType == ParameterBindingType.FromAuthorizer) &&

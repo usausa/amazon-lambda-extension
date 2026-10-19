@@ -99,6 +99,12 @@ internal static class CompilationHelper
         return (Task<APIGatewayHttpApiV2ProxyResponse>)method.Invoke(null, [request, new TestLambdaContext()])!;
     }
 
+    public static Task<TResponse> InvokeAuthorizerAsync<TResponse>(Assembly assembly, string handler, APIGatewayCustomAuthorizerV2Request request)
+    {
+        var method = assembly.GetType("Test.Function", throwOnError: true)!.GetMethod(handler)!;
+        return (Task<TResponse>)method.Invoke(null, [request, new TestLambdaContext()])!;
+    }
+
     public static void AssertNoGeneratorErrors(GeneratorResult result)
     {
         var errors = result.Diagnostics

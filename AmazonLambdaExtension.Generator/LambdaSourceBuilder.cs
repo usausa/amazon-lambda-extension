@@ -540,7 +540,19 @@ internal static class LambdaSourceBuilder
         // Return the response for a binding or validation failure, using the factory when available or a text 400 as before
         // Inside filters set ctx.Result and return; without filters return directly in the handler's response type
         var useFactory = UsesBindingErrorFactory(model, handler);
-        if (hasFilter)
+        if (handler.Type == HandlerType.HttpApiAuthorizer)
+        {
+            if (hasFilter)
+            {
+                builder.AppendLine($"ctx.Result = {AuthorizerResultsType}.Deny();");
+                builder.AppendLine("return;");
+            }
+            else
+            {
+                builder.AppendLine($"return {AuthorizerResponseCall(handler, $"{AuthorizerResultsType}.Deny()", hasFilter: false)};");
+            }
+        }
+        else if (hasFilter)
         {
             builder.AppendLine(useFactory
                 ? $"ctx.Result = __BindingErrorResult__({error}, {message});"
