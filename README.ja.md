@@ -429,9 +429,10 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 ```
 
 - `Main` は、関数のハンドラー設定が入る環境変数 `_HANDLER` でハンドラーを選びます。名前はマネージドランタイムと同じ（`{Assembly}::{Namespace}.{ClassName}::{Method}_Handler`）のため、Native AOT 用に別の名前をインフラ定義に書く必要はありません。
-- `_HANDLER` がどのハンドラーとも一致しない場合、`Main` は起動時に `InvalidOperationException` を投げます。
+- `_HANDLER` がどのハンドラーとも一致しない場合、`Main` は起動時に `InvalidOperationException`（`Handler is not found. handler=[...]`）で失敗します。マネージドランタイムがハンドラーを見つけられないときと同じく、この例外を Lambda の Runtime API に初期化のエラーとして報告してから終わるため、エラーの種類とメッセージが呼び出し元に返ります。Runtime API がない（`AWS_LAMBDA_RUNTIME_API` が未設定。手元で動かすときなど）場合は、例外を投げるだけです。
 - Lambda ランタイムのシリアライザーは、アセンブリの `[LambdaSerializer]` から生成します。その `JsonSerializerContext` には、すべてのハンドラーの要求と応答の型（例: `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`）を含めてください。要求と応答の本文は `IBodySerializer` が読み書きする（[AOT Compatibility](#aot-compatibility) 参照）ので、本文の型をこのコンテキストに入れる必要はありません。
-- プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。
+- プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。トップレベルステートメントがあると、コンパイラーは警告 CS7022 を出すだけで生成した `Main` を無視するため、ALE0604 として報告します。
+- `PublishAot` を使うときは、`OutputType` を `Exe` にしてください。そうでないと Native AOT は `bootstrap` の実行ファイルではなくネイティブのライブラリを作るため、ALE0605 として報告します（パッケージが `PublishAot` を Source Generator に渡します）。
 
 ## Scope / Non-goals
 

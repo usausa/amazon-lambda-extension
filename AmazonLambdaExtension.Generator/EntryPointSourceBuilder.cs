@@ -12,6 +12,7 @@ internal static class EntryPointSourceBuilder
     private const string LambdaContextType = "global::Amazon.Lambda.Core.ILambdaContext";
     private const string LambdaSerializerType = "global::Amazon.Lambda.Core.ILambdaSerializer";
     private const string LambdaBootstrapBuilderType = "global::Amazon.Lambda.RuntimeSupport.LambdaBootstrapBuilder";
+    private const string LambdaBootstrapType = "global::Amazon.Lambda.RuntimeSupport.LambdaBootstrap";
     private const string InvalidOperationExceptionType = "global::System.InvalidOperationException";
 
     public static string HintName { get; } = HintNameBuilder.Build(EntryPointNamespace, EntryPointClassName);
@@ -85,11 +86,18 @@ internal static class EntryPointSourceBuilder
             builder.EndScope();
         }
 
-        // 未知のハンドラーは起動時に失敗させ、設定の誤りをログに残す
-        // Fail at startup on an unknown handler so that the misconfiguration is logged
+        // 未知のハンドラーは起動時に失敗させる。Runtime API があれば、初期化の関数で失敗させて init error として報告してから終える（マネージドのランタイムと同じ）
+        // Fail at startup on an unknown handler. When the Runtime API exists, fail in the initializer so that it is reported as an init error before exiting (same as the managed runtime)
         builder.AppendLine("default:");
         builder.BeginScope();
-        builder.AppendLine($"throw new {InvalidOperationExceptionType}($\"Handler is not found. handler=[{{handler}}]\");");
+        builder.AppendLine($"var exception = new {InvalidOperationExceptionType}($\"Handler is not found. handler=[{{handler}}]\");");
+        builder.AppendLine("if (global::System.Environment.GetEnvironmentVariable(\"AWS_LAMBDA_RUNTIME_API\") is not null)");
+        builder.BeginScope();
+        builder.AppendLine($"using var bootstrap = new {LambdaBootstrapType}(_ => throw exception, () => throw exception);");
+        builder.AppendLine("await bootstrap.RunAsync().ConfigureAwait(false);");
+        builder.EndScope();
+        builder.NewLine();
+        builder.AppendLine("throw exception;");
         builder.EndScope();
 
         builder.EndScope();

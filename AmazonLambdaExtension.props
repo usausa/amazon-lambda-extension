@@ -1,2 +1,8 @@
 <Project>
+
+  <!-- Lets AmazonLambdaExtension.Generator detect Native AOT publishing (ALE0605) -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="PublishAot" />
+  </ItemGroup>
+
 </Project>

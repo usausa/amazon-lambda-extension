@@ -35,24 +35,34 @@ public sealed class LambdaGenerator : IIncrementalGenerator
 
         // [assembly: LambdaEntryPoint] があれば、生成した全ハンドラーを _HANDLER で振り分ける Main を生成
         // When [assembly: LambdaEntryPoint] exists, generate Main that dispatches all generated handlers by _HANDLER
-        var entryPoints = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
+        var entryPoints = context
+            .ForAttributeWithMetadataNameWithOptions(
                 LambdaEntryPointAttributeFullName,
                 static (syntax, _) => syntax is CompilationUnitSyntax,
-                static (ctx, _) => EntryPointModelBuilder.BuildEntryPointModel(ctx))
+                static (ctx, options, _) => EntryPointModelBuilder.BuildEntryPointModel(ctx, options))
             .Collect();
         var entryPointTreeProvider = context.ForAttributeWithMetadataNameSyntaxTrees(
             LambdaEntryPointAttributeFullName,
             static (syntax, _) => syntax is CompilationUnitSyntax);
+        // トップレベルの文があると、生成した Main は警告 CS7022 だけで無視されるため、文のあるファイルを集める
+        // With top-level statements the generated Main is ignored with only warning CS7022, so collect the files that have them
+        var topLevelStatementTrees = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                static (syntax, _) => syntax is GlobalStatementSyntax,
+                static (ctx, _) => ctx.Node.SyntaxTree)
+            .Collect();
 
         context.RegisterSourceOutput(
             entryPoints.Combine(entryPointTreeProvider),
             static (ctx, input) => ctx.ReportDiagnostics(input.Left.SelectError().Distinct(), input.Right));
+        context.RegisterSourceOutput(
+            entryPoints.Combine(topLevelStatementTrees),
+            static (ctx, input) => ReportTopLevelStatements(ctx, input.Left, input.Right));
         // 実行ファイルの入口は設計時のビルドでも要るため、実装専用の出力にはしない
         // The executable entry point is needed in design-time builds too, so it is not an implementation-only output
         context.RegisterSourceOutput(
-            entryPoints.Combine(models.Collect()),
-            static (ctx, input) => ExecuteEntryPoint(ctx, input.Left, input.Right));
+            entryPoints.Combine(models.Collect()).Combine(topLevelStatementTrees),
+            static (ctx, input) => ExecuteEntryPoint(ctx, input.Left.Left, input.Left.Right, input.Right));
     }
 
     private static bool IsClassSyntax(SyntaxNode syntax) =>
@@ -145,10 +155,25 @@ public sealed class LambdaGenerator : IIncrementalGenerator
         }
     }
 
-    private static void ExecuteEntryPoint(SourceProductionContext context, ImmutableArray<Result<EntryPointModel>> entryPoints, ImmutableArray<LambdaModel> models)
+    private static void ReportTopLevelStatements(SourceProductionContext context, ImmutableArray<Result<EntryPointModel>> entryPoints, ImmutableArray<SyntaxTree> trees)
     {
+        // [LambdaEntryPoint] とトップレベルの文の両方があれば、最初の文の位置に ALE0604 を出す
+        // When both [LambdaEntryPoint] and top-level statements exist, report ALE0604 at the first statement
+        if (entryPoints.IsEmpty || trees.IsEmpty)
+        {
+            return;
+        }
+
+        var statement = trees[0].GetRoot(context.CancellationToken).ChildNodes().OfType<GlobalStatementSyntax>().First();
+        context.ReportDiagnostic(new DiagnosticInfo(Diagnostics.TopLevelStatementsWithEntryPoint, statement.GetLocation()), trees);
+    }
+
+    private static void ExecuteEntryPoint(SourceProductionContext context, ImmutableArray<Result<EntryPointModel>> entryPoints, ImmutableArray<LambdaModel> models, ImmutableArray<SyntaxTree> topLevelStatementTrees)
+    {
+        // トップレベルの文があるとき（ALE0604）は、無視される Main を生成しない
+        // Do not generate Main, which would be ignored, when top-level statements exist (ALE0604)
         var entryPoint = entryPoints.SelectValue().FirstOrDefault();
-        if (entryPoint is null)
+        if ((entryPoint is null) || !topLevelStatementTrees.IsEmpty)
         {
             return;
         }

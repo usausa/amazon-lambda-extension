@@ -320,4 +320,22 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor TopLevelStatementsWithEntryPoint { get; } = new(
+        id: "ALE0604",
+        title: "Top-level statements with LambdaEntryPoint",
+        messageFormat: "[LambdaEntryPoint] cannot be used with top-level statements, because the generated Main is ignored",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
+
+    public static DiagnosticDescriptor EntryPointNotExecutable { get; } = new(
+        id: "ALE0605",
+        title: "LambdaEntryPoint needs an executable",
+        messageFormat: "[LambdaEntryPoint] with PublishAot needs OutputType Exe to produce the bootstrap executable. assembly=[{0}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: DiagnosticTags.NotSuppressible);
 }

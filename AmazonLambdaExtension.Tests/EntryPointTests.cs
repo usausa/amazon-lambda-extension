@@ -1,5 +1,12 @@
 namespace AmazonLambdaExtension;
 
+using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+
 public sealed class EntryPointTests(ITestOutputHelper output)
 {
     private const string EntryPointClassName = "AmazonLambdaExtension.Generated.LambdaEntryPoint";
@@ -171,7 +178,9 @@ public sealed class EntryPointTests(ITestOutputHelper output)
         var main = assembly.GetType(EntryPointClassName, throwOnError: true)!.GetMethod("Main")!;
 
         var previous = Environment.GetEnvironmentVariable("_HANDLER");
+        var previousApi = Environment.GetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API");
         Environment.SetEnvironmentVariable("_HANDLER", handler);
+        Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", null);
         try
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => (Task)main.Invoke(null, null)!);
@@ -180,6 +189,75 @@ public sealed class EntryPointTests(ITestOutputHelper output)
         finally
         {
             Environment.SetEnvironmentVariable("_HANDLER", previous);
+            Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", previousApi);
         }
+    }
+
+    [Fact(Timeout = 10000)]
+    public async Task MainReportsInitErrorWhenHandlerIsUnknown()
+    {
+        const string handler = "TestAssembly::Test.ItemFunction::Unknown_Handler";
+        var assembly = CompilationHelper.LoadEntryPointAssembly(EntryPoint + Functions);
+        var main = assembly.GetType(EntryPointClassName, throwOnError: true)!.GetMethod("Main")!;
+
+        var (exception, requestLine, body) = await InvokeWithRuntimeApiAsync(main, handler, TestContext.Current.CancellationToken);
+        using var error = JsonDocument.Parse(body);
+
+        Assert.Contains(handler, Assert.IsType<InvalidOperationException>(exception).Message, StringComparison.Ordinal);
+        Assert.Equal("POST /2018-06-01/runtime/init/error HTTP/1.1", requestLine);
+        Assert.Equal("InvalidOperationException", error.RootElement.GetProperty("errorType").GetString());
+        Assert.Contains(handler, error.RootElement.GetProperty("errorMessage").GetString(), StringComparison.Ordinal);
+    }
+
+    private static async Task<(Exception? Exception, string RequestLine, string Body)> InvokeWithRuntimeApiAsync(MethodInfo main, string handler, CancellationToken cancellationToken)
+    {
+        var started = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var received = ServeRuntimeApiAsync(started, cancellationToken);
+        var port = await started.Task.ConfigureAwait(false);
+
+        var previous = Environment.GetEnvironmentVariable("_HANDLER");
+        var previousApi = Environment.GetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API");
+        var previousCapture = Environment.GetEnvironmentVariable("AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE");
+        Environment.SetEnvironmentVariable("_HANDLER", handler);
+        Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", $"127.0.0.1:{port}");
+        Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE", "true");
+        try
+        {
+            var exception = await Record.ExceptionAsync(() => (Task)main.Invoke(null, null)!).ConfigureAwait(false);
+            var (requestLine, body) = await received.ConfigureAwait(false);
+            return (exception, requestLine, body);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("_HANDLER", previous);
+            Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", previousApi);
+            Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE", previousCapture);
+        }
+    }
+
+    private static async Task<(string RequestLine, string Body)> ServeRuntimeApiAsync(TaskCompletionSource<int> started, CancellationToken cancellationToken)
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        started.SetResult(((IPEndPoint)listener.LocalEndpoint).Port);
+
+        using var client = await listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
+        var stream = client.GetStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+        var requestLine = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) ?? string.Empty;
+        var contentLength = 0;
+        string? line;
+        while (!String.IsNullOrEmpty(line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)))
+        {
+            if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+            {
+                contentLength = Int32.Parse(line["Content-Length:".Length..].Trim(), CultureInfo.InvariantCulture);
+            }
+        }
+
+        var body = new char[contentLength];
+        await reader.ReadBlockAsync(body, cancellationToken).ConfigureAwait(false);
+        await stream.WriteAsync("HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: 15\r\nConnection: close\r\n\r\n{\"status\":\"OK\"}"u8.ToArray(), cancellationToken).ConfigureAwait(false);
+        return (requestLine, new string(body));
     }
 }

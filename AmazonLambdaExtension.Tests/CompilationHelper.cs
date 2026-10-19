@@ -43,6 +43,13 @@ internal static class CompilationHelper
     public static GeneratorResult RunEntryPointGenerator(string source) =>
         RunGenerator(EntryPointRunner, source);
 
+    public static GeneratorResult RunEntryPointGenerator(string source, OutputKind outputKind, bool publishAot) =>
+        RunGenerator(
+            EntryPointRunner
+                .WithOutputKind(outputKind)
+                .WithGlobalOption("build_property.PublishAot", publishAot ? "true" : "false"),
+            source);
+
     public static IReadOnlyList<string> GetProblemIds(string source) =>
         [.. Runner.GetProblems(source).Select(static x => x.Id)];
 

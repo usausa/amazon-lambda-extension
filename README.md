@@ -430,9 +430,10 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 ```
 
 - `Main` selects the handler by the `_HANDLER` environment variable, which holds the handler setting of the function. The name is the same as the one for the managed runtime (`{Assembly}::{Namespace}.{ClassName}::{Method}_Handler`), so the infrastructure definition does not need another name for Native AOT.
-- If `_HANDLER` matches no handler, `Main` throws `InvalidOperationException` at startup.
+- If `_HANDLER` matches no handler, `Main` fails at startup with `InvalidOperationException` (`Handler is not found. handler=[...]`). It reports the exception to the Lambda Runtime API as an initialization error before exiting, in the same way as the managed runtime reports a handler that it cannot find, so the error type and message are returned to the caller. Without the Runtime API (`AWS_LAMBDA_RUNTIME_API` is not set, for example when it runs locally), it just throws the exception.
 - The Lambda runtime serializer is created from the assembly-level `[LambdaSerializer]`. Its `JsonSerializerContext` must cover the request and response types of every handler (for example, `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`). Request and response bodies are read and written by `IBodySerializer` (see [AOT Compatibility](#aot-compatibility)), so the body types do not need to be in this context.
-- Do not declare another `Main` or top-level statements in the project.
+- Do not declare another `Main` or top-level statements in the project. With top-level statements, the compiler ignores the generated `Main` with only warning CS7022, so they are reported as ALE0604.
+- With `PublishAot`, set `OutputType` to `Exe`. Otherwise Native AOT produces a native library instead of the `bootstrap` executable, which is reported as ALE0605 (the package passes `PublishAot` to the Source Generator).
 
 ## Scope / Non-goals
 

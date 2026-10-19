@@ -14,6 +14,9 @@ public class DiagnosticTests
 
     private static List<string> GetEntryPointDiagnosticIds(string source)
         => CompilationHelper.RunEntryPointGenerator(source).Diagnostics.Select(d => d.Id).ToList();
+
+    private static List<string> GetEntryPointDiagnosticIds(string source, OutputKind outputKind, bool publishAot)
+        => CompilationHelper.RunEntryPointGenerator(source, outputKind, publishAot).Diagnostics.Select(d => d.Id).ToList();
 #pragma warning restore IDE0028
 
     // ------------------------------------------------------------
@@ -995,6 +998,52 @@ public class DiagnosticTests
             }
             """);
         Assert.Contains("ALE0603", ids);
+    }
+
+    [Fact]
+    public void Ale0604TopLevelStatementsEmitDiagnostic()
+    {
+        var result = CompilationHelper.RunEntryPointGenerator(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            System.Console.WriteLine("top-level");
+            """,
+            OutputKind.ConsoleApplication,
+            publishAot: false);
+
+        Assert.Contains("ALE0604", result.Diagnostics.Select(static d => d.Id));
+        Assert.DoesNotContain(result.Sources.Values, static s => s.Contains("class LambdaEntryPoint", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Ale0604TopLevelStatementsWithoutEntryPointEmitNoDiagnostic()
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            System.Console.WriteLine("top-level");
+            """,
+            OutputKind.ConsoleApplication,
+            publishAot: false);
+        Assert.Empty(ids);
+    }
+
+    [Theory]
+    [InlineData(OutputKind.DynamicallyLinkedLibrary, true, true)]
+    [InlineData(OutputKind.DynamicallyLinkedLibrary, false, false)]
+    [InlineData(OutputKind.ConsoleApplication, true, false)]
+    public void Ale0605PublishAotWithoutExecutableEmitsDiagnostic(OutputKind outputKind, bool publishAot, bool expected)
+    {
+        var ids = GetEntryPointDiagnosticIds(
+            """
+            [assembly: AmazonLambdaExtension.Annotations.LambdaEntryPoint]
+            [assembly: Amazon.Lambda.Core.LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
+            namespace Test;
+            public sealed class Placeholder { }
+            """,
+            outputKind,
+            publishAot);
+        Assert.Equal(expected, ids.Contains("ALE0605"));
     }
 
     // ------------------------------------------------------------

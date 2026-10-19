@@ -23,6 +23,7 @@
     <ProjectReference Include="..\AmazonLambdaExtension\AmazonLambdaExtension.csproj" />
   </ItemGroup>
 
+  <Import Project="..\AmazonLambdaExtension.props" />
   <Import Project="..\AmazonLambdaExtension.targets" />
 
   <ItemGroup>

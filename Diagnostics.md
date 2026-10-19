@@ -70,3 +70,5 @@
 | ALE0601 | ❌ Error | `[assembly: LambdaEntryPoint]` is used, but `Amazon.Lambda.RuntimeSupport` is not referenced | Add a package reference to `Amazon.Lambda.RuntimeSupport` |
 | ALE0602 | ❌ Error | `[assembly: LambdaEntryPoint]` is used, but the assembly has no `[LambdaSerializer]` | Add `[assembly: LambdaSerializer(typeof(...))]` (for Native AOT, `SourceGeneratorLambdaJsonSerializer<TContext>`) |
 | ALE0603 | ❌ Error | `[LambdaSerializer]` type is abstract or an open generic type, does not implement `ILambdaSerializer`, or has no accessible parameterless constructor | Specify a concrete `ILambdaSerializer` with an accessible parameterless constructor |
+| ALE0604 | ❌ Error | `[assembly: LambdaEntryPoint]` is used with top-level statements, so the generated `Main` would be ignored (the compiler only reports warning CS7022) | Remove the top-level statements |
+| ALE0605 | ❌ Error | `[assembly: LambdaEntryPoint]` is used with `PublishAot=true`, but `OutputType` is not `Exe`, so Native AOT would produce a native library instead of the `bootstrap` executable | Set `<OutputType>Exe</OutputType>` |

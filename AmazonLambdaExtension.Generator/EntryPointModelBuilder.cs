@@ -3,6 +3,7 @@ namespace AmazonLambdaExtension.Generator;
 using AmazonLambdaExtension.Generator.Models;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 using SourceGenerateHelper;
 
@@ -14,7 +15,7 @@ internal static class EntryPointModelBuilder
     private const string ILambdaSerializerFullName = "Amazon.Lambda.Core.ILambdaSerializer";
     // ReSharper restore InconsistentNaming
 
-    public static Result<EntryPointModel> BuildEntryPointModel(GeneratorAttributeSyntaxContext context)
+    public static Result<EntryPointModel> BuildEntryPointModel(GeneratorAttributeSyntaxContext context, AnalyzerConfigOptions options)
     {
         // フェーズ1: 対象アセンブリと診断バッファを初期化
         // Phase 1: Initialize the target assembly and the diagnostic buffer
@@ -30,6 +31,14 @@ internal static class EntryPointModelBuilder
         if (compilation.GetTypeByMetadataName(LambdaBootstrapBuilderFullName) is null)
         {
             diagnostics.Add(new DiagnosticInfo(Diagnostics.MissingRuntimeSupport, location, assemblyName));
+        }
+
+        // フェーズ2b: Native AOT で発行するときは、実行ファイルでないと bootstrap ができない（ライブラリのままだと、警告なしにネイティブのライブラリになる）
+        // Phase 2b: When publishing with Native AOT, only an executable produces the bootstrap (a library silently becomes a native library)
+        if (options.TryGetValue<bool>("PublishAot", out var publishAot) && publishAot &&
+            (compilation.Options.OutputKind is not (OutputKind.ConsoleApplication or OutputKind.WindowsApplication)))
+        {
+            diagnostics.Add(new DiagnosticInfo(Diagnostics.EntryPointNotExecutable, location, assemblyName));
         }
 
         // フェーズ3: アセンブリの [LambdaSerializer] からランタイムのシリアライザー型を取り出す
