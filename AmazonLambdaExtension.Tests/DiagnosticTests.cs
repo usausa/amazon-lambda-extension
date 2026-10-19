@@ -820,6 +820,93 @@ public class DiagnosticTests
         Assert.Contains("ALE0407", ids);
     }
 
+    [Theory]
+    [InlineData("/items/{id}", "")]
+    [InlineData("/items/{id}", "[FromRoute] int Id")]
+    [InlineData("/items/{id}/{name}", "[FromRoute] int id")]
+    [InlineData("/files/{proxy+}", "[FromQuery] string proxy")]
+    public void Ale0410RouteVariableIsNotBoundEmitsDiagnostic(string route, string parameter)
+    {
+        var source =
+            $$"""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "{{route}}")]
+                public IHttpResult Get({{parameter}}) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Equal(["ALE0410"], CompilationHelper.GetProblemIds(source));
+    }
+
+    [Theory]
+    [InlineData("/items/{id}", "[FromRoute] int id")]
+    [InlineData("/items/{id}/{name}", "[FromRoute] int id, [FromRoute] string name")]
+    [InlineData("/files/{proxy+}", "[FromRoute] string proxy")]
+    [InlineData("/items", "")]
+    public void Ale0410RouteVariableIsBoundEmitsNoDiagnostic(string route, string parameter)
+    {
+        var source =
+            $$"""
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "{{route}}")]
+                public IHttpResult Get({{parameter}}) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void Ale0410RouteVariableBoundWithNameEmitsNoDiagnostic()
+    {
+        const string source =
+            """
+            namespace Test;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/items/{id}")]
+                public IHttpResult Get([FromRoute("id")] int itemId) => HttpResults.Ok();
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
+    [Fact]
+    public void Ale0410CanBeSuppressedAtHandler()
+    {
+        const string source =
+            """
+            namespace Test;
+            using Amazon.Lambda.APIGatewayEvents;
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+            [Lambda]
+            public sealed partial class Function
+            {
+            #pragma warning disable ALE0410
+                [HttpApi(LambdaHttpMethod.Get, "/files/{proxy+}")]
+                public IHttpResult Get(APIGatewayHttpApiV2ProxyRequest request) => HttpResults.Ok();
+            #pragma warning restore ALE0410
+            }
+            """;
+
+        Assert.Empty(CompilationHelper.GetProblemIds(source));
+    }
+
     // ------------------------------------------------------------
     // Entry point (06xx)
     // ------------------------------------------------------------

@@ -76,6 +76,12 @@ An HTTP handler (`[HttpApi]` / `[FunctionUrl]`) may return any of the following:
 
 `Task<T>` / `ValueTask<T>` wrappers and synchronous returns are all supported.
 
+Throw `ApiException` to short-circuit with a specific status code (the message becomes the body):
+
+```csharp
+throw new ApiException(404, $"Item '{id}' not found.");
+```
+
 ### 2. Implement the ServiceResolver
 
 The Source Generator calls `ServiceResolver.ConfigureServices()` to build the DI container.
@@ -140,7 +146,7 @@ Lambda calls the handler named in the function configuration, so nothing needs t
 - `[FromAuthorizer("key")]` reads the context returned by the Lambda authorizer (`requestContext.authorizer.lambda`). String, number and boolean values are converted to the parameter type; arrays are not supported.
 - `[FromCookie("name")]` reads a cookie from the `cookies` array of the payload v2 (HTTP API does not put cookies in the headers) with the same rules as ASP.NET Core (see [Claims and Cookies](#claims-and-cookies)). It can be used in `[HttpApi]` and `[FunctionUrl]` handlers.
 - `[FromCookie]` converts the value like `[FromQuery]`; a missing value binds the default value (or `null`), and arrays are not supported.
-- **DI lifecycle**: The handler instance itself is a singleton (created once on cold start and reused across the execution environment). For dependencies that need `Scoped`/`Transient` lifetimes, receive them via **`[FromServices]` (a method parameter) or filters** (resolved from, and disposed with, a per-invocation DI scope). Dependencies injected into the handler's constructor are effectively singletons (to avoid captive dependencies).
+- **DI lifecycle**: The handler instance itself is a singleton (created once on cold start and reused across the execution environment). For dependencies that need `Scoped`/`Transient` lifetimes, receive them via **`[FromServices]` (a method parameter) or filters** (resolved from, and disposed with, a per-invocation DI scope). Dependencies injected into the handler's constructor are effectively singletons (to avoid captive dependencies). Difference from AzureFunctionsExtension: the function class there is created for each invocation, so its constructor dependencies come from the scope of the invocation.
 - The only binding attribute that can be used explicitly in an `[Event]` handler is `[FromServices]`.
 - An `[Event]` handler must declare exactly one payload (event body) parameter (zero or multiple is an error).
 - `ILambdaContext` can be added as a parameter anywhere (no binding attribute needed).

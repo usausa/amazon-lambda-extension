@@ -53,6 +53,7 @@
 | ALE0405 | ❌ Error | `[FromCookie]` is used outside an `[HttpApi]` / `[FunctionUrl]` handler | Remove `[FromCookie]`, or use an `[HttpApi]` / `[FunctionUrl]` handler |
 | ALE0406 | ❌ Error | Parameter type is not supported by binding (`[FromAuthorizer]` / `[FromCookie]` do not bind arrays, and an array bound with `[FromQuery]` / `[FromHeader]` / `[FromRoute]` must be one-dimensional; jagged and multidimensional arrays are not supported) | Use a supported parameter type |
 | ALE0407 | ⚠️ Warning | `[FromAuthorizer]` is used outside an HTTP API handler | Remove `[FromAuthorizer]`, or use an HTTP API handler |
+| ALE0410 | ⚠️ Warning | Route template variable of an `[HttpApi]` handler is not bound with `[FromRoute]` (names are compared case-sensitively, as in `PathParameters`) | Bind the variable with `[FromRoute]`, or remove it from the route template |
 
 > Up to 2.0.0-beta9, ALE0404 reported `[FromClaim]` outside an `[HttpApi]` handler. `[FromClaim]` was removed in favor of the `ClaimsPrincipal` parameter, and the ID is reused for it.
 

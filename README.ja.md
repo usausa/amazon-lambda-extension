@@ -65,6 +65,23 @@ public partial class CrudFunctions
 }
 ```
 
+HTTP のハンドラー（`[HttpApi]` / `[FunctionUrl]`）は、次のどれかを返せます。
+
+| 戻り値 | 動き |
+|:-----|:-----|
+| `IHttpResult` / `HttpResult`（`HttpResults.*` で作る） | `APIGatewayHttpApiV2ProxyResponse` に変換します |
+| `APIGatewayHttpApiV2ProxyResponse` | そのまま返します |
+| そのほかの型（POCO） | `200 OK` の JSON の応答にします（`HttpResults.Ok(value)` と同じ） |
+| 戻り値なし（`void` / `Task` / `ValueTask`） | 本文なしの `200 OK` を返します |
+
+`Task<T>` / `ValueTask<T>` で包んだ戻り値と、同期の戻り値のどちらも使えます。
+
+特定の状態コードで打ち切るには、`ApiException` を投げます（メッセージが本文になります）。
+
+```csharp
+throw new ApiException(404, $"Item '{id}' not found.");
+```
+
 ### 2. ServiceResolver を実装
 
 Source Generator は `ServiceResolver.ConfigureServices()` を呼び出して DI コンテナを構築します。
@@ -128,7 +145,7 @@ Lambda は関数の設定にあるハンドラーを呼ぶので、コードで�
 - `[FromAuthorizer("key")]` は Lambda オーソライザーが返したコンテキスト（`requestContext.authorizer.lambda`）から読みます。文字列・数値・真偽値を引数の型に変換します。配列は未対応です。
 - `[FromCookie("name")]` は payload v2 の `cookies` の配列（HTTP API は Cookie をヘッダーに入れません）から、ASP.NET Core と同じ規則で読みます（[Claims and Cookies](#claims-and-cookies) を参照）。`[HttpApi]` と `[FunctionUrl]` のハンドラーで使えます。
 - `[FromCookie]` は `[FromQuery]` と同じく値を変換します。値がなければ既定値（または `null`）になり、配列は未対応です。
-- **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。
+- **DI ライフサイクル**: ハンドラー本体は singleton（cold start で 1 回生成し実行環境で再利用）。`Scoped`/`Transient` を効かせたい依存は **`[FromServices]`（メソッド引数）やフィルター**で受け取ってください（invocation ごとに DI スコープから解決・破棄されます）。本体のコンストラクタに注入した依存は singleton 相当になります（captive dependency を避けるため）。AzureFunctionsExtension との違い: あちらの関数のクラスは呼び出しごとに作るので、コンストラクタの依存も呼び出しのスコープから取り出します。
 - `[Event]` ハンドラで明示的に使えるバインド属性は `[FromServices]` のみです。
 - `[Event]` ハンドラは payload（イベント本体）の引数をちょうど 1 つ宣言する必要があります（0 個・複数はエラー）。
 - `ILambdaContext` はどこでも引数に追加できます（バインド属性不要）。

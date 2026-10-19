@@ -273,6 +273,14 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    public static DiagnosticDescriptor MissingRouteParameter { get; } = new(
+        id: "ALE0410",
+        title: "Missing route parameter",
+        messageFormat: "Route variable is not bound with [FromRoute]. variable=[{0}], handler=[{1}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     // Generation (05xx)
 
     public static DiagnosticDescriptor HintNameCollision { get; } = new(

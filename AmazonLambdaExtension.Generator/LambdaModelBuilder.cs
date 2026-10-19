@@ -327,6 +327,7 @@ internal static class LambdaModelBuilder
         HandlerType? handlerType = null;
         var enableSimpleResponses = true;
         string? authorizerMethodName = null;
+        string? routeTemplate = null;
         var handlerAttrCount = 0;
 
         foreach (var attr in method.GetAttributes())
@@ -337,6 +338,7 @@ internal static class LambdaModelBuilder
                 handlerAttrCount++;
                 handlerType = HandlerType.HttpApi;
                 authorizerMethodName = GetNamedStringArgument(attr, "Authorizer");
+                routeTemplate = attr.ConstructorArguments.Length > 1 ? attr.ConstructorArguments[1].Value as string : null;
             }
             else if (attrClass.HasFullyQualifiedMetadataName(FunctionUrlAttributeName))
             {
@@ -423,6 +425,13 @@ internal static class LambdaModelBuilder
             {
                 diagnostics.Add(new DiagnosticInfo(Diagnostics.EventHandlerMultiplePayloads, GetLocation(method), method.Name));
             }
+        }
+
+        // フェーズ4c: HTTP API のルートの変数が [FromRoute] の引数で受け取られているかを確かめる(4b と同じく、パラメータ単位の診断があるときは確かめない)
+        // Phase 4c: Check that every route variable of an HTTP API handler is bound with [FromRoute] (skipped like 4b when parameter-level diagnostics exist)
+        if ((handlerType == HandlerType.HttpApi) && !HasErrors(diagnostics))
+        {
+            ValidateRouteBindings(routeTemplate, parameters, method, diagnostics);
         }
 
         // フェーズ5: 戻り値型から async 性と実際の結果型を正規化
@@ -729,6 +738,43 @@ internal static class LambdaModelBuilder
             .Any(static m => (m.MethodKind == MethodKind.Ordinary) &&
                              !m.IsStatic &&
                              m.HasAttribute(HttpApiAuthorizerAttributeName));
+    }
+
+    private static void ValidateRouteBindings(string? template, IEnumerable<ParameterModel> parameters, IMethodSymbol method, List<DiagnosticInfo> diagnostics)
+    {
+        // ルートの変数({name}・貪欲な {name+})ごとに、同じキーの [FromRoute] の引数がなければ1回だけ警告する(PathParameters と同じく大文字小文字を区別する)
+        // Warn once for each route variable ({name} or greedy {name+}) that no [FromRoute] parameter binds with the same key (case-sensitive like PathParameters)
+        if (String.IsNullOrEmpty(template))
+        {
+            return;
+        }
+
+        var seen = new HashSet<string>(
+            parameters.Where(static p => p.BindingType == ParameterBindingType.FromRoute).Select(static p => p.Key),
+            StringComparer.Ordinal);
+        var index = 0;
+        while (index < template!.Length)
+        {
+            var start = template.IndexOf('{', index);
+            if (start < 0)
+            {
+                break;
+            }
+
+            var end = template.IndexOf('}', start + 1);
+            if (end < 0)
+            {
+                break;
+            }
+
+            var variable = template.Substring(start + 1, end - start - 1).Trim().TrimEnd('+');
+            if ((variable.Length > 0) && seen.Add(variable))
+            {
+                diagnostics.Add(new DiagnosticInfo(Diagnostics.MissingRouteParameter, GetLocation(method), variable, method.Name));
+            }
+
+            index = end + 1;
+        }
     }
 
     private static bool RequiresScalarBindingValidation(ParameterBindingType bindingType)
