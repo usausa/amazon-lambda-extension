@@ -97,6 +97,8 @@ public static class ServiceResolver
 
         // 要求と応答の本文のシリアライザ（AOT 対応 — JsonSerializerContext を渡すことで反射なし）
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
+        // [FromBody] のバリデーター
+        services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
 
         services.AddSingleton<DataService>();
         return services;
@@ -109,9 +111,18 @@ public static class ServiceResolver
 internal sealed partial class AppJsonContext : JsonSerializerContext;
 ```
 
+`[ServiceResolver]` があると、生成コードは次のものをコンテナーから取り出します。共通の部品は singleton で登録してください（ほかの寿命には対応しません）。
+
+- `IBodySerializer` — `[HttpApi]` / `[FunctionUrl]` のハンドラーがあるクラスで必須です。`[FromBody]` を読み、JSON の応答の本文を書きます。
+- `IRequestValidator` — `[FromBody]` の引数を検証するときに必須です（たとえば `DataAnnotationsRequestValidator`）。
+- クラスのフィルター — 呼び出しごとに、そのスコープから取り出します（[Filter Pipeline](#filter-pipeline) 参照）。
+- `LambdaClaimsOptions`・`LambdaCancellationOptions`・`IBindingErrorResultFactory` — 任意です。登録がなければ既定を使います。
+
+`[ServiceResolver]` がないときは、`JsonBodySerializer.Default`・`DataAnnotationsRequestValidator`・フィルターの引数のないコンストラクターを使います（`JsonBodySerializer.Default` はリフレクションを使います。[AOT Compatibility](#aot-compatibility) 参照）。AzureFunctionsExtension との違い: あちらでは、登録がなければ `AddAzureFunctionExtension()` が既定の `IBodySerializer` と `IRequestValidator` を登録します。こちらで生成コードが既定に切り替える形にすると、差し替えたときにも既定の AOT の警告が出るためです。
+
 ### 3. Lambda Handler の設定
 
-Source Generator が生成するハンドラ名は `{Namespace}.{ClassName}::{Method}_Handler` です。
+Source Generator はハンドラーごとに静的な `{Method}_Handler` メソッドを生成するので、関数のハンドラーの設定は `{Assembly}::{Namespace}.{ClassName}::{Method}_Handler` です。
 Lambda は関数の設定にあるハンドラーを呼ぶので、コードで登録するものはありません（AzureFunctionsExtension との違い: Azure Functions は Functions のホストを通して関数を見つけるため、あちらの Source Generator はホスト向けの関数のメタデータも生成します）。
 
 ```yaml
@@ -134,8 +145,9 @@ Lambda は関数の設定にあるハンドラーを呼ぶので、コードで�
 | `[FromCookie("name")]` | Cookie | ✅ | |
 | `ClaimsPrincipal`（属性なし） | JWT オーソライザーのクレーム | ✅ | |
 
-- `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーション。失敗時は 400 を返します。
-- `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます。
+- **省略できる引数** — 既定値のある `[FromQuery]` / `[FromRoute]` / `[FromHeader]` の引数（例: `[FromQuery] int page = 1`、`[FromQuery] Mode mode = Mode.Advanced`）は、値がないときに 400 を返さず、その既定値を受け取ります。既定値のリテラルはインバリアントカルチャで出力します。
+- `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーションし、失敗時は 400 を返します。JSON が不正なら `400 Invalid request body.` を、本文の型が null 許容でなく本文が null か空なら `400 Request body is required.` を返します。本文の型を null 許容（`T?`）にすると、null の本文を受け取れます。
+- `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます（[ServiceResolver を実装](#2-serviceresolver-を実装) 参照）。
 - HTTP API の要求の本文はイベントの中の文字列なので、`IBodySerializer` は文字列で読み書きします。AzureFunctionsExtension との違い: Azure Functions は本文をストリームで渡すため、あちらのシリアライザーは非同期で読みます（`DeserializeAsync`）。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
 - `[FromServices("key")]` は keyed service（`GetRequiredKeyedService`）を解決します。キー未指定時は既定のサービス（`GetRequiredService`）を解決します。
@@ -217,6 +229,7 @@ services.AddSingleton<IBindingErrorResultFactory, BindingErrorResultFactory>();
 
 `ILambdaFilter` を実装したクラスを `[Filter<T>(Order = N)]` でクラスに付与します。
 `Order` 昇順でチェインされ、`await next(ctx)` の前後に処理を記述できます。
+`[ServiceResolver]` があると、フィルターは呼び出しごとにコンテナーから取り出すので、登録してください（寿命は問いません）。ないときは、引数のないコンストラクターで作ります（ALE0202 / ALE0203）。
 
 ```csharp
 public sealed class LoggingFilter : ILambdaFilter
@@ -234,7 +247,7 @@ public sealed class ApiKeyFilter : ILambdaFilter
     public ValueTask InvokeAsync(LambdaInvocationContext context, LambdaFilterDelegate next)
     {
         var req = context.GetRequestAs<APIGatewayHttpApiV2ProxyRequest>();
-        if (!req.Headers.TryGetValue("x-api-key", out var key) || key != "expected")
+        if (!req.Headers.TryGetValue("x-api-key", out var key) || (key != "expected"))
         {
             context.Result = HttpResults.Unauthorized();
             return default;
@@ -250,7 +263,7 @@ public sealed class ApiKeyFilter : ILambdaFilter
 public partial class SecureFunctions
 {
     [HttpApi(LambdaHttpMethod.Get, "/secure/items/{id}")]
-    public ValueTask<IHttpResult> GetItem([FromRoute] string id)
+    public ValueTask<HttpResult> GetItem([FromRoute] string id)
         => ValueTask.FromResult(HttpResults.Ok(id));
 }
 ```
@@ -400,6 +413,7 @@ public sealed record HealthStatus(string Status, DateTime Timestamp);
 
 - 応答の本文は、値の実行時の型で書きます。匿名型は `JsonSerializerContext` では書けません（ハンドラーは例外をログに書いて `500` を返します）。コンテキストにない派生型は、コンテキストにある一番近い基底の型として書きます（派生の型のプロパティは書きません）。
 - `ServiceResolver` がないときは `JsonBodySerializer.Default`（リフレクション）を使うので、Native AOT では JSON の本文を読み書きできません。ビルドで、生成コードに IL2026 / IL3050 が出ます。
+- AzureFunctionsExtension との違い: あちらでは、要求と応答を `AddAzureFunctionExtension()` の `JsonOptions` で読み書きするので、コンテキストは `JsonOptions` に足します。
 
 > HTTP のハンドラーは `APIGatewayHttpApiV2ProxyResponse` を、オーソライザーのハンドラーは `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse` を返します。これらは `IBodySerializer` ではなく、Lambda ランタイムのシリアライザー（`[LambdaSerializer]`）が書きます。AOT では、そのシリアライザーの `JsonSerializerContext` に、これらの型と要求の型を含めてください（[Native AOT Entry Point](#native-aot-entry-point) 参照）。
 
