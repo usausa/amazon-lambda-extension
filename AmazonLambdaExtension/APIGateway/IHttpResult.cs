@@ -1,9 +1,10 @@
 namespace AmazonLambdaExtension.APIGateway;
 
 using Amazon.Lambda.APIGatewayEvents;
-using Amazon.Lambda.Core;
+
+using AmazonLambdaExtension.Serialization;
 
 public interface IHttpResult
 {
-    APIGatewayHttpApiV2ProxyResponse ToResponse(ILambdaSerializer serializer);
+    APIGatewayHttpApiV2ProxyResponse ToResponse(IBodySerializer serializer);
 }

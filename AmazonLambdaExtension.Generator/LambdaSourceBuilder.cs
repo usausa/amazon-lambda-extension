@@ -99,12 +99,9 @@ internal static class LambdaSourceBuilder
         // ハンドラーの使用状況を事前チェックして必要なフィールドの要否を判定
         // Pre-check handler usage to determine which static fields are required
         var handlers = model.Handlers;
-        var hasHttpHandler = handlers.Any(static h =>
+        var hasHttpResponse = handlers.Any(static h =>
             (h.Type == HandlerType.HttpApi) ||
-            (h.Type == HandlerType.FunctionUrl) ||
-            (h.Type == HandlerType.HttpApiAuthorizer));
-        var hasBodyParam = handlers.Any(static h =>
-            h.Parameters.Any(static p => p.BindingType == ParameterBindingType.FromBody));
+            (h.Type == HandlerType.FunctionUrl));
         var hasValidation = handlers.Any(static h =>
             h.Parameters.Any(static p => (p.BindingType == ParameterBindingType.FromBody) && !p.SkipValidation));
 
@@ -137,25 +134,6 @@ internal static class LambdaSourceBuilder
             // DIなしでデフォルトコンストラクタでターゲットインスタンスを生成
             // Create target instance with default constructor (no DI)
             builder.AppendLine($"private static readonly {model.FunctionType.FullName} __target__ = new {model.FunctionType.FullName}();");
-        }
-
-        if (hasHttpHandler)
-        {
-            builder.NewLine();
-            if (model.ServiceResolver is not null)
-            {
-                // DIから ILambdaSerializer を解決
-                // Resolve ILambdaSerializer from DI container
-                builder.AppendLine("private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
-                builder.AppendLine($"    {GetRequiredService}<global::Amazon.Lambda.Core.ILambdaSerializer>(__provider__);");
-            }
-            else
-            {
-                // DIなしの場合はデフォルトの JSON シリアライザーを使用
-                // Use default JSON serializer when no DI is configured
-                builder.AppendLine("private static readonly global::Amazon.Lambda.Core.ILambdaSerializer __lambdaSerializer__ =");
-                builder.AppendLine("    new global::Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer();");
-            }
         }
 
         if (model.Handlers.Any(h => UsesCancellation(model, h)))
@@ -195,19 +173,19 @@ internal static class LambdaSourceBuilder
             builder.NewLine();
             builder.AppendLine($"private static {V2ResponseType} __BindingErrorResponse__({BindingErrorType} error, string message) =>");
             builder.AppendLine("    __bindingErrorResultFactory__ is not null");
-            builder.AppendLine("        ? __bindingErrorResultFactory__.Create(error).ToResponse(__lambdaSerializer__)");
+            builder.AppendLine("        ? __bindingErrorResultFactory__.Create(error).ToResponse(__bodySerializer__)");
             builder.AppendLine($"        : new {V2ResponseType} {{ StatusCode = 400, Body = message }};");
         }
 
-        if (hasBodyParam && (model.ServiceResolver is not null))
+        if (hasHttpResponse && (model.ServiceResolver is not null))
         {
-            // DIから IBodySerializer を解決
-            // Resolve IBodySerializer from DI container
+            // DIから IBodySerializer を解決（要求と応答の本文の両方で使う）
+            // Resolve IBodySerializer from DI container (used for both request and response bodies)
             builder.NewLine();
             builder.AppendLine($"private static readonly {BodySerializerType} __bodySerializer__ =");
             builder.AppendLine($"    {GetRequiredService}<{BodySerializerType}>(__provider__);");
         }
-        else if (hasBodyParam)
+        else if (hasHttpResponse)
         {
             builder.NewLine();
             builder.AppendLine($"private static readonly {BodySerializerType} __bodySerializer__ =");
@@ -1118,7 +1096,7 @@ internal static class LambdaSourceBuilder
     {
         // IHttpResult.ToResponse は明示的実装のため、IHttpResult へキャストして呼び出す
         // IHttpResult.ToResponse is an explicit implementation, so cast to IHttpResult before calling
-        return $"(({HttpResultType})({expression})).ToResponse(__lambdaSerializer__)";
+        return $"(({HttpResultType})({expression})).ToResponse(__bodySerializer__)";
     }
 
     private static string AuthorizerResponseType(HandlerModel handler)

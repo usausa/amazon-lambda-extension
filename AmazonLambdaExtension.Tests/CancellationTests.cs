@@ -93,7 +93,7 @@ public sealed class CancellationTests
                 public static IServiceCollection ConfigureServices()
                 {
                     var services = new ServiceCollection();
-                    services.AddSingleton<Amazon.Lambda.Core.ILambdaSerializer>(new Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer());
+                    services.AddSingleton<AmazonLambdaExtension.Serialization.IBodySerializer>(AmazonLambdaExtension.Serialization.JsonBodySerializer.Default);
                     services.AddSingleton(new LambdaCancellationOptions { Margin = TimeSpan.FromMinutes(2) });
                     services.AddSingleton<PassFilter>();
                     return services;

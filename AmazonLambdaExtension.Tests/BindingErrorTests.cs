@@ -55,7 +55,6 @@ public sealed class BindingErrorTests
             public static IServiceCollection ConfigureServices()
             {
                 var services = new ServiceCollection();
-                services.AddSingleton<Amazon.Lambda.Core.ILambdaSerializer>(new Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer());
                 services.AddSingleton<IBodySerializer>(JsonBodySerializer.Default);
                 services.AddSingleton<IRequestValidator>(new FailingValidator());
                 services.AddSingleton<PassFilter>();

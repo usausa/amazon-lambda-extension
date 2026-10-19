@@ -76,6 +76,8 @@ HTTP のハンドラー（`[HttpApi]` / `[FunctionUrl]`）は、次のどれか�
 
 `Task<T>` / `ValueTask<T>` で包んだ戻り値と、同期の戻り値のどちらも使えます。
 
+本文は型によって書き方が決まります。`string` は `text/plain`、`byte[]` / `Stream` は Base64（`application/octet-stream`）、そのほかは `IBodySerializer`（`[FromBody]` を読むものと同じシリアライザー）で、値の実行時の型の JSON にします。
+
 特定の状態コードで打ち切るには、`ApiException` を投げます（メッセージが本文になります）。
 
 ```csharp
@@ -93,11 +95,7 @@ public static class ServiceResolver
     {
         var services = new ServiceCollection();
 
-        // Lambda シリアライザ（AOT 対応 — JsonSerializable ソース生成を使用）
-        services.AddSingleton<ILambdaSerializer>(
-            new SourceGeneratorLambdaJsonSerializer<AppJsonContext>());
-
-        // Body シリアライザ（AOT 対応 — JsonSerializerContext を渡すことで反射なし）
+        // 要求と応答の本文のシリアライザ（AOT 対応 — JsonSerializerContext を渡すことで反射なし）
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
 
         services.AddSingleton<DataService>();
@@ -108,7 +106,6 @@ public static class ServiceResolver
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(CreateItemInput))]
 [JsonSerializable(typeof(Item))]
-[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
 internal sealed partial class AppJsonContext : JsonSerializerContext;
 ```
 
@@ -163,8 +160,10 @@ Lambda は関数の設定にあるハンドラーを呼ぶので、コードで�
 [HttpApi(LambdaHttpMethod.Get, "/me")]
 public IHttpResult GetMe(ClaimsPrincipal user, [FromCookie("theme")] string? theme)
     => user.Identity?.IsAuthenticated == true
-        ? HttpResults.Ok(new { id = user.FindFirst("sub")?.Value, admin = user.IsInRole("admin"), theme })
+        ? HttpResults.Ok(new Me(user.FindFirst("sub")?.Value, user.IsInRole("admin"), theme))
         : HttpResults.Unauthorized();
+
+public sealed record Me(string? Id, bool Admin, string? Theme);
 ```
 
 - `[HttpApi]` のハンドラーでは、HTTP API の JWT オーソライザーが検証したクレーム（`requestContext.authorizer.jwt.claims`）から `ClaimsPrincipal` を作ります。API Gateway はクレームをすべて文字列にして渡します。`[ ]` で囲まれた値（配列。`[admin user]` など）は空白で分けて同じ名前の複数のクレームにし、`map[...]` の値（オブジェクト）は分けず、`[]` はクレームを足しません。
@@ -252,7 +251,7 @@ public partial class SecureFunctions
 {
     [HttpApi(LambdaHttpMethod.Get, "/secure/items/{id}")]
     public ValueTask<IHttpResult> GetItem([FromRoute] string id)
-        => ValueTask.FromResult(HttpResults.Ok(new { id }));
+        => ValueTask.FromResult(HttpResults.Ok(id));
 }
 ```
 
@@ -382,8 +381,10 @@ public partial class HealthCheck
 {
     [FunctionUrl]
     public IHttpResult Ping()
-        => HttpResults.Ok(new { status = "ok", timestamp = DateTime.UtcNow });
+        => HttpResults.Ok(new HealthStatus("ok", DateTime.UtcNow));
 }
+
+public sealed record HealthStatus(string Status, DateTime Timestamp);
 ```
 
 ## AOT Compatibility
@@ -395,7 +396,12 @@ public partial class HealthCheck
 | `JsonBodySerializer(JsonSerializerContext)` | ✅ | `[JsonSerializable]` で生成したコンテキストを渡す（推奨） |
 | `JsonBodySerializer(JsonSerializerOptions)` | ❌ | リフレクション使用。`[RequiresDynamicCode]` マーキング済み |
 
-AOT 向けには `ServiceResolver` で `JsonSerializerContext` コンストラクタを使い、`[JsonSerializable(typeof(T))]` を宣言するだけで対応できます（上記 ServiceResolver サンプル参照）。
+登録した `IBodySerializer` が、`[FromBody]` を読み、JSON の応答の本文（POCO の戻り値、`HttpResults.*` に渡した本文、`IBindingErrorResultFactory` が作る応答）を書きます。AOT 向けには `ServiceResolver` で `JsonSerializerContext` コンストラクタを使い、本文のすべての型（`T[]` などのコレクションの型も）に `[JsonSerializable(typeof(T))]` を宣言します（上記 ServiceResolver サンプル参照）。
+
+- 応答の本文は、値の実行時の型で書きます。匿名型は `JsonSerializerContext` では書けません（ハンドラーは例外をログに書いて `500` を返します）。コンテキストにない派生型は、コンテキストにある一番近い基底の型として書きます（派生の型のプロパティは書きません）。
+- `ServiceResolver` がないときは `JsonBodySerializer.Default`（リフレクション）を使うので、Native AOT では JSON の本文を読み書きできません。ビルドで、生成コードに IL2026 / IL3050 が出ます。
+
+> HTTP のハンドラーは `APIGatewayHttpApiV2ProxyResponse` を、オーソライザーのハンドラーは `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse` を返します。これらは `IBodySerializer` ではなく、Lambda ランタイムのシリアライザー（`[LambdaSerializer]`）が書きます。AOT では、そのシリアライザーの `JsonSerializerContext` に、これらの型と要求の型を含めてください（[Native AOT Entry Point](#native-aot-entry-point) 参照）。
 
 ## Native AOT Entry Point
 
@@ -404,7 +410,11 @@ Native AOT の関数は、カスタムランタイム（`provided.al2023`）で 
 
 ```csharp
 [assembly: LambdaEntryPoint]
-[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<AppJsonContext>))]
+[assembly: LambdaSerializer(typeof(SourceGeneratorLambdaJsonSerializer<LambdaJsonContext>))]
+
+[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
+[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
+internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 ```
 
 ```xml
@@ -420,7 +430,7 @@ Native AOT の関数は、カスタムランタイム（`provided.al2023`）で 
 
 - `Main` は、関数のハンドラー設定が入る環境変数 `_HANDLER` でハンドラーを選びます。名前はマネージドランタイムと同じ（`{Assembly}::{Namespace}.{ClassName}::{Method}_Handler`）のため、Native AOT 用に別の名前をインフラ定義に書く必要はありません。
 - `_HANDLER` がどのハンドラーとも一致しない場合、`Main` は起動時に `InvalidOperationException` を投げます。
-- Lambda ランタイムのシリアライザーは、アセンブリの `[LambdaSerializer]` から生成します。その `JsonSerializerContext` には、すべてのハンドラーの要求と応答の型（例: `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`）を含めてください。
+- Lambda ランタイムのシリアライザーは、アセンブリの `[LambdaSerializer]` から生成します。その `JsonSerializerContext` には、すべてのハンドラーの要求と応答の型（例: `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`）を含めてください。要求と応答の本文は `IBodySerializer` が読み書きする（[AOT Compatibility](#aot-compatibility) 参照）ので、本文の型をこのコンテキストに入れる必要はありません。
 - プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。
 
 ## Scope / Non-goals

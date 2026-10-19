@@ -1,8 +1,5 @@
 namespace AmazonLambdaExtension.Example;
 
-using Amazon.Lambda.Core;
-using Amazon.Lambda.Serialization.SystemTextJson;
-
 using AmazonLambdaExtension.Example.Filters;
 using AmazonLambdaExtension.Example.Services;
 using AmazonLambdaExtension.Serialization;
@@ -18,7 +15,6 @@ public static class ServiceResolver
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<ILambdaSerializer>(new SourceGeneratorLambdaJsonSerializer<AppJsonContext>());
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
         services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
 

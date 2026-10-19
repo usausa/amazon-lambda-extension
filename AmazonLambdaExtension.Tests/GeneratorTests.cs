@@ -336,6 +336,96 @@ public sealed class GeneratorTests(ITestOutputHelper output)
         Assert.DoesNotContain(".ToResponse(", handlerSource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HttpApiHandlerWritesResponseWithDefaultBodySerializer()
+    {
+        var result = CompilationHelper.RunGenerator(
+            """
+            namespace Test;
+
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/items")]
+                public Item Handle()
+                    => new Item();
+            }
+
+            public sealed class Item
+            {
+            }
+            """);
+        CompilationHelper.AssertNoGeneratorErrors(result);
+        var sharedSource = result.Sources.Values.Single(s => s.Contains("__target__ =", StringComparison.Ordinal));
+        output.WriteLine(sharedSource);
+        var handlerSource = result.Sources.Values.Single(s => s.Contains("Handle_Handler", StringComparison.Ordinal));
+        output.WriteLine(handlerSource);
+
+        Assert.Contains("__bodySerializer__ =", sharedSource, StringComparison.Ordinal);
+        Assert.Contains("JsonBodySerializer.Default", sharedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("ILambdaSerializer", sharedSource, StringComparison.Ordinal);
+        Assert.Contains(".ToResponse(__bodySerializer__)", handlerSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HttpApiHandlerWithServiceResolverResolvesBodySerializer()
+    {
+        var result = CompilationHelper.RunGenerator(
+            """
+            namespace Test;
+
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+
+            [Lambda]
+            [ServiceResolver(typeof(Resolver))]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/items")]
+                public IHttpResult Handle()
+                    => HttpResults.Ok();
+            }
+
+            public sealed class Resolver
+            {
+                public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+                    => new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+            }
+            """);
+        CompilationHelper.AssertNoGeneratorErrors(result);
+        var sharedSource = result.Sources.Values.Single(s => s.Contains("__target__ =", StringComparison.Ordinal));
+        output.WriteLine(sharedSource);
+
+        Assert.Contains("GetRequiredService<global::AmazonLambdaExtension.Serialization.IBodySerializer>(__provider__)", sharedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("ILambdaSerializer", sharedSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AuthorizerOnlyClassHasNoBodySerializer()
+    {
+        var result = CompilationHelper.RunGenerator(
+            """
+            namespace Test;
+
+            using AmazonLambdaExtension.Annotations;
+            using AmazonLambdaExtension.APIGateway;
+
+            [Lambda]
+            public sealed partial class Function
+            {
+                [HttpApiAuthorizer]
+                public IAuthorizerResult Authorize()
+                    => AuthorizerResults.Allow();
+            }
+            """);
+        CompilationHelper.AssertNoGeneratorErrors(result);
+
+        Assert.DoesNotContain(result.Sources.Values, static s => s.Contains("__bodySerializer__", StringComparison.Ordinal));
+    }
+
     //--------------------------------------------------------------------------------
     // Parameter binding
     //--------------------------------------------------------------------------------

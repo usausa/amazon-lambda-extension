@@ -115,6 +115,79 @@ public sealed class HandlerRuntimeTests
         Assert.Equal(400, (await CompilationHelper.InvokeAsync(assembly, "Get_Handler", request)).StatusCode);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("[Filter<PassFilter>]")]
+    public async Task ResponseBodyIsWrittenWithDefaultBodySerializer(string filter)
+    {
+        var assembly = CompilationHelper.LoadAssembly(Head + $$"""
+            public class Item
+            {
+                public string? ItemName { get; set; }
+            }
+
+            public sealed class DerivedItem : Item
+            {
+                public int Count { get; set; }
+            }
+
+            [Lambda]
+            {{filter}}
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Get, "/a")]
+                public Item Get() => new() { ItemName = "a" };
+
+                [HttpApi(LambdaHttpMethod.Get, "/b")]
+                public IHttpResult Derived() => HttpResults.Ok((Item)new DerivedItem { ItemName = "b", Count = 2 });
+            }
+            """);
+
+        var response = await CompilationHelper.InvokeAsync(assembly, "Get_Handler", new APIGatewayHttpApiV2ProxyRequest());
+        var derived = await CompilationHelper.InvokeAsync(assembly, "Derived_Handler", new APIGatewayHttpApiV2ProxyRequest());
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal("""{"itemName":"a"}""", response.Body);
+        Assert.Equal("application/json", response.Headers["content-type"]);
+        Assert.Equal("""{"count":2,"itemName":"b"}""", derived.Body);
+    }
+
+    [Fact]
+    public async Task RegisteredBodySerializerReadsRequestAndWritesResponse()
+    {
+        var assembly = CompilationHelper.LoadAssembly(Head + """
+            public sealed class Item
+            {
+                public string? ItemName { get; set; }
+            }
+
+            public static class Resolver
+            {
+                public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureServices()
+                {
+                    Microsoft.Extensions.DependencyInjection.IServiceCollection services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+                    services.Add(new Microsoft.Extensions.DependencyInjection.ServiceDescriptor(
+                        typeof(AmazonLambdaExtension.Serialization.IBodySerializer),
+                        new AmazonLambdaExtension.Serialization.JsonBodySerializer(new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower })));
+                    return services;
+                }
+            }
+
+            [Lambda]
+            [ServiceResolver(typeof(Resolver))]
+            public sealed partial class Function
+            {
+                [HttpApi(LambdaHttpMethod.Post, "/a")]
+                public Item Echo([FromBody(SkipValidate = true)] Item item) => new() { ItemName = item.ItemName + "!" };
+            }
+            """);
+
+        var response = await CompilationHelper.InvokeAsync(assembly, "Echo_Handler", new APIGatewayHttpApiV2ProxyRequest { Body = """{"item_name":"a"}""" });
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal("""{"item_name":"a!"}""", response.Body);
+    }
+
     [Fact]
     public async Task AuthorizerContextOfRealEventIsBound()
     {

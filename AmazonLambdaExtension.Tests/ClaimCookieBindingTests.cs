@@ -55,7 +55,7 @@ public sealed class ClaimCookieBindingTests
             public static IServiceCollection ConfigureServices()
             {
                 var services = new ServiceCollection();
-                services.AddSingleton<Amazon.Lambda.Core.ILambdaSerializer>(new Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer());
+                services.AddSingleton<AmazonLambdaExtension.Serialization.IBodySerializer>(AmazonLambdaExtension.Serialization.JsonBodySerializer.Default);
                 services.AddSingleton(new LambdaClaimsOptions { NameClaimType = "preferred_username", RoleClaimType = "groups" });
                 services.AddSingleton<PassFilter>();
                 services.AddSingleton<DescribeFilter>();

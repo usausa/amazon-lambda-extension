@@ -2,10 +2,10 @@ namespace AmazonLambdaExtension.APIGateway;
 
 using System.IO;
 using System.Net;
-using System.Text;
 
 using Amazon.Lambda.APIGatewayEvents;
-using Amazon.Lambda.Core;
+
+using AmazonLambdaExtension.Serialization;
 
 public sealed class HttpResult : IHttpResult
 {
@@ -49,7 +49,7 @@ public sealed class HttpResult : IHttpResult
         return this;
     }
 
-    APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(ILambdaSerializer serializer)
+    APIGatewayHttpApiV2ProxyResponse IHttpResult.ToResponse(IBodySerializer serializer)
     {
         if (cookies is not null)
         {
@@ -89,11 +89,7 @@ public sealed class HttpResult : IHttpResult
                     contentType = "application/octet-stream";
                     break;
                 default:
-                    using (MemoryStream buffer = new())
-                    {
-                        serializer.Serialize(body, buffer);
-                        response.Body = Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
-                    }
+                    response.Body = serializer.Serialize(body);
                     contentType = "application/json";
                     break;
             }
