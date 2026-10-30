@@ -8,7 +8,6 @@ using Microsoft.CodeAnalysis;
 
 public class DiagnosticTests
 {
-#pragma warning disable IDE0028
     private static List<string> GetDiagnosticIds(string source)
         => CompilationHelper.RunGenerator(source).Diagnostics.Select(d => d.Id).ToList();
 
@@ -17,7 +16,6 @@ public class DiagnosticTests
 
     private static List<string> GetEntryPointDiagnosticIds(string source, OutputKind outputKind, bool publishAot)
         => CompilationHelper.RunEntryPointGenerator(source, outputKind, publishAot).Diagnostics.Select(d => d.Id).ToList();
-#pragma warning restore IDE0028
 
     // ------------------------------------------------------------
     // Class structure (00xx)

@@ -53,9 +53,7 @@ public sealed class HttpResult : IHttpResult
     {
         if (cookies is not null)
         {
-#pragma warning disable IDE0028
             response.Cookies = cookies.ToArray();
-#pragma warning restore IDE0028
         }
 
         if (body is not null)
