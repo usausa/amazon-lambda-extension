@@ -413,7 +413,7 @@ The registered `IBodySerializer` reads `[FromBody]` and writes the JSON response
 
 - Response bodies are written by the runtime type of the value. Anonymous types cannot be written with a `JsonSerializerContext` (the handler logs the exception and returns `500`), and a derived type that is not in the context is written as its nearest base type in the context (the properties of the derived type are omitted).
 - Without a `ServiceResolver`, `JsonBodySerializer.Default` (reflection) is used, so JSON bodies cannot be read or written in Native AOT. The build reports IL2026 / IL3050 in the generated code.
-- Difference from AzureFunctionsExtension: requests and responses there are read and written with the `JsonOptions` of `AddAzureFunctionExtension()`, so the context is added to `JsonOptions` instead.
+- Difference from AzureFunctionsExtension: requests and all the responses there are read and written with the MVC `JsonOptions` of ASP.NET Core, so the context is added to it instead.
 
 > HTTP handlers return `APIGatewayHttpApiV2ProxyResponse`, and authorizer handlers return `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse`. These are serialized by the Lambda runtime serializer (`[LambdaSerializer]`), not by `IBodySerializer`. For AOT, make sure the Lambda serializer's `JsonSerializerContext` covers these types and the request types (see [Native AOT Entry Point](#native-aot-entry-point)).
 

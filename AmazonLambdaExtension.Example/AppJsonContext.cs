@@ -8,4 +8,5 @@ using AmazonLambdaExtension.Example.Models;
 [JsonSerializable(typeof(CreateItemRequest))]
 [JsonSerializable(typeof(ItemResponse))]
 [JsonSerializable(typeof(ItemResponse[]))]
+[JsonSerializable(typeof(MeResponse))]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

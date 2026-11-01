@@ -413,7 +413,7 @@ public sealed record HealthStatus(string Status, DateTime Timestamp);
 
 - 応答の本文は、値の実行時の型で書きます。匿名型は `JsonSerializerContext` では書けません（ハンドラーは例外をログに書いて `500` を返します）。コンテキストにない派生型は、コンテキストにある一番近い基底の型として書きます（派生の型のプロパティは書きません）。
 - `ServiceResolver` がないときは `JsonBodySerializer.Default`（リフレクション）を使うので、Native AOT では JSON の本文を読み書きできません。ビルドで、生成コードに IL2026 / IL3050 が出ます。
-- AzureFunctionsExtension との違い: あちらでは、要求と応答を `AddAzureFunctionExtension()` の `JsonOptions` で読み書きするので、コンテキストは `JsonOptions` に足します。
+- AzureFunctionsExtension との違い: あちらでは、要求とすべての応答を ASP.NET Core の MVC の `JsonOptions` で読み書きするので、コンテキストはそこに足します。
 
 > HTTP のハンドラーは `APIGatewayHttpApiV2ProxyResponse` を、オーソライザーのハンドラーは `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse` を返します。これらは `IBodySerializer` ではなく、Lambda ランタイムのシリアライザー（`[LambdaSerializer]`）が書きます。AOT では、そのシリアライザーの `JsonSerializerContext` に、これらの型と要求の型を含めてください（[Native AOT Entry Point](#native-aot-entry-point) 参照）。
 
