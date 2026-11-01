@@ -25,12 +25,12 @@ public sealed class DataService
 
     public ValueTask<ItemResponse[]> ListAsync(string tenantId, int[] ids)
     {
-        return ValueTask.FromResult(ids.Select(id => new ItemResponse
+        return ValueTask.FromResult(Array.ConvertAll(ids, id => new ItemResponse
         {
             Id = id.ToString(CultureInfo.InvariantCulture),
             Name = $"Item-{id}",
             TenantId = tenantId
-        }).ToArray());
+        }));
     }
 
     public ValueTask<ItemResponse> CreateAsync(CreateItemRequest input)
