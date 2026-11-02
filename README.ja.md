@@ -97,8 +97,9 @@ public static class ServiceResolver
 
         // 要求と応答の本文のシリアライザ（AOT 対応 — JsonSerializerContext を渡すことで反射なし）
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
-        // [FromBody] のバリデーター
-        services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
+        // [FromBody] のバリデーター（AOT 対応 — [ValidatableType] の型に生成した検証の情報を使う）
+        services.AddValidation();
+        services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
 
         services.AddSingleton<DataService>();
         return services;
@@ -114,7 +115,7 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;
 `[ServiceResolver]` があると、生成コードは次のものをコンテナーから取り出します。共通の部品は singleton で登録してください（ほかの寿命には対応しません）。
 
 - `IBodySerializer` — `[HttpApi]` / `[FunctionUrl]` のハンドラーがあるクラスで必須です。`[FromBody]` を読み、JSON の応答の本文を書きます。
-- `IRequestValidator` — `[FromBody]` の引数を検証するときに必須です（たとえば `DataAnnotationsRequestValidator`）。
+- `IRequestValidator` — `[FromBody]` の引数を検証するときに必須です（`ValidatableTypeRequestValidator` か `DataAnnotationsRequestValidator`。[Validation](#validation) 参照）。
 - クラスのフィルター — 呼び出しごとに、そのスコープから取り出します（[Filter Pipeline](#filter-pipeline) 参照）。
 - `LambdaClaimsOptions`・`LambdaCancellationOptions`・`IBindingErrorResultFactory` — 任意です。登録がなければ既定を使います。
 
@@ -146,7 +147,7 @@ Lambda は関数の設定にあるハンドラーを呼ぶので、コードで�
 | `ClaimsPrincipal`（属性なし） | JWT オーソライザーのクレーム | ✅ | |
 
 - **省略できる引数** — 既定値のある `[FromQuery]` / `[FromRoute]` / `[FromHeader]` の引数（例: `[FromQuery] int page = 1`、`[FromQuery] Mode mode = Mode.Advanced`）は、値がないときに 400 を返さず、その既定値を受け取ります。既定値のリテラルはインバリアントカルチャで出力します。
-- `[FromBody]` を持つパラメータは DataAnnotations で自動バリデーションし、失敗時は 400 を返します。JSON が不正なら `400 Invalid request body.` を、本文の型が null 許容でなく本文が null か空なら `400 Request body is required.` を返します。本文の型を null 許容（`T?`）にすると、null の本文を受け取れます。
+- `[FromBody]` を持つパラメータは DataAnnotations の属性で自動バリデーションし（[Validation](#validation) 参照）、失敗時は 400 を返します。JSON が不正なら `400 Invalid request body.` を、本文の型が null 許容でなく本文が null か空なら `400 Request body is required.` を返します。本文の型を null 許容（`T?`）にすると、null の本文を受け取れます。
 - `[FromBody]` は `ServiceResolver` がなくても使えます。未指定時は `JsonBodySerializer.Default` と `DataAnnotationsRequestValidator` の既定実装が使われます（[ServiceResolver を実装](#2-serviceresolver-を実装) 参照）。
 - HTTP API の要求の本文はイベントの中の文字列なので、`IBodySerializer` は文字列で読み書きします。AzureFunctionsExtension との違い: Azure Functions は本文をストリームで渡すため、あちらのシリアライザーは非同期で読みます（`DeserializeAsync`）。
 - `[FromServices]` を使う場合は `[ServiceResolver]` が必要です。
@@ -193,6 +194,47 @@ services.AddSingleton(new LambdaClaimsOptions { NameClaimType = "preferred_usern
   - 要素に空白を含む配列は、ここでは分かれます。文字列では区切りが失われるためです（`["a b","c"]` は `[a b c]` で届きます）。
   - オブジェクトのクレームは、ここでは `map[...]` の文字列、あちらでは JSON です。
   - クレームの `ValueType` は、ここではいつも `string` です。
+
+### Validation
+
+`[FromBody]` の引数は、`[FromBody(SkipValidate = true)]` でなければ、登録した `IRequestValidator` で検証します。規則は DataAnnotations の属性（`[Required]`・`[Range]`・`[StringLength]` など）と `IValidatableObject` です。
+
+| 実装 | AOT 対応 | 用途 |
+|:-----|:--------:|:-----|
+| `ValidatableTypeRequestValidator` | ✅ | `Microsoft.Extensions.Validation` の生成器がビルド時に作る検証の情報を使う（推奨） |
+| `DataAnnotationsRequestValidator` | ❌ | リフレクション使用（`Validator.TryValidateObject`）。`[RequiresUnreferencedCode]` マーキング済み |
+
+```csharp
+[ValidatableType]
+public sealed class CreateItemInput
+{
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = string.Empty;
+}
+```
+
+```csharp
+services.AddValidation();
+services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
+```
+
+```xml
+<PropertyGroup>
+  <NoWarn>$(NoWarn);ASP0029</NoWarn>
+</PropertyGroup>
+```
+
+- パッケージが `Microsoft.Extensions.Validation` を参照するので、その生成器がアプリで動きます。生成器は `AddValidation()` の呼び出しを差し替え、同じプロジェクトで `[ValidatableType]` を付けた型を、そのプロパティの型とともに足します。`AddValidation()` は、本文の型を宣言したプロジェクトで呼びます（たとえば `ServiceResolver` の `ConfigureServices()`）。
+- `[ValidatableType]` は .NET 10 では実験的な API で、`ASP0029` をエラーで報告します。上のように、プロジェクトで抑止します。
+- 本文の型には `[ValidatableType]` を付け、`public` にします。生成器が足していない型（印がない、`public` でない、ほかのプロジェクトで宣言した、規則がない）を検証すると `InvalidOperationException`（`Validatable type is not found. type=[...]`）を投げるので、印の付け忘れには最初の要求で気づけます。規則のない本文・`string` の本文・コレクションの本文は `SkipValidate = true` にします。
+- 結果は、次の点で `DataAnnotationsRequestValidator` と違います。ほかの結果（メッセージ、順序、`[Display(Name)]`、`IValidatableObject`、基底の型のプロパティ）は同じです。
+  - 入れ子のオブジェクトと、コレクションのプロパティの要素も検証します。結果のメンバー名は経路（`Child.Value`・`Items[1].Value`）です。
+  - record の主コンストラクターの引数の属性を使います。`DataAnnotationsRequestValidator` は、プロパティの属性（`[property: Required]`）だけを使います。
+  - `[JsonIgnore]` のプロパティは検証しません。
+  - 自分で `ValidationResult` を返さない型の属性では、既定のメッセージに最後に検証したプロパティの表示名が入り、結果のメンバー名もそのプロパティになります。
+- `[MaxLength]`・`[MinLength]`・`[Length]` は、どちらの実装でも、属性そのものが Native AOT のアプリで IL2026 を出します。文字列なら `[StringLength]` は出しません。
+- AzureFunctionsExtension との違い: あちらでは `Microsoft.Extensions.Validation` が ASP.NET Core の共有フレームワークに含まれ、実装は `Program.cs` で登録します。
 
 ### Binding Errors
 
@@ -413,7 +455,8 @@ public sealed record HealthStatus(string Status, DateTime Timestamp);
 
 - 応答の本文は、値の実行時の型で書きます。匿名型は `JsonSerializerContext` では書けません（ハンドラーは例外をログに書いて `500` を返します）。コンテキストにない派生型は、コンテキストにある一番近い基底の型として書きます（派生の型のプロパティは書きません）。
 - `ServiceResolver` がないときは `JsonBodySerializer.Default`（リフレクション）を使うので、Native AOT では JSON の本文を読み書きできません。ビルドで、生成コードに IL2026 / IL3050 が出ます。
-- AzureFunctionsExtension との違い: あちらでは、要求とすべての応答を ASP.NET Core の MVC の `JsonOptions` で読み書きするので、コンテキストはそこに足します。
+- `[FromBody]` の検証には `ValidatableTypeRequestValidator` を登録します（[Validation](#validation) 参照）。`DataAnnotationsRequestValidator` は、登録する所に IL2026 が出ます。
+- AzureFunctionsExtension との違い: あちらは Native AOT を対象外にしています(Azure Functions の分離ワーカーが対応していないため)。
 
 > HTTP のハンドラーは `APIGatewayHttpApiV2ProxyResponse` を、オーソライザーのハンドラーは `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse` を返します。これらは `IBodySerializer` ではなく、Lambda ランタイムのシリアライザー（`[LambdaSerializer]`）が書きます。AOT では、そのシリアライザーの `JsonSerializerContext` に、これらの型と要求の型を含めてください（[Native AOT Entry Point](#native-aot-entry-point) 参照）。
 
@@ -435,6 +478,7 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 <PropertyGroup>
   <OutputType>Exe</OutputType>
   <PublishAot>true</PublishAot>
+  <InvariantGlobalization>true</InvariantGlobalization>
 </PropertyGroup>
 
 <ItemGroup>
@@ -447,6 +491,23 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 - Lambda ランタイムのシリアライザーは、アセンブリの `[LambdaSerializer]` から生成します。その `JsonSerializerContext` には、すべてのハンドラーの要求と応答の型（例: `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`）を含めてください。要求と応答の本文は `IBodySerializer` が読み書きする（[AOT Compatibility](#aot-compatibility) 参照）ので、本文の型をこのコンテキストに入れる必要はありません。
 - プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。トップレベルステートメントがあると、コンパイラーは警告 CS7022 を出すだけで生成した `Main` を無視するため、ALE0604 として報告します。
 - `PublishAot` を使うときは、`OutputType` を `Exe` にしてください。そうでないと Native AOT は `bootstrap` の実行ファイルではなくネイティブのライブラリを作るため、ALE0605 として報告します（パッケージが `PublishAot` を Source Generator に渡します）。
+- `provided.al2023` には ICU（`libicu`）が入っていないため、`InvariantGlobalization` を `true` にしてください（または ICU をデプロイパッケージに含めます）。ないと、ハンドラーが動く前に、Lambda のランタイムクライアントが起動時に `Couldn't find a valid ICU package installed on the system` で終わります（`Runtime.ExitError`）。
+- Amazon Linux 2023 の上（例: `public.ecr.aws/sam/build-dotnet10` のイメージの中）で、関数のアーキテクチャのランタイム識別子（`linux-x64` か `linux-arm64`）で発行し、実行ファイルをデプロイパッケージの直下に `bootstrap` という名前で置きます。名前を変えるのはファイルで、アセンブリではありません。ハンドラー名にはアセンブリ名が入るため、`<AssemblyName>bootstrap</AssemblyName>` にすると `bootstrap::...` に変わります。
+
+### Local Testing
+
+`public.ecr.aws/lambda/provided:al2023`（`-x86_64` / `-arm64`）のイメージには Runtime Interface Emulator が入っています。コマンドに渡したハンドラー名を `_HANDLER` に入れて、`/var/task/bootstrap` を動かします。
+
+```bash
+docker run -d --name fn -p 9000:8080 \
+  -v "$PWD/publish/MyApp":/var/task/bootstrap:ro \
+  public.ecr.aws/lambda/provided:al2023-x86_64 \
+  "MyApp::MyApp.CrudFunctions::GetItem_Handler"
+curl -X POST http://127.0.0.1:9000/2015-03-31/functions/function/invocations -d @event.json
+docker logs fn
+```
+
+- エミュレーターは最初の呼び出しで実行ファイルを起動し、初期化の時間をログの `INIT REPORT(durationMs: ...)` に出します。
 
 ## Scope / Non-goals
 

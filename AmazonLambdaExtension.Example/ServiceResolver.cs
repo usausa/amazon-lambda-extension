@@ -16,7 +16,8 @@ public static class ServiceResolver
         var services = new ServiceCollection();
 
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
-        services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
+        services.AddValidation();
+        services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
 
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
 

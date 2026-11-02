@@ -2,6 +2,9 @@ namespace AmazonLambdaExtension.Example.Models;
 
 using System.ComponentModel.DataAnnotations;
 
+using Microsoft.Extensions.Validation;
+
+[ValidatableType]
 public sealed class CreateItemRequest
 {
     [Required]

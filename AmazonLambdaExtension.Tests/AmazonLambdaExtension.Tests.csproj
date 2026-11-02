@@ -7,6 +7,7 @@
     <IsTestProject>true</IsTestProject>
     <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
     <RootNamespace>AmazonLambdaExtension</RootNamespace>
+    <NoWarn>$(NoWarn);ASP0029</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

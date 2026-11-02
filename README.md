@@ -97,8 +97,9 @@ public static class ServiceResolver
 
         // Serializer for request and response bodies (AOT-compatible — no reflection by passing a JsonSerializerContext)
         services.AddSingleton<IBodySerializer>(new JsonBodySerializer(AppJsonContext.Default));
-        // Validator for [FromBody]
-        services.AddSingleton<IRequestValidator, DataAnnotationsRequestValidator>();
+        // Validator for [FromBody] (AOT-compatible — uses the validation information generated for [ValidatableType] types)
+        services.AddValidation();
+        services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
 
         services.AddSingleton<DataService>();
         return services;
@@ -114,7 +115,7 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;
 With `[ServiceResolver]`, the generated code resolves the following from the container. Register the shared components as singletons (other lifetimes are not supported).
 
 - `IBodySerializer` — required in a class with `[HttpApi]` / `[FunctionUrl]` handlers. It reads `[FromBody]` and writes JSON response bodies.
-- `IRequestValidator` — required when a `[FromBody]` parameter is validated (for example, `DataAnnotationsRequestValidator`).
+- `IRequestValidator` — required when a `[FromBody]` parameter is validated (`ValidatableTypeRequestValidator` or `DataAnnotationsRequestValidator`; see [Validation](#validation)).
 - The filters of the class — resolved for each invocation from its scope (see [Filter Pipeline](#filter-pipeline)).
 - `LambdaClaimsOptions`, `LambdaCancellationOptions`, and `IBindingErrorResultFactory` — optional; the defaults are used when they are not registered.
 
@@ -146,7 +147,7 @@ Lambda calls the handler named in the function configuration, so nothing needs t
 | `ClaimsPrincipal` (no attribute) | JWT authorizer claims | ✅ | |
 
 - **Optional parameters** — `[FromQuery]` / `[FromRoute]` / `[FromHeader]` parameters with a default value (e.g. `[FromQuery] int page = 1`, `[FromQuery] Mode mode = Mode.Advanced`) bind that default when the value is missing, instead of returning 400. Default literals are emitted with invariant culture.
-- Parameters with `[FromBody]` are automatically validated with DataAnnotations; a 400 is returned on failure. Invalid JSON returns `400 Invalid request body.`, and a non-nullable body type returns `400 Request body is required.` when the body is null/empty. Declaring the body type as nullable (`T?`) allows a null body.
+- Parameters with `[FromBody]` are automatically validated with DataAnnotations attributes (see [Validation](#validation)); a 400 is returned on failure. Invalid JSON returns `400 Invalid request body.`, and a non-nullable body type returns `400 Request body is required.` when the body is null/empty. Declaring the body type as nullable (`T?`) allows a null body.
 - `[FromBody]` works without a `ServiceResolver`. When none is specified, the default `JsonBodySerializer.Default` and `DataAnnotationsRequestValidator` implementations are used (see [Implement the ServiceResolver](#2-implement-the-serviceresolver)).
 - The body of an HTTP API request is a string in the event, so `IBodySerializer` reads and writes strings. Difference from AzureFunctionsExtension: Azure Functions passes the body as a stream, so the serializer there reads it asynchronously (`DeserializeAsync`).
 - A `[ServiceResolver]` is required when using `[FromServices]`.
@@ -193,6 +194,47 @@ services.AddSingleton(new LambdaClaimsOptions { NameClaimType = "preferred_usern
   - An array element containing a space is split here, because the separators are lost in the string (`["a b","c"]` arrives as `[a b c]`).
   - An object claim is the `map[...]` string here, and JSON there.
   - The `ValueType` of a claim is always `string` here.
+
+### Validation
+
+A `[FromBody]` parameter is validated by the registered `IRequestValidator` unless `[FromBody(SkipValidate = true)]` is set. The rules are the DataAnnotations attributes (`[Required]`, `[Range]`, `[StringLength]`, ...) and `IValidatableObject`.
+
+| Implementation | AOT support | Use |
+|:-----|:--------:|:-----|
+| `ValidatableTypeRequestValidator` | ✅ | Uses the validation information that the generator of `Microsoft.Extensions.Validation` creates at build time (recommended) |
+| `DataAnnotationsRequestValidator` | ❌ | Uses reflection (`Validator.TryValidateObject`). Marked with `[RequiresUnreferencedCode]` |
+
+```csharp
+[ValidatableType]
+public sealed class CreateItemInput
+{
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = string.Empty;
+}
+```
+
+```csharp
+services.AddValidation();
+services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
+```
+
+```xml
+<PropertyGroup>
+  <NoWarn>$(NoWarn);ASP0029</NoWarn>
+</PropertyGroup>
+```
+
+- The package references `Microsoft.Extensions.Validation`, so its generator runs in the app. The generator intercepts the call of `AddValidation()` and adds the types marked with `[ValidatableType]` in the same project, together with the types of their properties. Call `AddValidation()` in the project that declares the body types (for example, in `ConfigureServices()` of the `ServiceResolver`).
+- `[ValidatableType]` is experimental in .NET 10 and reports `ASP0029` as an error. Suppress it in the project, as above.
+- Mark each body type with `[ValidatableType]` and make it `public`. Validating a type that the generator did not add (not marked, not `public`, declared in another project, or without any rule) throws `InvalidOperationException` (`Validatable type is not found. type=[...]`), so a missing mark is found at the first request. Set `SkipValidate = true` for a body without rules, a `string` body, and a collection body.
+- The results differ from `DataAnnotationsRequestValidator` in the following points. The other results (the messages, the order, `[Display(Name)]`, `IValidatableObject`, and the properties of the base types) are the same.
+  - Nested objects and the elements of collection properties are validated. The member name of a result is the path (`Child.Value`, `Items[1].Value`).
+  - The attributes on the parameters of the primary constructor of a record are used. `DataAnnotationsRequestValidator` uses only the attributes on the properties (`[property: Required]`).
+  - Properties with `[JsonIgnore]` are not validated.
+  - For an attribute on the type that does not return its own `ValidationResult`, the default message uses the display name of the last validated property, and the result has its member name.
+- `[MaxLength]`, `[MinLength]`, and `[Length]` report IL2026 by themselves in Native AOT apps, with either validator. For strings, `[StringLength]` reports none.
+- Difference from AzureFunctionsExtension: `Microsoft.Extensions.Validation` is part of the ASP.NET Core shared framework there, and the validator is registered in `Program.cs`.
 
 ### Binding Errors
 
@@ -413,7 +455,8 @@ The registered `IBodySerializer` reads `[FromBody]` and writes the JSON response
 
 - Response bodies are written by the runtime type of the value. Anonymous types cannot be written with a `JsonSerializerContext` (the handler logs the exception and returns `500`), and a derived type that is not in the context is written as its nearest base type in the context (the properties of the derived type are omitted).
 - Without a `ServiceResolver`, `JsonBodySerializer.Default` (reflection) is used, so JSON bodies cannot be read or written in Native AOT. The build reports IL2026 / IL3050 in the generated code.
-- Difference from AzureFunctionsExtension: requests and all the responses there are read and written with the MVC `JsonOptions` of ASP.NET Core, so the context is added to it instead.
+- For `[FromBody]` validation, register `ValidatableTypeRequestValidator` (see [Validation](#validation)). `DataAnnotationsRequestValidator` reports IL2026 where it is registered.
+- Difference from AzureFunctionsExtension: Native AOT is not supported there, because the isolated worker of Azure Functions does not support it.
 
 > HTTP handlers return `APIGatewayHttpApiV2ProxyResponse`, and authorizer handlers return `APIGatewayCustomAuthorizerV2SimpleResponse` / `APIGatewayCustomAuthorizerV2IamResponse`. These are serialized by the Lambda runtime serializer (`[LambdaSerializer]`), not by `IBodySerializer`. For AOT, make sure the Lambda serializer's `JsonSerializerContext` covers these types and the request types (see [Native AOT Entry Point](#native-aot-entry-point)).
 
@@ -435,6 +478,7 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 <PropertyGroup>
   <OutputType>Exe</OutputType>
   <PublishAot>true</PublishAot>
+  <InvariantGlobalization>true</InvariantGlobalization>
 </PropertyGroup>
 
 <ItemGroup>
@@ -447,6 +491,23 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 - The Lambda runtime serializer is created from the assembly-level `[LambdaSerializer]`. Its `JsonSerializerContext` must cover the request and response types of every handler (for example, `APIGatewayHttpApiV2ProxyRequest` / `APIGatewayHttpApiV2ProxyResponse`). Request and response bodies are read and written by `IBodySerializer` (see [AOT Compatibility](#aot-compatibility)), so the body types do not need to be in this context.
 - Do not declare another `Main` or top-level statements in the project. With top-level statements, the compiler ignores the generated `Main` with only warning CS7022, so they are reported as ALE0604.
 - With `PublishAot`, set `OutputType` to `Exe`. Otherwise Native AOT produces a native library instead of the `bootstrap` executable, which is reported as ALE0605 (the package passes `PublishAot` to the Source Generator).
+- `provided.al2023` does not include ICU (`libicu`), so set `InvariantGlobalization` to `true` (or include ICU in the deployment package). Without it, the Lambda runtime client fails at startup with `Couldn't find a valid ICU package installed on the system` before any handler runs, and the runtime exits (`Runtime.ExitError`).
+- Publish on Amazon Linux 2023 (for example, in the `public.ecr.aws/sam/build-dotnet10` image) with the runtime identifier of the function's architecture (`linux-x64` or `linux-arm64`), and put the executable at the root of the deployment package as `bootstrap`. Rename the file, not the assembly: the handler names contain the assembly name, so `<AssemblyName>bootstrap</AssemblyName>` changes them to `bootstrap::...`.
+
+### Local Testing
+
+The `public.ecr.aws/lambda/provided:al2023` image (`-x86_64` / `-arm64`) includes the Runtime Interface Emulator. It runs `/var/task/bootstrap` with the handler name given as the command, which is passed in `_HANDLER`.
+
+```bash
+docker run -d --name fn -p 9000:8080 \
+  -v "$PWD/publish/MyApp":/var/task/bootstrap:ro \
+  public.ecr.aws/lambda/provided:al2023-x86_64 \
+  "MyApp::MyApp.CrudFunctions::GetItem_Handler"
+curl -X POST http://127.0.0.1:9000/2015-03-31/functions/function/invocations -d @event.json
+docker logs fn
+```
+
+- The emulator starts the executable on the first invocation and logs the initialization time as `INIT REPORT(durationMs: ...)`.
 
 ## Scope / Non-goals
 
