@@ -49,7 +49,11 @@ public static class CookieReader
             }
         }
 
+#if NET11_0_OR_GREATER
+        var separator = input.IndexOf(';', index, StringComparison.Ordinal);
+#else
         var separator = input.IndexOf(';', index);
+#endif
         index = separator < 0 ? input.Length : SkipSeparators(input, separator);
         return false;
     }

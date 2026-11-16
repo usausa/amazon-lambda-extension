@@ -390,8 +390,8 @@ internal static class LambdaSourceBuilder
 
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
-                ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
-                : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
+                    ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
+                    : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
             builder.EndScope();
 
             builder.AppendLine("catch (global::System.Exception ex)");
@@ -399,8 +399,8 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
-                ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
-                : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
+                    ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
+                    : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
             builder.EndScope();
         }
         else
@@ -440,8 +440,8 @@ internal static class LambdaSourceBuilder
             builder.BeginScope();
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
-                ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
-                : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
+                    ? $"return {ToResponseCall($"{HttpResultsType}.NewResult((global::System.Net.HttpStatusCode)ex.StatusCode, ex.Message)")};"
+                    : $"return new {V2ResponseType} {{ StatusCode = (int)ex.StatusCode, Body = ex.Message }};");
             builder.EndScope();
 
             builder.AppendLine("catch (global::System.Exception ex)");
@@ -449,8 +449,8 @@ internal static class LambdaSourceBuilder
             builder.AppendLine("context.Logger.LogLine(ex.ToString());");
             builder.AppendLine(
                 handler.ResponseType == ResponseType.HttpResult
-                ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
-                : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
+                    ? $"return {ToResponseCall($"{HttpResultsType}.InternalServerError()")};"
+                    : $"return new {V2ResponseType} {{ StatusCode = 500 }};");
             builder.EndScope();
         }
     }

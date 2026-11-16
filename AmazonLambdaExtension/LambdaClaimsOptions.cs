@@ -23,7 +23,11 @@ public sealed class LambdaClaimsOptions
         var identity = new ClaimsIdentity(AuthenticationType, NameClaimType, RoleClaimType);
         foreach (var (type, value) in claims)
         {
+#if NET11_0_OR_GREATER
+            if (value.StartsWith('[', StringComparison.Ordinal) && value.EndsWith(']', StringComparison.Ordinal))
+#else
             if (value.StartsWith('[') && value.EndsWith(']'))
+#endif
             {
                 foreach (var element in value[1..^1].Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
