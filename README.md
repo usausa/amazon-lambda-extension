@@ -226,13 +226,13 @@ services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
 ```
 
 - The package references `Microsoft.Extensions.Validation`, so its generator runs in the app. The generator intercepts the call of `AddValidation()` and adds the types marked with `[ValidatableType]` in the same project, together with the types of their properties. Call `AddValidation()` in the project that declares the body types (for example, in `ConfigureServices()` of the `ServiceResolver`).
-- `[ValidatableType]` is experimental in .NET 10 and reports `ASP0029` as an error. Suppress it in the project, as above.
+- With .NET 10, `[ValidatableType]` is experimental and reports `ASP0029` as an error. Suppress it in the project, as above. With .NET 11, it is not experimental.
 - Mark each body type with `[ValidatableType]` and make it `public`. Validating a type that the generator did not add (not marked, not `public`, declared in another project, or without any rule) throws `InvalidOperationException` (`Validatable type is not found. type=[...]`), so a missing mark is found at the first request. Set `SkipValidate = true` for a body without rules, a `string` body, and a collection body.
 - The results differ from `DataAnnotationsRequestValidator` in the following points. The other results (the messages, the order, `[Display(Name)]`, `IValidatableObject`, and the properties of the base types) are the same.
   - Nested objects and the elements of collection properties are validated. The member name of a result is the path (`Child.Value`, `Items[1].Value`).
   - The attributes on the parameters of the primary constructor of a record are used. `DataAnnotationsRequestValidator` uses only the attributes on the properties (`[property: Required]`).
   - Properties with `[JsonIgnore]` are not validated.
-  - For an attribute on the type that does not return its own `ValidationResult`, the default message uses the display name of the last validated property, and the result has its member name.
+  - With .NET 10, for an attribute on the type that does not return its own `ValidationResult`, the default message uses the display name of the last validated property, and the result has its member name. With .NET 11, the result is the same as `DataAnnotationsRequestValidator`.
 - `[MaxLength]`, `[MinLength]`, and `[Length]` report IL2026 by themselves in Native AOT apps, with either validator. For strings, `[StringLength]` reports none.
 - Difference from AzureFunctionsExtension: `Microsoft.Extensions.Validation` is part of the ASP.NET Core shared framework there, and the validator is registered in `Program.cs`.
 
@@ -492,7 +492,7 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 - Do not declare another `Main` or top-level statements in the project. With top-level statements, the compiler ignores the generated `Main` with only warning CS7022, so they are reported as ALE0604.
 - With `PublishAot`, set `OutputType` to `Exe`. Otherwise Native AOT produces a native library instead of the `bootstrap` executable, which is reported as ALE0605 (the package passes `PublishAot` to the Source Generator).
 - `provided.al2023` does not include ICU (`libicu`), so set `InvariantGlobalization` to `true` (or include ICU in the deployment package). Without it, the Lambda runtime client fails at startup with `Couldn't find a valid ICU package installed on the system` before any handler runs, and the runtime exits (`Runtime.ExitError`).
-- Publish on Amazon Linux 2023 (for example, in the `public.ecr.aws/sam/build-dotnet10` image) with the runtime identifier of the function's architecture (`linux-x64` or `linux-arm64`), and put the executable at the root of the deployment package as `bootstrap`. Rename the file, not the assembly: the handler names contain the assembly name, so `<AssemblyName>bootstrap</AssemblyName>` changes them to `bootstrap::...`.
+- Publish on Amazon Linux 2023 with the runtime identifier of the function's architecture (`linux-x64` or `linux-arm64`), and put the executable at the root of the deployment package as `bootstrap`. Rename the file, not the assembly: the handler names contain the assembly name, so `<AssemblyName>bootstrap</AssemblyName>` changes them to `bootstrap::...`.
 
 ### Local Testing
 

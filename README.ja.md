@@ -226,13 +226,13 @@ services.AddSingleton<IRequestValidator, ValidatableTypeRequestValidator>();
 ```
 
 - パッケージが `Microsoft.Extensions.Validation` を参照するので、その生成器がアプリで動きます。生成器は `AddValidation()` の呼び出しを差し替え、同じプロジェクトで `[ValidatableType]` を付けた型を、そのプロパティの型とともに足します。`AddValidation()` は、本文の型を宣言したプロジェクトで呼びます（たとえば `ServiceResolver` の `ConfigureServices()`）。
-- `[ValidatableType]` は .NET 10 では実験的な API で、`ASP0029` をエラーで報告します。上のように、プロジェクトで抑止します。
+- `[ValidatableType]` は .NET 10 では実験的な API で、`ASP0029` をエラーで報告します。上のように、プロジェクトで抑止します。.NET 11 では実験的ではありません。
 - 本文の型には `[ValidatableType]` を付け、`public` にします。生成器が足していない型（印がない、`public` でない、ほかのプロジェクトで宣言した、規則がない）を検証すると `InvalidOperationException`（`Validatable type is not found. type=[...]`）を投げるので、印の付け忘れには最初の要求で気づけます。規則のない本文・`string` の本文・コレクションの本文は `SkipValidate = true` にします。
 - 結果は、次の点で `DataAnnotationsRequestValidator` と違います。ほかの結果（メッセージ、順序、`[Display(Name)]`、`IValidatableObject`、基底の型のプロパティ）は同じです。
   - 入れ子のオブジェクトと、コレクションのプロパティの要素も検証します。結果のメンバー名は経路（`Child.Value`・`Items[1].Value`）です。
   - record の主コンストラクターの引数の属性を使います。`DataAnnotationsRequestValidator` は、プロパティの属性（`[property: Required]`）だけを使います。
   - `[JsonIgnore]` のプロパティは検証しません。
-  - 自分で `ValidationResult` を返さない型の属性では、既定のメッセージに最後に検証したプロパティの表示名が入り、結果のメンバー名もそのプロパティになります。
+  - .NET 10 では、自分で `ValidationResult` を返さない型の属性で、既定のメッセージに最後に検証したプロパティの表示名が入り、結果のメンバー名もそのプロパティになります。.NET 11 では `DataAnnotationsRequestValidator` と同じです。
 - `[MaxLength]`・`[MinLength]`・`[Length]` は、どちらの実装でも、属性そのものが Native AOT のアプリで IL2026 を出します。文字列なら `[StringLength]` は出しません。
 - AzureFunctionsExtension との違い: あちらでは `Microsoft.Extensions.Validation` が ASP.NET Core の共有フレームワークに含まれ、実装は `Program.cs` で登録します。
 
@@ -492,7 +492,7 @@ internal sealed partial class LambdaJsonContext : JsonSerializerContext;
 - プロジェクトに別の `Main` やトップレベルステートメントを書かないでください。トップレベルステートメントがあると、コンパイラーは警告 CS7022 を出すだけで生成した `Main` を無視するため、ALE0604 として報告します。
 - `PublishAot` を使うときは、`OutputType` を `Exe` にしてください。そうでないと Native AOT は `bootstrap` の実行ファイルではなくネイティブのライブラリを作るため、ALE0605 として報告します（パッケージが `PublishAot` を Source Generator に渡します）。
 - `provided.al2023` には ICU（`libicu`）が入っていないため、`InvariantGlobalization` を `true` にしてください（または ICU をデプロイパッケージに含めます）。ないと、ハンドラーが動く前に、Lambda のランタイムクライアントが起動時に `Couldn't find a valid ICU package installed on the system` で終わります（`Runtime.ExitError`）。
-- Amazon Linux 2023 の上（例: `public.ecr.aws/sam/build-dotnet10` のイメージの中）で、関数のアーキテクチャのランタイム識別子（`linux-x64` か `linux-arm64`）で発行し、実行ファイルをデプロイパッケージの直下に `bootstrap` という名前で置きます。名前を変えるのはファイルで、アセンブリではありません。ハンドラー名にはアセンブリ名が入るため、`<AssemblyName>bootstrap</AssemblyName>` にすると `bootstrap::...` に変わります。
+- Amazon Linux 2023 の上で、関数のアーキテクチャのランタイム識別子（`linux-x64` か `linux-arm64`）で発行し、実行ファイルをデプロイパッケージの直下に `bootstrap` という名前で置きます。名前を変えるのはファイルで、アセンブリではありません。ハンドラー名にはアセンブリ名が入るため、`<AssemblyName>bootstrap</AssemblyName>` にすると `bootstrap::...` に変わります。
 
 ### Local Testing
 
