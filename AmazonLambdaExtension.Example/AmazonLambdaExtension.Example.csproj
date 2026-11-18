@@ -7,7 +7,6 @@
     <AWSProjectType>Lambda</AWSProjectType>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <CodeAnalysisRuleSet>..\Analyzers.ruleset</CodeAnalysisRuleSet>
     <NoWarn>$(NoWarn);ASP0029</NoWarn>
   </PropertyGroup>
 
